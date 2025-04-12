@@ -1,0 +1,80 @@
+{
+    "personalData": {
+      "name": "John Doe",
+      "headline": "Software Developer",
+      "summary": "Experienced in web development",
+      "profile": "profile-url",
+      "address": "123 Main St, City",
+      "phone": "1234567890",
+      "email": "john@example.com",
+      "skill": "React, Node.js",
+      "hobbie": "Reading, Coding",
+      "language": "English, French",
+      "twitter": "john_twitter",
+      "linkedin": "john_linkedin",
+      "github": "john_github",
+      "location": "City, Country",
+      "website": "www.johndoe.com"
+    },
+    "projects": [
+      {
+        "name": "Portfolio Website",
+        "description": "Personal website",
+        "date": "2023",
+        "website": "www.portfolio.com"
+      }
+    ],
+    "educations": [
+      {
+        "institute": "XYZ University",
+        "areaofstudy": "Computer Science",
+        "typeofstudy": "Bachelors",
+        "dateRange": "2015-2019",
+        "score": "3.8 GPA"
+      }
+    ],
+    "certificates": [
+      {
+        "title": "AWS Certified",
+        "awarder": "Amazon",
+        "date": "2022",
+        "link": "www.aws.com"
+      }
+    ],
+    "experiences": [
+      {
+        "company": "Tech Corp",
+        "position": "Software Engineer",
+        "dateRange": "2020-2024",
+        "location": "Remote",
+        "description": "Developed web applications"
+      }
+    ],
+    "skills": [
+      {
+        "heading": "Frontend",
+        "items": "React, JavaScript"
+      },
+      {
+        "heading": "Backend",
+        "items": "Node.js, JavaScript,Mongodb"
+      }
+    ],
+    "achievements": [
+      {
+        "name": "Hackathon Winner",
+        "details": "Won XYZ Hackathon"
+      }
+    ],
+    "languages": [
+      {
+        "heading": "English",
+        "option": "Fluent"
+      },
+      {
+        "heading":"Bengali",
+        "option":"Excelent"
+      }
+    ]
+  }
+  
