@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Local settings
+.next
+
+# Logs
+logs/
+*.log
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# npm
+npm-debug.log*
+package-lock.json
+
+# Optional: Ignore compiled output for TypeScript or other transpilers
+out/
+dist-ssr/
+*.js.map.next
