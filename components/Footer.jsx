@@ -8,10 +8,10 @@ const Footer = () => {
   const footerRef = useRef(null);
   const [isInView, setIsInView] = useState(false);
   const socialLinks = [
-    { name: "instagram", color: "hover:text-pink-500",link:"https://www.instagram.com/jobform.automator_offical" },
-    { name: "facebook", color: "hover:text-blue-600",link:"https://www.facebook.com/people/Job-Tips/61556365446390/" },
-    { name: "linkedin", color: "hover:text-blue-400",link:"https://www.linkedin.com/company/aikingsolutions/posts/?feedView=all" },
-    { name: "youtube", color: "hover:text-red-500",link:"https://www.youtube.com/@JobFormAutomator" },
+    { name: "instagram", color: "hover:text-pink-500", link: "https://www.instagram.com/jobform.automator_offical" },
+    { name: "facebook", color: "hover:text-blue-600", link: "https://www.facebook.com/people/Job-Tips/61556365446390/" },
+    { name: "linkedin", color: "hover:text-blue-400", link: "https://www.linkedin.com/company/aikingsolutions/posts/?feedView=all" },
+    { name: "youtube", color: "hover:text-red-500", link: "https://www.youtube.com/@JobFormAutomator" },
   ];
 
   useEffect(() => {
@@ -43,9 +43,9 @@ const Footer = () => {
       ${isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Logo and Social Links */}
-          <div className="col-span-2 sm:col-span-2 lg:col-span-1 flex flex-col items-start space-y-6">
+          <div className="sm:col-span-2 lg:col-span-1 flex flex-col items-center space-y-6">
             <Image
               src="/images/Logo.png"
               alt="Logo"
@@ -55,13 +55,15 @@ const Footer = () => {
             />
 
             <div className="flex flex-wrap gap-5">
-              {socialLinks.map(({ name, color }) => (
+              {socialLinks.map(({ name, color, link }) => (
                 <a
                   key={name}
-                  href="#"
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={`Follow us on ${name}`}
                   className={`text-gray-400 transform hover:scale-110 
-        transition-all duration-300 ease-out hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] ${color}`}
+                  transition-all duration-300 ease-out hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] ${color}`}
                 >
                   {name === "instagram" && <FaInstagram size={22} />}
                   {name === "facebook" && <FaFacebook size={22} />}
@@ -70,7 +72,7 @@ const Footer = () => {
                 </a>
               ))}
             </div>
-            <p className="mt-4 text-sm text-gray-400 font-light">
+            <p className="mt-4 text-sm text-gray-400 font-light text-center">
               © 2024 JobFormAutomator. <span className="hidden sm:inline">All rights reserved.</span>
             </p>
           </div>

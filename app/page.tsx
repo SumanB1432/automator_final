@@ -6,7 +6,7 @@ import HeroSection from '@/components/home/HeroSection';
 import HowItWorks from '@/components/home/HowItWorks';
 import ResumeATSChecker from '@/components/home/ResumeATSChecker';
 import PricingSection from '@/components/pricing/PricingSection';
-import TestimonialSection from "../components/TestimonialSection";
+import TestimonialSection from "../components/home/TestimonialSection";
 import JobSeeker from "../components/JobSeeker";
 import VideoSection from "../components/home/video";
 import { useRouter } from "next/navigation";

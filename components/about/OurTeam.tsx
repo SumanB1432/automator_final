@@ -4,15 +4,16 @@ interface TeamCardProps {
   name: string;
   role: string;
   linkedin: string;
+  img : string;
 
 }
 
-const TeamCard = ({ name, role, linkedin }: TeamCardProps) => (
+const TeamCard = ({ name, role, linkedin,img }: TeamCardProps) => (
   <div className="rounded-[24px] text-center pb-8 border border-white/10 bg-white/5 animate-fade-in-up p-6">
     <div className="relative w-32 h-32 mx-auto">
       <Image
-        src="/images/user.png"
-        alt={name}
+        src={img} 
+        alt={linkedin} 
         fill
         sizes="(max-width: 768px) 100px, 128px"
         className="rounded-full object-cover"
@@ -64,17 +65,19 @@ export default function OurTeam() {
           <TeamCard
             name="Saurabh Belote"
             role="CEO & Founder"
-            linkedin="https://www.linkedin.com/in/saurabh-belote/"         />
+            linkedin="https://www.linkedin.com/in/saurabh-belote/" 
+            img="/images/team1.jpg"        />
           <TeamCard
             name="Suman Bera"
             role="Lead Product Engineer"
             linkedin="https://www.linkedin.com/in/suman-bera-816642191/"
-          
+            img="/images/team2.jpg"
           />
           <TeamCard
             name="Pawan Kumar"
             role="Software Developer"
             linkedin="https://www.linkedin.com/in/pawan-yadav-022b76266/"
+            img="/images/team3.jpg"
            
           />
         </div>

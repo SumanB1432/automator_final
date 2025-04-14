@@ -21,7 +21,7 @@ const ReferralStats = () => {
       </h2>
 
       <h3 className="font-raleway font-bold text-2xl sm:text-3xl md:text-4xl text-text-title mb-6 sm:mb-8 tracking-wide transition-colors duration-300 hover:text-primary-accent px-2">
-        An exclusive opportunity to earn cash when you share Jobform Automator
+        An exclusive opportunity to earn rewards when you share Jobform Automator
       </h3>
 
       {/* Card Grid */}
@@ -32,10 +32,10 @@ const ReferralStats = () => {
             <Gift size={32} className="text-white" />
           </div>
           <h3 className="font-raleway text-base sm:text-lg font-semibold mb-2 text-[#ECF1F0]">
-            Receive $9* per user
+            Earn with Us: 50% Commission
           </h3>
           <p className="font-roboto text-sm text-[#B6B6B6] leading-relaxed">
-            Get $9 for each new user you refer who installs our Chrome extension and automates their job form applications.
+            Join our affiliate program and get 50% commission for every referral You’ll receive.
           </p>
         </div>
 
@@ -45,10 +45,10 @@ const ReferralStats = () => {
             <Mail size={32} className="text-white" />
           </div>
           <h3 className="font-raleway text-base sm:text-lg font-semibold mb-2 text-[#ECF1F0]">
-            Newsletter & exclusive offers
+            50% off when you share on LinkedIn
           </h3>
           <p className="font-roboto text-sm text-[#B6B6B6] leading-relaxed">
-            Be the first to know about new features, updates, and special offers you can share with your audience.
+          Just share a LinkedIn post about JobForm Automator.Then, email us the post link to receive 50% off your subscription.
           </p>
         </div>
 
@@ -58,10 +58,10 @@ const ReferralStats = () => {
             <Zap size={32} className="text-white" />
           </div>
           <h3 className="font-raleway text-base sm:text-lg font-semibold mb-2 text-[#ECF1F0]">
-            Free access to auto apply 10 jobs for 7 days
+            Unlock Free Premium Access!
           </h3>
           <p className="font-roboto text-sm text-[#B6B6B6] leading-relaxed">
-            Every new referral gets access to auto-apply to 20 jobs daily for 7 days, giving them a powerful jumpstart in their job search.
+          Once they sign up and log in, email us to get 1 month of premium access — free.
           </p>
         </div>
       </div>

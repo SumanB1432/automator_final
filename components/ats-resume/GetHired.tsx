@@ -425,12 +425,13 @@ export default function GetHired() {
   // Keep analyzeResumeForATS and analyzeResumeForSkill functions as they are
 
   return (
-    <div className={`bg-gradient-to-b font-sans from-[#11011E] via-[#35013e] to-[#11011E] bg-[#11011E] text-white pt-16 px-6 md:px-16 lg:px-20 ${isModalOpen ? "pointer-events-none" : "pointer-events-auto"}`}>
-      <div className="bg-[#FFFFFF05] rounded-xl px-10 py-16 border-[1.5px] border-[#ffffff17] max-w-7xl mx-auto flex flex-col lg:flex-row justify-between animate-fadeIn">
+    <div className={`bg-gradient-to-b font-sans from-[#11011E] via-[#35013e] to-[#11011E] bg-[#11011E] text-white pt-16 px-4 sm:px-6 md:px-16 lg:px-20 ${isModalOpen ? "pointer-events-none" : "pointer-events-auto"}`}>
+      <div className="bg-[#FFFFFF05] rounded-xl px-6 sm:px-8 md:px-10 py-12 sm:py-14 md:py-16 border-[1.5px] border-[#ffffff17] max-w-7xl mx-auto flex flex-col lg:flex-row justify-between animate-fadeIn">
+
         {/* Left Content */}
-        <div className="lg:w-1/2 space-y-6 animate-slideInLeft">
+        <div className="lg:w-1/2 space-y-5 sm:space-y-6 animate-slideInLeft">
           <div className="flex items-center space-x-2">
-            <span className="bg-[#FFFFFF05] border-[1px] border-[#ffffff17] px-3 py-1 rounded-full flex items-center">
+            <span className="bg-[#FFFFFF05] border border-[#ffffff17] px-3 py-1 rounded-full flex items-center text-sm">
               {Array(5)
                 .fill()
                 .map((_, index) => (
@@ -441,23 +442,28 @@ export default function GetHired() {
                     className="w-3 h-3 mr-1"
                   />
                 ))}
-              <span>4.5 star rated</span>
+              <span className="ml-1">4.5 star rated</span>
             </span>
           </div>
-          <h1 className="text-4xl font-bold leading-tight">Only rejections? <br />  Resume and skills to blame.</h1>
-          <p className="text-gray-300 text-lg">
-            You&apos;re not getting rejected—you&rsquo;re being filtered out. Fix your resume, Work on right skills, and pass the ATS with one click.
+
+          <h1 className="font-bold leading-tight text-3xl sm:text-4xl lg:text-5xl">
+            Only rejections? <br /> Resume and skills to blame.
+          </h1>
+
+          <p className="text-gray-300 text-sm sm:text-base lg:text-base">
+            You're not getting rejected—you're being filtered out. Fix your resume, work on right skills, and pass the ATS with one click.
           </p>
-          <div className="flex gap-x-4">
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
-              className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
+              className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
               onClick={openModalForBuild}
               disabled={buildLoading}
             >
               {buildLoading ? "Building..." : "Build your Resume"}
             </button>
             <button
-              className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
+              className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
               onClick={openModalForAnalyze}
               disabled={analyzeLoading}
             >
@@ -465,39 +471,48 @@ export default function GetHired() {
             </button>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="flex -space-x-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center">
               {["Img1.png", "Img2.png", "Img3.png", "Img4.png"].map((img, index) => (
                 <img
                   key={index}
                   src={`images/${img}`}
                   alt={`Avatar ${index + 1}`}
-                  className="w-10 h-10 rounded-full border border-gray-700 transition-all duration-300 hover:scale-110"
+                  className={`w-6 sm:w-8 h-6 sm:h-8 rounded-full border border-gray-700 object-cover ${index > 0 ? '-ml-1 sm:-ml-2' : ''}`}
+                  style={{ zIndex: 5 - index }}
                 />
               ))}
             </div>
-            <span className="text-sm text-gray-300">and 350+ jobseekers using JobForm Automator</span>
+
+            {/* Divider */}
+            <div className="px-2 sm:px-3 py-1 sm:py-2 mx-1 sm:mx-2">
+              <div className="h-5 sm:h-6 w-px bg-gray-600 opacity-50" />
+            </div>
+            {/* Text */}
+            <span className="text-xs sm:text-sm text-gray-300 leading-none self-center">
+              and 350+ jobseekers using JobForm Automator
+            </span>
           </div>
+
+
         </div>
 
         {/* Right Image Section */}
-        <div className="mt-12 lg:mt-0 animate-slideInRight">
-          <div>
-            <img
-              src="/images/resume.png"
-              alt="Resume 1"
-              className="w-96 transition-all duration-300 transform hover:scale-105"
-            />
-          </div>
+        <div className="mt-10 sm:mt-12 lg:mt-0 animate-slideInRight flex justify-center lg:justify-end">
+          <img
+            src="/images/resume.png"
+            alt="Resume Preview"
+            className="w-64 sm:w-80 md:w-96 transition-all duration-300 transform hover:scale-105"
+          />
         </div>
       </div>
+
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
         loading={actionType === "build" ? buildLoading : analyzeLoading}
         inputValue={inputValue}
         setInputValue={setInputValue}
-        resumeText={pdfText}
         error={error}
         file={file}
         setFile={setFile}
@@ -508,4 +523,5 @@ export default function GetHired() {
       />
     </div>
   );
+
 }

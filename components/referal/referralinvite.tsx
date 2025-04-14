@@ -61,10 +61,10 @@ const ReferralInvite = () => {
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="text-center md:text-left">
           <h3 className="font-raleway font-bold text-white text-2xl sm:text-3xl md:text-4xl text-text-title mb-4 tracking-wide transition-colors duration-300 hover:text-primary-accent">
-            Earn Money While You Job Hunt!
+          🎁 Get 1 Month Premium Free
           </h3>
           <p className="font-roboto text-sm sm:text-base md:text-lg text-white text-text-body mb-6 max-w-md mx-auto md:mx-0">
-            Refer a friend and earn $9 for every successful referral—no limit, just extra cash while you search!
+          Refer 3 friends — when they log in, email us and get 1 month premium free.
           </p>
           <button
             onClick={handleStartClick}

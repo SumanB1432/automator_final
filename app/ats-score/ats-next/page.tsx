@@ -21,11 +21,10 @@ const ATSResumeEvaluation = () => {
     }
 
     if (storedAtsData) {
-      console.log(storedAtsData)
       try {
         storedAtsData = JSON.parse(storedAtsData);
         // @ts-ignore
-        setAtsData(storedAtsData);
+        setAtsData(JSON.parse(storedAtsData));
 
       } catch (error) {
         console.error("Error parsing atsData from localStorage:", error);
@@ -47,7 +46,6 @@ const ATSResumeEvaluation = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   console.log("skill Data", skillData)
-  console.log("atsData", atsData)
 
   useEffect(() => {
 
@@ -264,10 +262,11 @@ const ATSResumeEvaluation = () => {
             Actionable Suggestions
           </h2>
           <div className="space-y-6">
-            {Object.entries(atsData.suggestions || {}).map(([key, items]: [any,any], index) => (
+            {Object.entries(atsData.suggestion).map(([key, items]:[any,any], index) => (
               <div key={index}>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-medium text-white capitalize">{key}</h3>
+                  {/* <StarRating rating={3} /> */}
                 </div>
                 <ul className="space-y-2">
                   {items.map((item: string, i: number) => (
@@ -282,7 +281,6 @@ const ATSResumeEvaluation = () => {
                 </ul>
               </div>
             ))}
-
 
           </div>
           <button className="mt-8 px-6 py-3 bg-[#0FAE96] text-white font-semibold rounded-xl shadow-[0_4px_20px_rgba(15,174,150,0.5)] hover:bg-[#0E8C77] hover:scale-105 hover:shadow-[0_6px_30px_rgba(15,174,150,0.7)] transition-all duration-300 transform relative overflow-hidden">

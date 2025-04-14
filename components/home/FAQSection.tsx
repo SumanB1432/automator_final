@@ -37,10 +37,10 @@ const FAQSection = () => {
   return (
     <section className="py-16 px-6 md:px-16 lg:px-20 text-white bg-[#11011E]">
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-3xl md:text-3xl font-raleway font-semibold mb-3 text-[#ECF1F0]">
+        <h2 className="text-2xl sm:text-3xl font-raleway font-semibold mb-3 text-[#ECF1F0]">
           Your questions answered
         </h2>
-        <p className="text-lg font-roboto text-[#B6B6B6] mb-8">
+        <p className="text-sm sm:text-lg font-roboto text-[#B6B6B6] mb-8">
           Explore our FAQ section to learn more.
         </p>
       </div>
@@ -59,11 +59,11 @@ const FAQSection = () => {
           >
             <button
               onClick={() => toggleFAQ(index)}
-              className="w-full flex justify-between items-center text-left text-xl font-raleway text-[#ECF1F0] hover:text-[#0FAE96] transition-colors duration-500 ease-in-out"
+              className="w-full flex justify-between items-center text-left text-base sm:text-lg font-raleway text-[#ECF1F0] hover:text-[#0FAE96] transition-colors duration-500 ease-in-out"
             >
               {faq.question}
               <span
-                className={`ml-2 transform transition-transform duration-500 ease-in-out text-xl font-raleway text-[#0FAE96] ${
+                className={`ml-2 transform transition-transform duration-500 ease-in-out text-base sm:text-lg font-raleway text-[#0FAE96] ${
                   activeIndex === index ? "rotate-180" : "rotate-0"
                 }`}
               >
@@ -76,7 +76,7 @@ const FAQSection = () => {
               }`}
             >
               {activeIndex === index && (
-                <p className="mt-4 font-roboto text-base text-[#B6B6B6]">
+                <p className="mt-4 font-roboto text-xs sm:text-sm text-[#B6B6B6]">
                   {faq.answer}
                 </p>
               )}
