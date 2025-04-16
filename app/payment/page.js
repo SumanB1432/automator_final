@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-import { get, ref,getDatabase} from "firebase/database";
+import { get, ref, getDatabase, update } from "firebase/database";
 import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
 import { onAuthStateChanged } from "firebase/auth";
@@ -51,7 +51,7 @@ const Payment = () => {
         setCountry(data.country);
         setCountryname(data.country_name);
         setCurrency(data.country === "IN" ? "INR" : "USD");
-        setAmount(data.country === "IN" ? 499 : 20);
+        setAmount(data.country === "IN" ? 1 : 20);
       });
 
     // Load Razorpay script
@@ -83,7 +83,9 @@ const Payment = () => {
       }
     );
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+   
     const order = await response.json();
+   
     initiateRazorpay(order, currency);
   };
 
@@ -107,9 +109,52 @@ const Payment = () => {
           );
           await validateRes.json().then((status) => {
             if (status.msg === "success") {
-              toast.success("Payment Successful!");
+                function notifyExtensionOnPayment(uid) {
+                    console.log("payment successful", "event listener call");
+        
+                    const event = new CustomEvent('paymentSuccessfull', { detail: { uid } });
+                    document.dispatchEvent(event);
+                }
+        
+                console.log(auth?.currentUser?.uid, "uid");
+                notifyExtensionOnPayment(auth?.currentUser?.uid);
+        
+                // **REFERRAL CODE UPDATE**
+                const currentDate = new Date();
+                const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
+        
+                const getReferralCodeFromCookie = () => {
+                    const cookie = document.cookie.split('; ').find(row => row.startsWith('referral='));
+                    return cookie ? cookie.split('=')[1] : null;
+                };
+        
+                const referralCode = getReferralCodeFromCookie();
+                console.log(auth.currentUser, "user");
+                const currentUser = auth?.currentUser?.uid;
+        
+                // Path: /referrals/<referralCode>/<currentUser>
+                const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
+        
+                // Update amount and paymentDate
+                update(userRef, {
+                    amount: final_amount / 100, // Set the new amount
+                    paymentDate: formattedDateTime // Set the payment date
+                })
+                .then(() => {
+                    console.log("Amount and payment date updated successfully!");
+                })
+                .catch((error) => {
+                    console.error("Error updating data:", error);
+                });
+                const paymentRef = ref(db, `users/${user.uid}/Payment`);
+  
+                // ✅ Only update email_count
+                 update(paymentRef, {
+                  email_count: 0,
+                });
             }
-          });
+        });
+        
         },
         theme: { color: "#4CAF50" },
       };
@@ -237,7 +282,7 @@ const Payment = () => {
                     key={idx}
                     onClick={() => window.open(href, "_blank")}
                     whileHover={{
-                      scale: 1.2, rotate: 5, color:`${color}`
+                      scale: 1.2, rotate: 5, color: `${color}`
                     }}
                     transition={{ duration: 0.3 }}
                     className="text-[#B6B6B6]"
