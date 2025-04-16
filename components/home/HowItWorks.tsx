@@ -65,7 +65,7 @@ const HowItWorks = () => {
       description:
         "Send personalized, AI-written emails directly to recruiters. Stand out in crowded inboxes while you focus on what matters.",
       buttonText: "Send Auto Email",  
-      buttonLink: "http://localhost:3000//send-auto-mail",
+      buttonLink: "https://www.jobformautomator.com/send-auto-mail",
       image: emailImg,
     },
     {
@@ -73,6 +73,8 @@ const HowItWorks = () => {
       title: "📄 Create the Perfect Resume in Seconds",
       description:
         "Generate a keyword-optimized ATS resume that gets through filters. No guesswork—just one click to a job-winning document.",
+      buttonText:"Create Auto Resume",
+      buttonLink:"https://www.jobformautomator.com/atsresume",
       image: resumeImg,
     },
     {
@@ -80,6 +82,8 @@ const HowItWorks = () => {
       title: "💡 Know the Skills. Close the Gaps. Get Hired.",
       description:
         "Discover which skills you're missing—based on real-time job market data. Learn them for free. Improve your chances instantly. Plus: Our ATS checker tells you exactly why your resume may be getting rejected.",
+        buttonText:"Skills Suggestion",
+        buttonLink:"https://www.jobformautomator.com/atsresume",
       image: skillsImg,
     },
   ];

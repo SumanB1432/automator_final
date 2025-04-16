@@ -44,6 +44,8 @@ const EmailPermission = () => {
             setIsGranted(false);
           } else {
             setIsGranted(true);
+            localStorage.setItem("emailPermissionGranted", "true");
+            localStorage.setItem("emailVerified", "true");
             setTimeout(() => {
               window.location.href = "/send-auto-mail";
             }, 2000);

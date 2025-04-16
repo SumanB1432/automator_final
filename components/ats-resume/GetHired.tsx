@@ -516,6 +516,7 @@ export default function GetHired() {
         error={error}
         file={file}
         setFile={setFile}
+        resumeText={pdfText}
         handleFileChange={handleFileChange}
         handelDataSubmit={handelDataSubmit}
         handleGetExistingResume={handleGetExistingResume}
