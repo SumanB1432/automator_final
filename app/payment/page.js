@@ -15,6 +15,7 @@ import master from "./mastercard.svg";
 import visa from "./visa.svg"
 import rupay from "./rupay.svg";
 import upi from "./upi.svg"
+const db = getDatabase(app)
 
 
 const Payment = () => {
@@ -51,7 +52,7 @@ const Payment = () => {
         setCountry(data.country);
         setCountryname(data.country_name);
         setCurrency(data.country === "IN" ? "INR" : "USD");
-        setAmount(data.country === "IN" ? 1 : 20);
+        setAmount(data.country === "IN" ? 499 : 20);
       });
 
     // Load Razorpay script
@@ -99,72 +100,65 @@ const Payment = () => {
         description: "Subscription",
         order_id: order.id,
         handler: async function (response) {
-          const validateRes = await fetch(
-            "https://us-central1-browser-extension-01.cloudfunctions.net/app/order/validate",
-            {
-              method: "POST",
-              body: JSON.stringify(response),
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-          await validateRes.json().then((status) => {
-            if (status.msg === "success") {
-                function notifyExtensionOnPayment(uid) {
-                    console.log("payment successful", "event listener call");
-        
-                    const event = new CustomEvent('paymentSuccessfull', { detail: { uid } });
-                    document.dispatchEvent(event);
-                }
-        
-                console.log(auth?.currentUser?.uid, "uid");
-                notifyExtensionOnPayment(auth?.currentUser?.uid);
-        
-                // **REFERRAL CODE UPDATE**
-                const currentDate = new Date();
-                const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
-        
-                const getReferralCodeFromCookie = () => {
-                    const cookie = document.cookie.split('; ').find(row => row.startsWith('referral='));
-                    return cookie ? cookie.split('=')[1] : null;
-                };
-        
-                const referralCode = getReferralCodeFromCookie();
-                console.log(auth.currentUser, "user");
-                const currentUser = auth?.currentUser?.uid;
-        
-                // Path: /referrals/<referralCode>/<currentUser>
-                const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
-        
-                // Update amount and paymentDate
-                update(userRef, {
-                    amount: final_amount / 100, // Set the new amount
-                    paymentDate: formattedDateTime // Set the payment date
-                })
-                .then(() => {
-                    console.log("Amount and payment date updated successfully!");
-                })
-                .catch((error) => {
-                    console.error("Error updating data:", error);
-                });
-                const paymentRef = ref(db, `users/${user.uid}/Payment`);
+          // Fire validation in the background (optional but recommended)
+          fetch("https://us-central1-browser-extension-01.cloudfunctions.net/app/order/validate", {
+            method: "POST",
+            body: JSON.stringify(response),
+            headers: { "Content-Type": "application/json" },
+          }).catch((err) => {
+            console.error("Payment validation failed:", err);
+          });
   
-                // ✅ Only update email_count
-                 update(paymentRef, {
-                  email_count: 0,
-                });
-            }
-        });
-        
+          // ✅ Proceed with post-payment actions immediately
+          const notifyExtensionOnPayment = (uid) => {
+            const event = new CustomEvent("paymentSuccessfull", { detail: { uid } });
+            document.dispatchEvent(event);
+          };
+  
+          const currentUser = auth?.currentUser?.uid;
+          notifyExtensionOnPayment(currentUser);
+  
+          // Referral update
+          const currentDate = new Date();
+          const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
+  
+          const getReferralCodeFromCookie = () => {
+            const cookie = document.cookie.split("; ").find((row) => row.startsWith("referral="));
+            return cookie ? cookie.split("=")[1] : null;
+          };
+  
+          const referralCode = getReferralCodeFromCookie();
+          const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
+  
+          update(userRef, {
+            amount: amount, // Or finalAmount / 100 based on your logic
+            paymentDate: formattedDateTime,
+          })
+            .then(() => {
+              console.log("Referral info updated.");
+            })
+            .catch((error) => {
+              console.error("Referral update error:", error);
+            });
+  
+          // Reset email count
+          const paymentRef = ref(db, `user/${currentUser}/Payment`);
+          update(paymentRef, {
+            email_count: 0,
+          }).then(() => {
+            console.log("Email count reset.");
+          });
         },
         theme: { color: "#4CAF50" },
       };
-
+  
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
     } else {
       toast.error("Razorpay SDK failed to load. Please check your internet connection.");
     }
   };
+  
 
 
   const applyPromocode = async (e) => {
