@@ -10,6 +10,8 @@ export default {
     extend: {
       colors: {
         primary: '#4F46E5', // Example: Indigo-600
+        background: '#11011E', // Main Background (Dark Purple)
+
       },
     },
   },

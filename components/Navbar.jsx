@@ -39,7 +39,7 @@ const Navbar = () => {
           let fname = snapshot.val()?.fname;
           let lname = snapshot.val()?.lname;
           let user = "";
-          console.log(fname, lname, "navbar");
+        
           if (Name) {
             user = Name;
             const cleanedName = user.replace(/\s/g, "");
