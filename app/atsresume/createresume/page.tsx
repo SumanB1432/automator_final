@@ -78,6 +78,135 @@ const CreateResume: React.FC = () => {
 
   const geminiClient = new GoogleGenerativeAI(apiKey);
 
+  async function analyzeResumeForSkill() {
+    // console.log("from analyzer",);
+
+    const prompt = `You are an AI that generates structured resume data in JSON format. Below, I will provide previous resume data and a job description. Your task is to carefully analyze both, understand the job requirements, and update the resume while ensuring that all fields remain correctly structured.
+
+### Instructions:
+1. **Retain personal details exactly as they are** without any modifications.
+2. **Modify the 'skills' section** to align with the job description while maintaining the structure. Ensure that all skills are grouped under relevant headings and formatted as in the example JSON.
+3. **Update the 'experiences' section** by emphasizing responsibilities and achievements relevant to the job description. Retain the same structure and formatting.
+4. **Preserve the JSON structure** exactly as shown in the example, ensuring that key names remain unchanged.
+5. **Ensure uniformity in field values** (e.g., the format of dates, lists, objects) so that the modified resume is consistent with the example structure.
+
+### Input Data:
+**Previous Resume Data:**
+${previous_resume_data}
+
+**Job Description:**
+${job_description}
+
+### Output Format:
+Return the updated resume in **JSON format** ensuring all key names, structures, and data formats are identical to the following example:
+
+\ \ \json
+    {
+      "personalData": {
+        "name": "John Doe",
+          "headline": "Software Developer",
+            "summary": "Experienced in web development",
+              "profile": "profile-url",
+                "address": "123 Main St, City",
+                  "phone": "1234567890",
+                    "email": "john@example.com",
+                      "skill": "React, Node.js",
+                        "hobbie": "Reading, Coding",
+                          "language": "English, French",
+                            "twitter": "john_twitter",
+                              "linkedin": "john_linkedin",
+                                "github": "john_github",
+                                  "location": "City, Country",
+                                    "website": "www.johndoe.com"
+      },
+      "projects": [
+        {
+          "name": "Portfolio Website",
+          "description": "Personal website",
+          "date": "2023",
+          "website": "www.portfolio.com"
+        }
+      ],
+        "educations": [
+          {
+            "institute": "XYZ University",
+            "areaofstudy": "Computer Science",
+            "typeofstudy": "Bachelors",
+            "dateRange": "2015-2019",
+            "score": "3.8 GPA"
+          }
+        ],
+          "certificates": [
+            {
+              "title": "AWS Certified",
+              "awarder": "Amazon",
+              "date": "2022",
+              "link": "www.aws.com"
+            }
+          ],
+            "experiences": [
+              {
+                "company": "Tech Corp",
+                "position": "Software Engineer",
+                "dateRange": "2020-2024",
+                "location": "Remote",
+                "description": "Developed web applications"
+              }
+            ],
+              "skills": [
+                {
+                  "heading": "Frontend",
+                  "items": "React, JavaScript"
+                },
+                {
+                  "heading": "Backend",
+                  "items": "Node.js, JavaScript, Mongodb"
+                }
+              ],
+                "achievements": [
+                  {
+                    "name": "Hackathon Winner",
+                    "details": "Won XYZ Hackathon"
+                  }
+                ],
+                  "languages": [
+                    {
+                      "heading": "English",
+                      "option": "Fluent"
+                    }
+                  ]
+    }
+                  \ \ \
+    `
+
+
+
+    try {
+      const model = geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const response = await model.generateContent(prompt);
+      const textResponse = response?.response?.candidates[0]?.content?.parts[0]?.text;
+
+      if (!textResponse) {
+        return { message: "Empty response from Gemini API." };
+      }
+      console.log("response", textResponse)
+
+      const regex = /```json([\s\S]*?)```/;
+      const match = textResponse.match(regex);
+
+      if (!match) {
+        return { message: "No valid JSON output found in Gemini API response." };
+      }
+      console.log("match", match[1])
+      const parsedJSON = JSON.parse(match[1]);
+      setResumeData(parsedJSON)
+      return parsedJSON;
+    } catch (error) {
+      console.error("Error processing Gemini API response:", error);
+      return { message: "Failed to process Gemini API response.", error: error.message };
+    }
+  }
+
   useEffect(() => {
     // if (!uid) return;
 
@@ -101,134 +230,7 @@ const CreateResume: React.FC = () => {
 
     // fetchDataAsync();
 
-    async function analyzeResumeForSkill() {
-      // console.log("from analyzer",);
-
-      const prompt = `You are an AI that generates structured resume data in JSON format. Below, I will provide previous resume data and a job description. Your task is to carefully analyze both, understand the job requirements, and update the resume while ensuring that all fields remain correctly structured.
-
-### Instructions:
-1. **Retain personal details exactly as they are** without any modifications.
-2. **Modify the 'skills' section** to align with the job description while maintaining the structure. Ensure that all skills are grouped under relevant headings and formatted as in the example JSON.
-3. **Update the 'experiences' section** by emphasizing responsibilities and achievements relevant to the job description. Retain the same structure and formatting.
-4. **Preserve the JSON structure** exactly as shown in the example, ensuring that key names remain unchanged.
-5. **Ensure uniformity in field values** (e.g., the format of dates, lists, objects) so that the modified resume is consistent with the example structure.
-
-### Input Data:
-**Previous Resume Data:**
-${previous_resume_data}
-
-**Job Description:**
-${job_description}
-
-### Output Format:
-Return the updated resume in **JSON format** ensuring all key names, structures, and data formats are identical to the following example:
-
-\ \ \json
-      {
-        "personalData": {
-          "name": "John Doe",
-            "headline": "Software Developer",
-              "summary": "Experienced in web development",
-                "profile": "profile-url",
-                  "address": "123 Main St, City",
-                    "phone": "1234567890",
-                      "email": "john@example.com",
-                        "skill": "React, Node.js",
-                          "hobbie": "Reading, Coding",
-                            "language": "English, French",
-                              "twitter": "john_twitter",
-                                "linkedin": "john_linkedin",
-                                  "github": "john_github",
-                                    "location": "City, Country",
-                                      "website": "www.johndoe.com"
-        },
-        "projects": [
-          {
-            "name": "Portfolio Website",
-            "description": "Personal website",
-            "date": "2023",
-            "website": "www.portfolio.com"
-          }
-        ],
-          "educations": [
-            {
-              "institute": "XYZ University",
-              "areaofstudy": "Computer Science",
-              "typeofstudy": "Bachelors",
-              "dateRange": "2015-2019",
-              "score": "3.8 GPA"
-            }
-          ],
-            "certificates": [
-              {
-                "title": "AWS Certified",
-                "awarder": "Amazon",
-                "date": "2022",
-                "link": "www.aws.com"
-              }
-            ],
-              "experiences": [
-                {
-                  "company": "Tech Corp",
-                  "position": "Software Engineer",
-                  "dateRange": "2020-2024",
-                  "location": "Remote",
-                  "description": "Developed web applications"
-                }
-              ],
-                "skills": [
-                  {
-                    "heading": "Frontend",
-                    "items": "React, JavaScript"
-                  },
-                  {
-                    "heading": "Backend",
-                    "items": "Node.js, JavaScript, Mongodb"
-                  }
-                ],
-                  "achievements": [
-                    {
-                      "name": "Hackathon Winner",
-                      "details": "Won XYZ Hackathon"
-                    }
-                  ],
-                    "languages": [
-                      {
-                        "heading": "English",
-                        "option": "Fluent"
-                      }
-                    ]
-      }
-                    \ \ \
-      `
-
-
-
-      try {
-        const model = geminiClient.getGenerativeModel({ model: "gemini-2.0-flash" });
-        const response = await model.generateContent(prompt);
-        const textResponse = response?.response?.candidates[0]?.content?.parts[0]?.text;
-
-        if (!textResponse) {
-          return { message: "Empty response from Gemini API." };
-        }
-        console.log("response", textResponse)
-
-        const regex = /```json([\s\S]*?)```/;
-        const match = textResponse.match(regex);
-
-        if (!match) {
-          return { message: "No valid JSON output found in Gemini API response." };
-        }
-        console.log("match", match[1])
-        const parsedJSON = JSON.parse(match[1]);
-        setResumeData(parsedJSON)
-        return parsedJSON;
-      } catch (error) {
-        console.error("Error processing Gemini API response:", error);
-        return { message: "Failed to process Gemini API response.", error: error.message };
-      }
-    }
+   
 
     analyzeResumeForSkill()
     // setResumeData(sampleData);
@@ -236,9 +238,30 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
   }, [job_description, previous_resume_data, apiKey]);
 
   useEffect(() => {
-    setResumeData(resumeData);
-    fillResumeData(resumeData)
-  }, [resumeData,geminiClient])
+    let isInitialized = false;
+  
+    const initializeData = async () => {
+      if (isInitialized || !apiKey || !job_description || !previous_resume_data) return;
+  
+      console.log("Initializing resume data with:", { apiKey, job_description, previous_resume_data });
+      isInitialized = true;
+      const result = await analyzeResumeForSkill();
+      if (result && typeof result !== "string" && !("message" in result)) {
+        setResumeData(result);
+      } else {
+        console.error("Failed to process resume data:", result);
+      }
+    };
+  
+    initializeData();
+  }, [apiKey, job_description, previous_resume_data]);
+  
+  useEffect(() => {
+    if (resumeData) {
+      console.log("Final Resume Data set:", resumeData);
+      fillResumeData(resumeData);
+    }
+  }, [resumeData]);
 
   const handlePrint = useReactToPrint({
     contentRef,
@@ -268,13 +291,16 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
 
       {/* Main Resume Content */}
       <div
-        ref={contentRef}
-        className="w-[250mm] flex-1 p-4 bg-gray-200 overflow-y-auto scrollbar-hidden print:h-auto print:p-0 print:w-[250mm] mx-auto"
-      >
-        <div className="resume-container w-full max-w-[250mm] bg-gray-200 mx-auto p-4 pt-4 pb-0 min-h-full print:p-0 print:w-full print:bg-white">
-          <SelectedTemplateComponent className="mb-0 pb-0" />
-        </div>
-      </div>
+  ref={contentRef}
+  className="w-[250mm] flex-1 p-4 bg-gray-200 overflow-y-auto scrollbar-hidden print:h-auto print:p-0 print:w-[250mm] mx-auto"
+>
+  <div className="resume-container w-full max-w-[250mm] bg-gray-200 mx-auto p-4 pt-4 pb-0 min-h-full print:p-0 print:w-full print:bg-white">
+    <SelectedTemplateComponent
+      key={selectedTemplate} // Force re-mount on template change
+      className="mb-0 pb-0"
+    />
+  </div>
+</div>
 
       {/* Right Sidebar with Print Button */}
       <div className="w-3/12 h-screen overflow-y-auto scrollbar-hidden print:hidden flex flex-col">
