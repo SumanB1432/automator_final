@@ -14,10 +14,16 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const db = getDatabase(app);
 
-  function notifyExtensionOnLogin(uid) {
-    console.log("called");
-    const event = new CustomEvent("userLoggedIn", { detail: { uid } });
-    document.dispatchEvent(event);
+  async function notifyExtensionOnLogin(uid:unknown) {
+    try {
+      console.log("Notifying extension of login");
+      const event = new CustomEvent("userLoggedIn", { detail: { uid } });
+      document.dispatchEvent(event);
+      return true; // Indicate successful dispatch
+    } catch (error) {
+      console.error("Error notifying extension:", error);
+      throw error; // Rethrow to allow caller to handle
+    }
   }
 
   useEffect(() => {
@@ -39,12 +45,16 @@ function Login() {
       const user = auth.currentUser;
 
       if (user && isLogin === "true") {
+        await notifyExtensionOnLogin(user.uid);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         if (!user.emailVerified) {
           toast.error("Email not verified. Please verify before logging in.", {
             position: "bottom-center",
           });
           return;
         }
+
+
 
         if (apiKey !== "null" && apiKey !== null) {
           if (subscriptionType === "FreeTrialStarted" || subscriptionType === "Premium") {

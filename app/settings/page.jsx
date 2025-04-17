@@ -19,16 +19,35 @@ const Settings = function () {
         window.location.href = "/deleteaccount";
     }
 
+    function notifyExtensionOnLogout() {
+        try {
+            const event = new CustomEvent("onLogout", { detail: { status: "logged out" } });
+            document.dispatchEvent(event);
+            return true; // Indicate successful dispatch
+        } catch (error) {
+            console.error("Error dispatching logout event:", error);
+            return false;
+        }
+    }
+
+
     async function handleLogout() {
         try {
             await auth.signOut();
+            console.log("User signed out");
             localStorage.clear();
-            window.location.href = "/sign-in";
-            function notifyExtensionOnLogout() {
-                const event = new CustomEvent("onLogout");
-                document.dispatchEvent(event);
+            console.log("LocalStorage cleared");
+    
+            const notificationSuccess = notifyExtensionOnLogout();
+            console.log("Notification success:", notificationSuccess);
+            if (!notificationSuccess) {
+                console.warn("Logout notification may not have been processed correctly");
             }
-            notifyExtensionOnLogout();
+    
+            setTimeout(() => {
+                console.log("Redirecting...");
+                window.location.href = "/sign-in";
+            }, 2000);
         } catch (error) {
             console.error("Error logging out:", error.message);
         }
@@ -42,9 +61,9 @@ const Settings = function () {
                 </h1>
                 <div className="space-y-6">
                     {[{ label: "Update Gemini Key", action: updateKey },
-                      { label: "Update Data", action: updateData },
-                      { label: "Delete Account", action: () => setIsModalOpen(true), color: "bg-red-600" },
-                      { label: "Logout", action: handleLogout }].map((item, index) => (
+                    { label: "Update Data", action: updateData },
+                    { label: "Delete Account", action: () => setIsModalOpen(true), color: "bg-red-600" },
+                    { label: "Logout", action: handleLogout }].map((item, index) => (
                         <div key={index} className="flex justify-between items-center bg-[rgba(255,255,255,0.1)] rounded-xl px-6 py-4 shadow-md hover:bg-opacity-20 transition-all">
                             <span className="text-[#ECF1F0] font-semibold text-lg">{item.label}</span>
                             <button
