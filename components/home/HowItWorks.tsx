@@ -38,7 +38,7 @@ const Step = ({ id, title, description, buttonText, buttonLink, imageOnLeft, ima
       <div className="text-white text-xl md:text-3xl font-semibold">{title}</div>
       <div className="text-[#B6B6B6] text-sm md:text-lg leading-relaxed">{description}</div>
       {buttonText && buttonLink && (
-        <Link href={buttonLink} target="_blank" rel="noopener noreferrer">
+        <Link href={buttonLink}  rel="noopener noreferrer">
           <button className="rounded-xl text-white py-2.5 px-6 w-auto md:w-36 text-center bg-[#0FAE96] hover:bg-[#0c9a85] transition-colors duration-300 text-sm md:text-base font-medium">
             {buttonText}
           </button>

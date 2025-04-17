@@ -36,9 +36,13 @@ const EmailPermission = () => {
       .then((snapshot) => {
         if (!snapshot.exists()) {
           toast.info("Please verify your email before proceeding.");
-          window.location.href = "/email_auth";
+          // setTimeout(() => {
+          //   window.location.href = "/email_auth";
+          // }, 2000);
+          
         } else {
           const hasPermission = localStorage.getItem("emailPermissionGranted") === "true";
+          console.log(hasPermission,"va")
           if (!hasPermission) {
             toast.info("For security reasons, please verify your email again.");
             setIsGranted(false);
