@@ -6,7 +6,7 @@ import { CheckCircle, Lightbulb, Layout, FileText, Star } from 'lucide-react';
 
 const ATSResumeEvaluation = () => {
 
-  const [atsData, setAtsData] = useState<any>(null)
+  const [atsData, setAtsData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [skillData, setSkilllsData] = useState<any>(null)
 
@@ -24,7 +24,7 @@ const ATSResumeEvaluation = () => {
       try {
         storedAtsData = JSON.parse(storedAtsData);
         // @ts-ignore
-        setAtsData(JSON.parse(storedAtsData));
+        setAtsData(storedAtsData);
 
       } catch (error) {
         console.error("Error parsing atsData from localStorage:", error);
@@ -262,7 +262,7 @@ const ATSResumeEvaluation = () => {
             Actionable Suggestions
           </h2>
           <div className="space-y-6">
-            {Object.entries(atsData.suggestion).map(([key, items]:[any,any], index) => (
+            {atsData?.suggestion && Object.entries(atsData.suggestion).map(([key, items]:[any,any], index) => (
               <div key={index}>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-medium text-white capitalize">{key}</h3>
