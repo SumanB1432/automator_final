@@ -21,7 +21,7 @@ const db = getDatabase(app)
 const Payment = () => {
 
   const [currency, setCurrency] = useState("INR");
-  const [amount, setAmount] = useState(999);
+  const [amount, setAmount] = useState(499);
   const [promocode, setPromocode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [coupon, setCoupon] = useState("");
@@ -46,13 +46,14 @@ const Payment = () => {
     });
 
     // Fetch user location data
-    fetch("https://ipapi.co/json/")
+    fetch("/api/location")
       .then((response) => response.json())
       .then((data) => {
-        setCountry(data.country);
+        console.log("country",data)
+        setCountry(data.country_code);
         setCountryname(data.country_name);
-        setCurrency(data.country === "IN" ? "INR" : "USD");
-        setAmount(data.country === "IN" ? 499 : 20);
+        setCurrency(data.country_code === "IN" ? "INR" : "USD");
+        setAmount(data.country_code === "IN" ? 499 : 20);
       });
 
     // Load Razorpay script

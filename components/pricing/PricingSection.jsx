@@ -2,11 +2,44 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 
+
+
+
+
 const PricingSection = () => {
+  const [currency, setCurrency] = useState("INR");
+  const [country, setCountry] = useState("");
+  const [country_name, setCountryname] = useState("");
+
+  useEffect(() => {
+    // Fetch user location data
+    fetch("/api/location")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("country", data)
+        setCountry(data.country_code);
+        setCountryname(data.country_name);
+        setCurrency(data.country_code === "IN" ? "INR" : "USD");
+
+      });
+
+  })
+
+  useEffect(() => {
+    console.log(country, country_name, currency)
+  }, [currency, country, country_name])
+
+  const formatPrice = (usd, inr) => {
+    return currency === "INR"
+      ? `${inr.toLocaleString("en-IN")}`
+      : `${usd}`;
+  };
+
   const plans = [
     {
       name: "Basic",
-      price: "Free",
+      priceUSD: "Free",
+      priceINR: "Free",
       description: "Essential Tools to Kickstart Your Job Search",
       features: [
         "Auto-Apply up to 10 jobs/day",
@@ -20,7 +53,8 @@ const PricingSection = () => {
     },
     {
       name: "Premium",
-      price: "$20",
+      priceUSD: "$20",
+      priceINR: "₹499",
       description: "Advanced Features for the Serious Job Seeker",
       features: [
         "All in Beginner plan",
@@ -36,7 +70,8 @@ const PricingSection = () => {
     },
     {
       name: "Silver",
-      price: "$99",
+      priceUSD: "$99",
+      priceINR: "₹999",
       description: "Untill you are hired",
       features: [
         "All in Premium Plan",
@@ -74,13 +109,13 @@ const PricingSection = () => {
     };
   }, []);
 
-  function handlePyment(name,price) {
-    console.log(name,price)
-    if (name != "Basic") {
-      window.location.href = `/payment?plan=${encodeURIComponent(name)}&price=${encodeURIComponent(price)}`;
-
+  function handlePyment(name, usd, inr) {
+    if (name !== "Basic") {
+      const selectedPrice = currency === "INR" ? inr : usd;
+      window.location.href = `/payment?plan=${encodeURIComponent(name)}&price=${encodeURIComponent(selectedPrice)}&currency=${currency}`;
     }
   }
+
 
   return (
     <section className="bg-[#11011E] text-[#ECF1F0] py-20 px-6 sm:px-8">
@@ -105,15 +140,13 @@ const PricingSection = () => {
               ref={(el) => (cardRefs.current[index] = el)}
               className={`
                 card relative group p-6 sm:p-8 rounded-3xl border transition-all duration-700 ease-in-out transform
-                ${
-                  isInView
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-10"
+                ${isInView
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-10"
                 }
-                ${
-                  plan.bestSeller
-                    ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
-                    : "border-[#ffffff1A] bg-[#FFFFFF05]"
+                ${plan.bestSeller
+                  ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
+                  : "border-[#ffffff1A] bg-[#FFFFFF05]"
                 }
                 hover:scale-[1.02] hover:shadow-2xl
               `}
@@ -129,8 +162,11 @@ const PricingSection = () => {
                 {plan.name}
               </h3>
               <p className="text-sm text-[#B6B6B6] mt-2">{plan.description}</p>
-              <div className="mt-6 text-4xl font-bold">{plan.price}</div>
-              <button className={`mt-6 w-full px-4 py-2 rounded-xl ${plan.buttonStyle}`} onClick={() => handlePyment(plan.name, plan.price)}>
+              <div className="mt-6 text-4xl font-bold">
+                {formatPrice(plan.priceUSD, plan.priceINR)}
+              </div>
+
+              <button className={`mt-6 w-full px-4 py-2 rounded-xl ${plan.buttonStyle}`} onClick={() => handlePyment(plan.name, plan.priceUSD, plan.priceINR)}>
                 {plan.buttonText}
               </button>
 

@@ -67,11 +67,11 @@ const GeminiPage: React.FC = () => {
           update(userRef, { API: { apikey: geminiKey } }).catch((err) =>
             console.error("Error updating API key:", err)
           ),
-          update(paymentRef, {
-            Status: "Free",
-            Start_Date: currentDate,
-            SubscriptionType: "GetResume",
-          }).catch((err) => console.error("Error updating payment details:", err)),
+          // update(paymentRef, {
+          //   Status: "Free",
+          //   Start_Date: currentDate,
+          //   SubscriptionType: "GetResume",
+          // }).catch((err) => console.error("Error updating payment details:", err)),
         ]);
 
         router.push("/resume2");
