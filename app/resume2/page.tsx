@@ -56,7 +56,7 @@ const Resume: React.FC = () => {
   }, [downloadUrl, pdfText]);
 
 
-  
+
 
 
   const handleFileUpload = async (
@@ -117,6 +117,7 @@ const Resume: React.FC = () => {
 
     console.log("User before submitting:", user); // Debugging user data before submission
     function notifyExtensionOnResumeSubmit(urdData: unknown) {
+      console.log("resume notify")
       const event = new CustomEvent('resumeSubmitted', {
         detail: {
           urdData: urdData,
@@ -163,7 +164,7 @@ const Resume: React.FC = () => {
       const getSubscription = ref(db, `user/${uid}/Payment`);
       await update(getSubscription, { SubscriptionType: "FreeTrialStarted" });
 
-      window.location.href = "/";
+      setTimeout(() => { window.location.href = "/" }, 3000);
     } catch (err) {
       toast.error(
         err instanceof Error
@@ -172,6 +173,15 @@ const Resume: React.FC = () => {
       );
     }
   };
+
+  const handleRemovePdf = () => {
+    setPdf(null);
+    setPdfName("");
+    setDownloadUrl("");
+    setPdfText("");
+    setResume("");
+  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] px-4">
@@ -251,7 +261,7 @@ const Resume: React.FC = () => {
             </div>
             <br></br>
             {/* Upload Resume */}
-            <label htmlFor="file-upload" className="cursor-pointer">
+            <label htmlFor="file-upload" className="cursor-pointer text-white">
               Upload Your Resume
               <div className="border border-dashed border-[#B6B6B6] rounded-md p-4 text-center text-[#B6B6B6] cursor-pointer hover:bg-[#1A1A2E]">
                 <input
@@ -271,9 +281,21 @@ const Resume: React.FC = () => {
               </div>
             </label>
 
-            <p className="text-center text-gray-700">
-              {pdfName || "No file selected"}
-            </p>
+            {pdfName ? (
+              <div className="flex items-center justify-between bg-[#1A1A2E] text-[#84CC16] px-4 py-2 rounded-md mt-2">
+                <span>{pdfName}</span>
+                <button
+                  type="button"
+                  onClick={handleRemovePdf}
+                  className="text-red-500 hover:text-red-700 font-semibold transition duration-200"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <p className="text-center text-red-700">No file selected</p>
+            )}
+
             <button
               ref={submitButtonRef}
               type="submit"

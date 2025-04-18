@@ -55,6 +55,7 @@ const GeminiPage: React.FC = () => {
         localStorage.setItem("api_key", geminiKey);
 
         function notifyExtensionOnGeminiKey(key: string): void {
+          console.log("geminnnni")
           const event = new CustomEvent<{ key: string }>("geminiKeySubmitted", { detail: { key } });
           document.dispatchEvent(event);
         }
