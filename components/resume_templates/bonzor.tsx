@@ -35,36 +35,39 @@ export default function Resume() {
     hideIcons,
   } = useThemeStore();
 
-  const basePageHeight = 1124; // pixels, exact A4 height (297mm)
-  const paddingTopBottom = 40; // pixels, padding for screen display
-  const contentWrapperHeight = basePageHeight % 90;
-  const availableContentHeight = basePageHeight - 2 * paddingTopBottom; // 1043px for content
+  // A4 dimensions in pixels (at 96 DPI for screen, adjusted for print)
+  const basePageWidth = 794; // 210mm
+  const basePageHeight = 1124; // 297mm
+  const paddingTopBottom = 24; // Reduced for smaller screens
+  const paddingLeftRight = 24;
+  const availableContentHeight = basePageHeight - 2 * paddingTopBottom;
 
-  const pageHeightClass = `h-[${basePageHeight}px]`;
-  const contentHeightClass = `h-[${contentWrapperHeight}px] print:h-auto`;
-
-  // Refs and state for pagination
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [pageGroups, setPageGroups] = useState<unknown[]>([]);
+  // Responsive state
   const [isMounted, setIsMounted] = useState(false);
+  const [pageGroups, setPageGroups] = useState<any[]>([]);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Ensure component is mounted before measuring
+  // Dynamic font size based on screen size
+  const responsiveFontSize = Math.max(fontSize * (window.innerWidth < 640 ? 0.8 : 1), 12);
+  const headerFontSize = Math.max(responsiveFontSize - 4, 10);
+
+  // Ensure component is mounted
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Generate all resume elements in the desired order
+  // Generate resume elements
   const generateElements = () => {
     const elements = [];
-
-    // 1. Contact Information - Personal Header
+    // Same logic as original for generating elements
+    // 1. Personal Header
     elements.push({
       id: "personal-header",
       type: "personal-header",
       data: personalData,
     });
 
-    // 1. Contact Information - Personal Contact
+    // 1. Personal Contact
     if (personalData.address || personalData.phone || personalData.email) {
       elements.push({
         id: "personal-contact",
@@ -196,7 +199,7 @@ export default function Resume() {
       );
     }
 
-    // 8. Languages & Interests (only Languages in current data)
+    // 8. Languages
     if (languages.length) {
       elements.push({
         id: "languages-header",
@@ -216,15 +219,18 @@ export default function Resume() {
     return elements;
   };
 
+  // Pagination logic
   useEffect(() => {
+    if (!isMounted || !contentRef.current) return;
+
     const elements = generateElements();
     const pageHeight = availableContentHeight;
-    const pageGroupsTemp = [];
-    let currentPage = [];
+    const pageGroupsTemp: any[] = [];
+    let currentPage: any[] = [];
     let currentHeight = 0;
     let i = 0;
 
-    const measureElementHeight = (element: unknown) => {
+    const measureElementHeight = (element: any) => {
       const elementNode = contentRef.current?.querySelector(`#${element.id}`);
       return elementNode?.scrollHeight || 0;
     };
@@ -299,32 +305,29 @@ export default function Resume() {
   ]);
 
   // Render individual resume elements
-  const renderElement = (element: unknown) => {
+  const renderElement = (element: any) => {
     const linkStyle = underlineLinks ? "underline" : "no-underline";
     const iconDisplay = hideIcons ? "hidden" : "block";
-    const nameFontSize = fontSize; 
-    const headerFontSize = Math.max(fontSize - 5, 12);
+
     switch (element.type) {
       case "personal-header":
         return (
-          <div className="mb-6 text-center">
-            {/* Apply font family and color only to the name */}
+          <div className="mb-4 sm:mb-6 text-center">
             <h1
-              className="text-3xl font-bold"
+              className="text-xl sm:text-2xl md:text-3xl font-bold"
               style={{
                 fontFamily: selectedFont,
                 fontWeight,
                 fontStyle,
-                fontSize: `${nameFontSize}px`,
+                fontSize: `${responsiveFontSize}px`,
                 lineHeight: lineHeight,
                 color: primaryColor,
               }}
             >
               {element.data.name || "Your Name"}
             </h1>
-            {/* Keep headline in default styling */}
             <h2
-              className="text-lg text-gray-600 mt-2"
+              className="text-sm sm:text-base md:text-lg text-gray-600 mt-1 sm:mt-2"
               style={{ fontWeight, fontStyle }}
             >
               {element.data.headline || "Your Professional Headline"}
@@ -333,12 +336,12 @@ export default function Resume() {
         );
       case "personal-contact":
         return (
-          <section className="pt-3 mb-8" style={{ backgroundColor }}>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-600">
+          <section className="pt-2 sm:pt-3 mb-4 sm:mb-8" style={{ backgroundColor }}>
+            <div className="flex flex-wrap justify-center gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-sm text-gray-600">
               {element.data.email && (
                 <div className="flex items-center space-x-1">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -361,7 +364,7 @@ export default function Resume() {
               {element.data.website && (
                 <div className="flex items-center space-x-1 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -377,7 +380,7 @@ export default function Resume() {
                     href={
                       element.data.website.startsWith("http")
                         ? element.data.website
-                        : `${element.data.website}`
+                        : `https://${element.data.website}`
                     }
                     target="_blank"
                     rel="noopener noreferrer"
@@ -390,7 +393,7 @@ export default function Resume() {
               {element.data.twitter && (
                 <div className="flex items-center space-x-1 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -401,7 +404,7 @@ export default function Resume() {
                     />
                   </svg>
                   <a
-                    href={`${element.data.twitter}`}
+                    href={element.data.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`text-blue-600 ${linkStyle}`}
@@ -413,7 +416,7 @@ export default function Resume() {
               {element.data.linkedin && (
                 <div className="flex items-center space-x-1 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -445,7 +448,7 @@ export default function Resume() {
                     />
                   </svg>
                   <a
-                    href={`${element.data.linkedin}`}
+                    href={element.data.linkedin}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`text-blue-600 ${linkStyle}`}
@@ -457,7 +460,7 @@ export default function Resume() {
               {element.data.phone && (
                 <div className="flex items-center space-x-1">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -480,7 +483,7 @@ export default function Resume() {
               {element.data.address && (
                 <div className="flex items-center space-x-1">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -507,10 +510,9 @@ export default function Resume() {
               {element.data.github && (
                 <div className="flex items-center space-x-1 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
                       fillRule="evenodd"
@@ -519,7 +521,7 @@ export default function Resume() {
                     />
                   </svg>
                   <a
-                    href={`${element.data.github}`}
+                    href={element.data.github}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`text-blue-600 ${linkStyle}`}
@@ -533,10 +535,9 @@ export default function Resume() {
         );
       case "section-header":
         return (
-          <div className="border-t border-gray-200 pt-4 mb-4">
-            {/* Apply font family and color to section headers */}
+          <div className="border-t border-gray-200 pt-3 sm:pt-4 mb-3 sm:mb-4">
             <h3
-              className="text-lg font-bold"
+              className="text-base sm:text-lg font-bold"
               style={{
                 fontFamily: selectedFont,
                 fontWeight,
@@ -552,43 +553,39 @@ export default function Resume() {
         );
       case "experience-header":
         return (
-          <div className="mb-2">
-            <div className="flex justify-between">
-              {/* Apply font family and color to company names */}
-              <span className="text-base font-medium">
+          <div className="mb-2 sm:mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between">
+              <span className="text-sm sm:text-base font-medium">
                 {element.data.company}, {element.data.location}
               </span>
-              {/* Keep date range in default styling */}
-              <span className="text-sm text-gray-500" style={{ fontStyle }}>
+              <span className="text-xs sm:text-sm text-gray-500" style={{ fontStyle }}>
                 {element.data.dateRange}
               </span>
             </div>
-            <p className="text-sm italic text-gray-600" style={{ fontStyle }}>
+            <p className="text-xs sm:text-sm italic text-gray-600" style={{ fontStyle }}>
               {element.data.position}
             </p>
           </div>
         );
       case "experience-desc":
         return (
-          <ul className="list-disc list-inside text-sm text-gray-700 mb-4 pl-4 print:pl-0">
+          <ul className="list-disc list-inside text-xs sm:text-sm text-gray-700 mb-3 sm:mb-4 pl-4 print:pl-0">
             <li>{element.data.text}</li>
           </ul>
         );
       case "project-header":
         return (
-          <div className="mb-2">
-            <div className="flex justify-between">
-              {/* Apply font family and color to project names */}
+          <div className="mb-2 sm:mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between">
               <a
                 href={element.data.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`text-base font-medium ${linkStyle}`}
+                className={`text-sm sm:text-base font-medium ${linkStyle}`}
               >
                 {element.data.name}
               </a>
-              {/* Keep date in default styling */}
-              <span className="text-sm text-gray-500" style={{ fontStyle }}>
+              <span className="text-xs sm:text-sm text-gray-500" style={{ fontStyle }}>
                 {element.data.date}
               </span>
             </div>
@@ -596,36 +593,35 @@ export default function Resume() {
         );
       case "project-desc":
         return (
-          <p className="text-sm text-gray-700 mb-4">{element.data.text}</p>
+          <p className="text-xs sm:text-sm text-gray-700 mb-3 sm:mb-4">
+            {element.data.text}
+          </p>
         );
       case "skill":
         return (
-          <div className="text-sm text-gray-700 mb-2">
-            {/* Apply font family and color to skill headings */}
+          <div className="text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">
             <span className="font-medium">{element.data.heading}:</span>{" "}
-            {/* Keep skill items in default styling */}
             {element.data.items}
           </div>
         );
       case "education":
         return (
-          <div className="mb-4">
-            <div className="flex justify-between">
+          <div className="mb-3 sm:mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between">
               <div>
-                {/* Apply font family and color to institution names */}
-                <div className="text-base font-medium">
+                <div className="text-sm sm:text-base font-medium">
                   {element.data.institute}
                 </div>
-                <p className="text-sm text-gray-600" style={{ fontStyle }}>
+                <p className="text-xs sm:text-sm text-gray-600" style={{ fontStyle }}>
                   {element.data.typeofstudy} in {element.data.areaofstudy}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-500" style={{ fontStyle }}>
+                <span className="text-xs sm:text-sm text-gray-500" style={{ fontStyle }}>
                   {element.data.dateRange}
                 </span>
                 {element.data.score && (
-                  <span className="text-sm text-gray-700 block">
+                  <span className="text-xs sm:text-sm text-gray-700 block">
                     {element.data.score}
                   </span>
                 )}
@@ -635,14 +631,12 @@ export default function Resume() {
         );
       case "certificate":
         return (
-          <div className="mb-2">
-            <div className="flex justify-between">
-              {/* Apply font family and color to certificate titles */}
-              <span className="text-base font-medium">
+          <div className="mb-2 sm:mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between">
+              <span className="text-sm sm:text-base font-medium">
                 {element.data.title}
               </span>
-              {/* Keep date in default styling */}
-              <span className="text-sm text-gray-500" style={{ fontStyle }}>
+              <span className="text-xs sm:text-sm text-gray-500" style={{ fontStyle }}>
                 {element.data.date}
               </span>
             </div>
@@ -650,7 +644,7 @@ export default function Resume() {
               href={element.data.link}
               target="_blank"
               rel="noopener noreferrer"
-              className={`text-sm ${linkStyle}`}
+              className={`text-xs sm:text-sm ${linkStyle}`}
             >
               {element.data.awarder}
             </a>
@@ -658,21 +652,17 @@ export default function Resume() {
         );
       case "achievement":
         return (
-          <div className="mb-2">
-            {/* Apply font family and color to achievement names */}
-            <div className="text-base font-medium">{element.data.name}</div>
-            {/* Keep details in default styling */}
-            <p className="text-sm text-gray-600" style={{ fontStyle }}>
+          <div className="mb-2 sm:mb-3">
+            <div className="text-sm sm:text-base font-medium">{element.data.name}</div>
+            <p className="text-xs sm:text-sm text-gray-600" style={{ fontStyle }}>
               {element.data.details}
             </p>
           </div>
         );
       case "language":
         return (
-          <div className="text-sm text-gray-700 mb-2">
-            {/* Apply font family and color to language headings */}
+          <div className="text-xs sm:text-sm text-gray-700 mb-2 sm:mb-3">
             <span className="font-medium">{element.data.heading}:</span>{" "}
-            {/* Keep language proficiency in default styling */}
             {element.data.option}
           </div>
         );
@@ -680,32 +670,34 @@ export default function Resume() {
         return null;
     }
   };
+
   return (
     <>
       {/* Hidden content for measuring element heights */}
       <div
         ref={contentRef}
-        className="absolute -top-[9999px] -left-[9999px] w-[230mm] pointer-events-non"
+        className="absolute -top-[9999px] -left-[9999px] w-[210mm] pointer-events-none"
       >
         {generateElements().map((element) => (
           <div key={element.id} id={element.id} className="break-words">
-            {renderElement(element, true)}
+            {renderElement(element)}
           </div>
         ))}
       </div>
-  
-      <div className="resume-container font-sans print:p-0">
+
+      <div className="resume-container font-sans print:p-0 w-full">
         {/* Visible paginated content */}
         {pageGroups.length > 0 ? (
           pageGroups.map((page, pageIndex) => (
             <div
               key={pageIndex}
-              className={`page print-page bg-white text-gray-800 w-[230mm] mx-auto ${pageHeightClass} mb-[20px] shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
+              className={`page print-page bg-white text-gray-800 w-full max-w-[210mm] mx-auto h-[${basePageHeight}px] mb-4 sm:mb-5 shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
             >
               <div
-                className={`content-wrapper p-8 ${contentHeightClass} overflow-y-auto print:p-0`}
+                className={`content-wrapper px-4 sm:px-6 md:px-8 py-6 sm:py-8 h-auto overflow-y-auto print:p-0 print:h-auto`}
+                style={{ backgroundColor }}
               >
-                {page.map((element, index) => (
+                {page.map((element: any, index: number) => (
                   <div key={element.id}>
                     {renderElement(
                       element,
@@ -718,10 +710,11 @@ export default function Resume() {
           ))
         ) : (
           <div
-            className={`page print-page bg-white text-gray-800 w-full max-w-[230mm] mx-auto ${pageHeightClass} mb-[20px] shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
+            className={`page print-page bg-white text-gray-800 w-full max-w-[210mm] mx-auto h-[${basePageHeight}px] mb-4 sm:mb-5 shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
           >
             <div
-              className={`content-wrapper p-8 ${contentHeightClass} print:p-0`}
+              className={`content-wrapper px-4 sm:px-6 md:px-8 py-6 sm:py-8 h-auto print:p-0 print:h-auto`}
+              style={{ backgroundColor }}
             >
               <p className="text-center text-gray-500">Loading content...</p>
             </div>

@@ -49,11 +49,11 @@ const Payment = () => {
     fetch("/api/location")
       .then((response) => response.json())
       .then((data) => {
-        console.log("country",data)
+        console.log("country", data)
         setCountry(data.country_code);
         setCountryname(data.country_name);
         setCurrency(data.country_code === "IN" ? "INR" : "USD");
-        setAmount(data.country_code === "IN" ? 499 : 20);
+        setAmount(data.country_code === "IN" ? 1 : 20);
       });
 
     // Load Razorpay script
@@ -85,9 +85,9 @@ const Payment = () => {
       }
     );
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-   
+
     const order = await response.json();
-   
+
     initiateRazorpay(order, currency);
   };
 
@@ -109,28 +109,28 @@ const Payment = () => {
           }).catch((err) => {
             console.error("Payment validation failed:", err);
           });
-  
+
           // ✅ Proceed with post-payment actions immediately
           const notifyExtensionOnPayment = (uid) => {
             const event = new CustomEvent("paymentSuccessfull", { detail: { uid } });
             document.dispatchEvent(event);
           };
-  
+
           const currentUser = auth?.currentUser?.uid;
           notifyExtensionOnPayment(currentUser);
-  
+
           // Referral update
           const currentDate = new Date();
           const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
-  
+
           const getReferralCodeFromCookie = () => {
             const cookie = document.cookie.split("; ").find((row) => row.startsWith("referral="));
             return cookie ? cookie.split("=")[1] : null;
           };
-  
+
           const referralCode = getReferralCodeFromCookie();
           const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
-  
+
           update(userRef, {
             amount: amount, // Or finalAmount / 100 based on your logic
             paymentDate: formattedDateTime,
@@ -141,7 +141,7 @@ const Payment = () => {
             .catch((error) => {
               console.error("Referral update error:", error);
             });
-  
+
           // Reset email count
           const paymentRef = ref(db, `user/${currentUser}/Payment`);
           update(paymentRef, {
@@ -149,17 +149,34 @@ const Payment = () => {
           }).then(() => {
             console.log("Email count reset.");
           });
+        // marketing email status update
+          const marketingRef = ref(db, `marketing_email/${currentUser}`);
+
+          get(marketingRef)
+            .then((snapshot) => {
+              if (snapshot.exists()) {
+                return update(marketingRef, { status: "Premium" });
+              } else {
+                console.log("No marketing_email entry found for user.");
+              }
+            })
+            .then(() => {
+              console.log("Marketing email updated successfully");
+            })
+            .catch((err) => {
+              console.log("Error:", err.message);
+            });
         },
         theme: { color: "#4CAF50" },
       };
-  
+
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
     } else {
       toast.error("Razorpay SDK failed to load. Please check your internet connection.");
     }
   };
-  
+
 
 
   const applyPromocode = async (e) => {

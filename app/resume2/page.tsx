@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ref, getDatabase, update } from "firebase/database";
+import { ref, getDatabase, update, get } from "firebase/database";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { pdfjs } from "react-pdf";
 import { toast } from "react-toastify";
@@ -164,6 +164,25 @@ const Resume: React.FC = () => {
       const getSubscription = ref(db, `user/${uid}/Payment`);
       await update(getSubscription, { SubscriptionType: "FreeTrialStarted" });
 
+
+      // marketing email status update
+      const marketingRef = ref(db, `marketing_email/${uid}`);
+
+      get(marketingRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            return update(marketingRef, { status: "Free" });
+          } else {
+            console.log("No marketing_email entry found for user.");
+          }
+        })
+        .then(() => {
+          console.log("Marketing email updated successfully");
+        })
+        .catch((err) => {
+          console.log("Error:", err.message);
+        });
+
       setTimeout(() => { window.location.href = "/" }, 3000);
     } catch (err) {
       toast.error(
@@ -305,7 +324,7 @@ const Resume: React.FC = () => {
               Submit
             </button>
             {/* need to be removed */}
-          
+
             {pdf && (
               <iframe
                 src={URL.createObjectURL(pdf)}

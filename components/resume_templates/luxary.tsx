@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import {
   usePersonalDataStore,
   useCertificateStore,
@@ -36,20 +36,23 @@ export default function Luxary() {
     hideIcons,
   } = useThemeStore();
 
-  const basePageHeight = 1124; // pixels, exact A4 height (297mm)
-  const paddingTopBottom = 40; // pixels, padding for screen display
-  const contentWrapperHeight = basePageHeight % 90;
-  const availableContentHeight = basePageHeight - 2 * paddingTopBottom; // 1043px for content
+  // A4 dimensions in pixels (at 96 DPI for screen, adjusted for print)
+  const basePageWidth = 794; // 210mm
+  const basePageHeight = 1124; // 297mm
+  const paddingTopBottom = 24; // Reduced for smaller screens
+  const paddingLeftRight = 24;
+  const availableContentHeight = basePageHeight - 2 * paddingTopBottom;
 
-  const pageHeightClass = `h-[${basePageHeight}px]`;
-  const contentHeightClass = `h-[${contentWrapperHeight}px] print:h-auto`;
-
-  // Refs and state for pagination
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [pageGroups, setPageGroups] = useState<unknown[]>([]);
+  // Responsive state
   const [isMounted, setIsMounted] = useState(false);
+  const [pageGroups, setPageGroups] = useState<unknown[]>([]);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Ensure component is mounted before measuring
+  // Dynamic font size based on screen size
+  const responsiveFontSize = Math.max(fontSize * (window.innerWidth < 640 ? 0.8 : 1), 12);
+  const headerFontSize = Math.max(responsiveFontSize - 5, 12);
+
+  // Ensure component is mounted
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -217,17 +220,31 @@ export default function Luxary() {
     return elements;
   };
 
+  // Memoized elements to optimize performance
+  const elements = useMemo(() => generateElements(), [
+    personalData,
+    certificates,
+    achievements,
+    experiences,
+    educations,
+    projects,
+    languages,
+    skills,
+  ]);
+
+  // Pagination logic
   useEffect(() => {
-    const elements = generateElements();
+    if (!isMounted || !contentRef.current) return;
+
     const pageHeight = availableContentHeight;
-    const pageGroupsTemp = [];
-    let currentPage = [];
+    const pageGroupsTemp: any[] = [];
+    let currentPage: any[] = [];
     let currentHeight = 0;
     let i = 0;
 
-    const measureElementHeight = (element : unknown) => {
+    const measureElementHeight = (element: any) => {
       const elementNode = contentRef.current?.querySelector(`#${element.id}`);
-      return elementNode?.scrollHeight || 0;
+      return elementNode?.scrollHeight || 50; // Default to 50px if height is 0
     };
 
     while (i < elements.length) {
@@ -241,41 +258,49 @@ export default function Luxary() {
       }
 
       if (element.type === "experience-header") {
-        let nextDescHeight = 0;
-        if (
-          i + 1 < elements.length &&
-          elements[i + 1].type === "experience-desc"
+        let totalHeight = elementHeight;
+        let descIndex = i + 1;
+        const descriptions: any[] = [];
+
+        while (
+          descIndex < elements.length &&
+          elements[descIndex].type === "experience-desc"
         ) {
-          nextDescHeight = measureElementHeight(elements[i + 1]);
+          const descHeight = measureElementHeight(elements[descIndex]);
+          descriptions.push(elements[descIndex]);
+          totalHeight += descHeight;
+          descIndex++;
         }
-        const totalHeight = elementHeight + nextDescHeight;
-        if (currentHeight + totalHeight > pageHeight) {
-          if (currentPage.length > 0) {
-            pageGroupsTemp.push(currentPage);
-            currentPage = [];
-            currentHeight = 0;
-          }
+
+        if (currentHeight + totalHeight > pageHeight && currentPage.length > 0) {
+          pageGroupsTemp.push([...currentPage]);
+          currentPage = [];
+          currentHeight = 0;
         }
+
         currentPage.push(element);
         currentHeight += elementHeight;
-        i++;
-        while (i < elements.length && elements[i].type === "experience-desc") {
-          const descHeight = measureElementHeight(elements[i]);
-          if (currentHeight + descHeight > pageHeight) {
-            break;
+
+        descriptions.forEach((desc) => {
+          const descHeight = measureElementHeight(desc);
+          if (currentHeight + descHeight <= pageHeight) {
+            currentPage.push(desc);
+            currentHeight += descHeight;
+          } else {
+            pageGroupsTemp.push([...currentPage]);
+            currentPage = [desc];
+            currentHeight = descHeight;
           }
-          currentPage.push(elements[i]);
-          currentHeight += descHeight;
-          i++;
-        }
+        });
+
+        i = descIndex;
       } else {
-        if (currentHeight + elementHeight > pageHeight) {
-          if (currentPage.length > 0) {
-            pageGroupsTemp.push(currentPage);
-            currentPage = [];
-            currentHeight = 0;
-          }
+        if (currentHeight + elementHeight > pageHeight && currentPage.length > 0) {
+          pageGroupsTemp.push([...currentPage]);
+          currentPage = [];
+          currentHeight = 0;
         }
+
         currentPage.push(element);
         currentHeight += elementHeight;
         i++;
@@ -283,58 +308,50 @@ export default function Luxary() {
     }
 
     if (currentPage.length > 0) {
-      pageGroupsTemp.push(currentPage);
+      pageGroupsTemp.push([...currentPage]);
     }
 
     setPageGroups(pageGroupsTemp);
-  }, [
-    personalData,
-    certificates,
-    achievements,
-    experiences,
-    educations,
-    projects,
-    languages,
-    skills,
-    isMounted,
-  ]);
+  }, [elements, isMounted]);
 
   // Render individual resume elements
-  const renderElement = (element : unknown) => {
+  const renderElement = (element: any) => {
     const linkStyle = underlineLinks ? "underline" : "no-underline";
     const iconDisplay = hideIcons ? "hidden" : "block";
-    const nameFontSize = fontSize; 
-    const headerFontSize = Math.max(fontSize - 5, 12);
+    const nameFontSize = responsiveFontSize + 4; // Slightly larger for name
+    const headerFontSizeLocal = headerFontSize;
+
     // Heading typography style
     const headingStyle = {
       fontFamily: selectedFont,
       fontWeight,
       fontStyle,
-      fontSize: `${headerFontSize}px`,
+      fontSize: `${headerFontSizeLocal}px`,
       lineHeight,
       color: primaryColor,
     };
 
-    const adjustColor = (color : unknown, amount : unknown) => {
-  let usePound = false;
+    // Adjust color for gradient
+    const adjustColor = (color: string, amount: number) => {
+      let usePound = false;
 
-  if (color[0] === "#") {
-    color = color.slice(1);
-    usePound = true;
-  }
+      if (color[0] === "#") {
+        color = color.slice(1);
+        usePound = true;
+      }
 
-  const num = parseInt(color, 16);
-  let r = (num >> 16) + amount;
-  let g = ((num >> 8) & 0x00ff) + amount;
-  let b = (num & 0x0000ff) + amount;
+      const num = parseInt(color, 16);
+      let r = (num >> 16) + amount;
+      let g = ((num >> 8) & 0x00ff) + amount;
+      let b = (num & 0x0000ff) + amount;
 
-  r = Math.max(Math.min(255, r), 0);
-  g = Math.max(Math.min(255, g), 0);
-  b = Math.max(Math.min(255, b), 0);
+      r = Math.max(Math.min(255, r), 0);
+      g = Math.max(Math.min(255, g), 0);
+      b = Math.max(Math.min(255, b), 0);
 
-  const newColor = (r << 16) | (g << 8) | b;
-  return (usePound ? "#" : "") + newColor.toString(16).padStart(6, "0");
-};
+      const newColor = (r << 16) | (g << 8) | b;
+      return (usePound ? "#" : "") + newColor.toString(16).padStart(6, "0");
+    };
 
     // Description typography style
     const descriptionStyle = {
@@ -345,14 +362,14 @@ export default function Luxary() {
     switch (element.type) {
       case "personal-header":
         return (
-          <div 
-            className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-6 rounded-t-lg shadow-md"
+          <div
+            className="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-4 sm:p-6 rounded-t-lg shadow-md"
             style={{
-              background: `linear-gradient(to right, ${primaryColor}, ${adjustColor(primaryColor, -20)})`, // Dynamic gradient
+              background: `linear-gradient(to right, ${primaryColor}, ${adjustColor(primaryColor, -20)})`,
             }}
           >
             <h1
-              className="text-4xl font-extrabold tracking-tight"
+              className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight"
               style={{
                 fontFamily: selectedFont,
                 fontWeight,
@@ -363,7 +380,7 @@ export default function Luxary() {
             >
               {element.data.name || "Your Name"}
             </h1>
-            <h2 className="text-lg mt-1 opacity-90">
+            <h2 className="text-sm sm:text-base md:text-lg mt-1 opacity-90">
               {element.data.headline || "Your Professional Headline"}
             </h2>
           </div>
@@ -371,14 +388,14 @@ export default function Luxary() {
       case "personal-contact":
         return (
           <section
-            className="bg-gray-50 p-4 border-b border-gray-200"
+            className="bg-gray-50 p-3 sm:p-4 border-b border-gray-200"
             style={{ backgroundColor }}
           >
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-800">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-800">
               {element.data.email && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
-                    className={`w-5 h-5 text-blue-700 ${iconDisplay}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-700 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -395,9 +412,9 @@ export default function Luxary() {
                 </div>
               )}
               {element.data.phone && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
-                    className={`w-5 h-5 text-blue-700 ${iconDisplay}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-700 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -414,9 +431,9 @@ export default function Luxary() {
                 </div>
               )}
               {element.data.address && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
-                    className={`w-4 h-4 text-blue-700 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-blue-700 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -437,9 +454,9 @@ export default function Luxary() {
                 </div>
               )}
               {element.data.twitter && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-blue-600 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -455,14 +472,14 @@ export default function Luxary() {
                     rel="noopener noreferrer"
                     className={`text-blue-700 hover:underline ${linkStyle}`}
                   >
-                    twitter
+                    Twitter
                   </a>
                 </div>
               )}
               {element.data.website && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
                   <svg
-                    className={`w-4 h-4 text-blue-700 flex-shrink-0 ${iconDisplay}`}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 text-blue-700 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 64 64"
                     strokeWidth="3"
                     stroke="currentColor"
@@ -489,9 +506,9 @@ export default function Luxary() {
                 </div>
               )}
               {element.data.linkedin && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
                   <svg
-                    className={`w-5 h-5 text-blue-700 ${iconDisplay}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-700 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -510,9 +527,9 @@ export default function Luxary() {
                 </div>
               )}
               {element.data.github && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
                   <svg
-                    className={`w-5 h-5 text-blue-700 ${iconDisplay}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-700 ${iconDisplay}`}
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -533,9 +550,9 @@ export default function Luxary() {
         );
       case "section-header":
         return (
-          <div className="mt-6 mb-3">
+          <div className="mt-4 sm:mt-6 mb-2 sm:mb-3">
             <h3
-              className="text-xl font-bold text-blue-800 bg-blue-100 inline-block px-4 py-1 rounded-md shadow-sm"
+              className="text-base sm:text-xl font-bold text-blue-800 bg-blue-100 inline-block px-3 sm:px-4 py-1 rounded-md shadow-sm"
               style={headingStyle}
             >
               {element.section}
@@ -544,19 +561,16 @@ export default function Luxary() {
         );
       case "experience-header":
         return (
-          <div className="mb-3">
-            <div className="flex justify-between items-baseline">
-              <span
-                className="text-lg font-semibold text-gray-900"
-                
-              >
+          <div className="mb-2 sm:mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+              <span className="text-sm sm:text-lg font-semibold text-gray-900">
                 {element.data.position}
               </span>
-              <span className="text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600">
                 {element.data.dateRange}
               </span>
             </div>
-            <div className="text-sm text-gray-700">
+            <div className="text-xs sm:text-sm text-gray-700">
               {element.data.company}, {element.data.location}
             </div>
           </div>
@@ -564,7 +578,7 @@ export default function Luxary() {
       case "experience-desc":
         return (
           <ul
-            className="list-disc ml-6 text-sm text-gray-800 mb-4"
+            className="list-disc ml-4 sm:ml-6 text-xs sm:text-sm text-gray-800 mb-3 sm:mb-4"
             style={descriptionStyle}
           >
             <li>{element.data.text}</li>
@@ -572,38 +586,42 @@ export default function Luxary() {
         );
       case "project-header":
         return (
-          <div className="mb-2">
-            <div className="flex justify-between items-baseline">
+          <div className="mb-2 sm:mb-2">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
               <a
                 href={element.data.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`text-lg font-semibold text-blue-700 hover:underline ${linkStyle}`}
-                // style={headingStyle}
+                className={`text-sm sm:text-lg font-semibold text-blue-700 hover:underline ${linkStyle}`}
               >
                 {element.data.name}
               </a>
-              <span className="text-sm text-gray-600">{element.data.date}</span>
+              <span className="text-xs sm:text-sm text-gray-600">
+                {element.data.date}
+              </span>
             </div>
           </div>
         );
       case "project-desc":
         return (
-          <p className="text-sm text-gray-800 mb-4">
+          <p className="text-xs sm:text-sm text-gray-800 mb-3 sm:mb-4">
             {element.data.text}
           </p>
         );
       case "skill":
         return (
-          <div className="mb-3">
-            <span className="font-semibold text-gray-900" style={headingStyle}>
+          <div className="mb-2 sm:mb-3">
+            <span
+              className="text-sm sm:text-base font-semibold text-gray-900"
+              style={headingStyle}
+            >
               {element.data.heading}:
             </span>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {element.data.items.split(",").map((item : unknown, index : unknown) => (
+            <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
+              {element.data.items.split(",").map((item: string, index: number) => (
                 <span
                   key={index}
-                  className="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs shadow-sm"
+                  className="bg-blue-200 text-blue-800 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-xs shadow-sm"
                 >
                   {item.trim()}
                 </span>
@@ -613,25 +631,22 @@ export default function Luxary() {
         );
       case "education":
         return (
-          <div className="mb-4">
-            <div className="flex justify-between items-baseline">
+          <div className="mb-3 sm:mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
               <div>
-                <div
-                  className="text-lg font-semibold text-gray-900"
-                 
-                >
+                <div className="text-sm sm:text-lg font-semibold text-gray-900">
                   {element.data.institute}
                 </div>
-                <p className="text-sm text-gray-700">
+                <p className="text-xs sm:text-sm text-gray-700">
                   {element.data.typeofstudy} in {element.data.areaofstudy}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-600">
+                <span className="text-xs sm:text-sm text-gray-600">
                   {element.data.dateRange}
                 </span>
                 {element.data.score && (
-                  <span className="text-sm text-gray-800 block font-medium">
+                  <span className="text-xs sm:text-sm text-gray-800 block font-medium">
                     {element.data.score}
                   </span>
                 )}
@@ -641,22 +656,20 @@ export default function Luxary() {
         );
       case "certificate":
         return (
-          <div className="mb-3">
-            <div className="flex justify-between items-baseline">
-              <span
-                className="text-lg font-semibold text-gray-900"
-                
-              >
+          <div className="mb-2 sm:mb-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+              <span className="text-sm sm:text-lg font-semibold text-gray-900">
                 {element.data.title}
               </span>
-              <span className="text-sm text-gray-600">{element.data.date}</span>
+              <span className="text-xs sm:text-sm text-gray-600">
+                {element.data.date}
+              </span>
             </div>
             <a
               href={element.data.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-blue-700 hover:underline"
-             
+              className={`text-xs sm:text-sm text-blue-700 hover:underline ${linkStyle}`}
             >
               {element.data.awarder}
             </a>
@@ -664,28 +677,22 @@ export default function Luxary() {
         );
       case "achievement":
         return (
-          <div className="mb-3">
-            <div
-              className="text-lg font-semibold text-gray-900"
-             
-            >
+          <div className="mb-2 sm:mb-3">
+            <div className="text-sm sm:text-lg font-semibold text-gray-900">
               {element.data.name}
             </div>
-            <p className="text-sm text-gray-700">
+            <p className="text-xs sm:text-sm text-gray-700">
               {element.data.details}
             </p>
           </div>
         );
       case "language":
         return (
-          <div className="mb-3">
-            <span className="font-semibold text-gray-900" >
+          <div className="mb-2 sm:mb-3">
+            <span className="text-sm sm:text-base font-semibold text-gray-900">
               {element.data.heading}:
             </span>
-            <span
-              className="ml-2 text-gray-800 bg-gray-100 px-2 py-1 rounded-md text-xs"
-              
-            >
+            <span className="ml-1 sm:ml-2 text-gray-800 bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-xs">
               {element.data.option}
             </span>
           </div>
@@ -696,15 +703,15 @@ export default function Luxary() {
   };
 
   return (
-    <div className="resume-container min-h-screen font-sans print:p-0">
+    <div className="resume-container font-sans print:p-0 w-full">
       {/* Hidden content for measuring element heights */}
       <div
         ref={contentRef}
-        className="absolute -top-[9999px] -left-[9999px] w-[230mm] pointer-events-non"
+        className="absolute -top-[9999px] -left-[9999px] w-[210mm] pointer-events-none"
       >
-        {generateElements().map((element) => (
+        {elements.map((element) => (
           <div key={element.id} id={element.id} className="break-words">
-            {renderElement(element, true)}
+            {renderElement(element)}
           </div>
         ))}
       </div>
@@ -714,28 +721,25 @@ export default function Luxary() {
         pageGroups.map((page, pageIndex) => (
           <div
             key={pageIndex}
-            className={`page print-page bg-white text-gray-800 w-[230mm] mx-auto ${pageHeightClass} mb-[20px] shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
+            className={`page print-page bg-white text-gray-800 w-full max-w-[210mm] mx-auto h-[${basePageHeight}px] mb-4 sm:mb-5 shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
           >
             <div
-              className={`content-wrapper p-8 ${contentHeightClass} print:p-0`}
+              className={`content-wrapper px-4 sm:px-6 md:px-8 py-6 sm:py-8 h-auto overflow-y-auto print:p-0 print:h-auto`}
+              style={{ backgroundColor }}
             >
-              {page.map((element, index) => (
-                <div key={element.id}>
-                  {renderElement(
-                    element,
-                    index === 0 || element.section !== page[index - 1]?.section
-                  )}
-                </div>
+              {page.map((element: any) => (
+                <div key={element.id}>{renderElement(element)}</div>
               ))}
             </div>
           </div>
         ))
       ) : (
         <div
-          className={`page print-page bg-white text-gray-800 w-full max-w-[230mm] mx-auto ${pageHeightClass} mb-[20px] shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
+          className={`page print-page bg-white text-gray-800 w-full max-w-[210mm] mx-auto h-[${basePageHeight}px] mb-4 sm:mb-5 shadow-lg print:h-auto print:shadow-none print:page-break-after-always print:mt-0 print:mb-0`}
         >
           <div
-            className={`content-wrapper p-8 ${contentHeightClass} print:p-0`}
+            className={`content-wrapper px-4 sm:px-6 md:px-8 py-6 sm:py-8 h-auto print:p-0 print:h-auto`}
+            style={{ backgroundColor }}
           >
             <p className="text-center text-gray-500">Loading content...</p>
           </div>

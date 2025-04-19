@@ -37,24 +37,24 @@ export default function LeftSidebar() {
   };
 
   return (
-    <div className="w-full h-[1000px] overflow-y-scroll scrollbar-none bg-gradient-to-b from-[#0F011E] via-[rgba(17,1,30,0.95)] to-[#0F011E] text-text-subtitle shadow-2xl rounded-xl">
+    <div className="w-full h-full max-w-full overflow-y-auto scrollbar-thin scrollbar-thumb-primary-accent scrollbar-track-[rgba(255,255,255,0.05)] bg-gradient-to-b from-[#0F011E] via-[rgba(17,1,30,0.95)] to-[#0F011E] text-text-subtitle shadow-2xl rounded-xl">
       {/* Basics Section */}
-      <section className="p-8 border-b border-[rgba(255,255,255,0.05)] bg-[#0F011E] backdrop-blur-md">
-        <div className="flex items-center gap-4 mb-10 relative">
-          <GoPerson className="text-3xl text-primary-accent drop-shadow-lg animate-pulse-slow" />
-          <h2 className="text-3xl font-extrabold font-raleway text-transparent bg-gradient-to-r from-pink-300 to-green-400 bg-clip-text tracking-wider">
+      <section className="p-4 sm:p-6 md:p-8 border-b border-[rgba(255,255,255,0.05)] bg-[#0F011E] backdrop-blur-md">
+        <div className="flex items-center gap-4 mb-6 relative">
+          <GoPerson className="text-2xl sm:text-3xl text-primary-accent drop-shadow-lg animate-pulse-slow" />
+          <h2 className="text-lg sm:text-xl md:text-3xl font-extrabold font-raleway text-transparent bg-gradient-to-r from-pink-300 to-green-400 bg-clip-text tracking-wider">
             Basics
           </h2>
 
-          <div className="absolute -top-4 -left-4 w-20 h-20 bg-emphasis-purple opacity-20 rounded-full blur-3xl"></div>
+          <div className="absolute -top-4 -left-4 w-16 sm:w-20 h-16 sm:h-20 bg-emphasis-purple opacity-20 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="mb-8">
-          <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+        <div className="mb-6">
+          <label className="block text-xs sm:text-sm font-medium mb-3 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
             Picture
           </label>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-accent via-[#0F8E76] to-[#0F6E56] rounded-full flex items-center justify-center text-pure-white text-2xl font-raleway shadow-lg ring-4 ring-[rgba(15,174,150,0.2)] transition-transform hover:scale-110 hover:ring-[rgba(15,174,150,0.4)] duration-300 overflow-hidden">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary-accent via-[#0F8E76] to-[#0F6E56] rounded-full flex items-center justify-center text-pure-white text-xl sm:text-2xl font-raleway shadow-lg ring-4 ring-[rgba(15,174,150,0.2)] transition-transform hover:scale-110 hover:ring-[rgba(15,174,150,0.4)] duration-300 overflow-hidden">
               {profileImage ? (
                 <img src={profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
               ) : (
@@ -64,9 +64,10 @@ export default function LeftSidebar() {
 
             <button
               onClick={handleIconClick}
-              className="p-3 border border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(255,255,255,0.05)] backdrop-blur-sm hover:bg-[rgba(15,174,150,0.1)] hover:border-primary-accent transition-all duration-300"
+              className="p-2 border border-[rgba(0,255,0,0.1)] rounded-xl bg-[rgba(6, 238, 6, 0.05)] backdrop-blur-sm hover:bg-[rgba(0,200,0,0.1)] hover:border-green-500 transition-all duration-300
+"
             >
-              <AiOutlineLink className="text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
+              <AiOutlineLink className="text-green-500 hover:text-green-700 transition-colors duration-200" />
             </button>
 
             {/* Hidden file input */}
@@ -80,13 +81,13 @@ export default function LeftSidebar() {
           </div>
         </div>
 
-        <div className="mb-8">
-          <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+        <div className="mb-6">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
             Full Name
           </label>
           <input
             type="text"
-            className="w-full p-4 border border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto placeholder-text-subtitle focus:ring-2 focus:ring-primary-accent focus:border-primary-accent focus:bg-white hover:bg-white valid:bg-white hover:text-black transition-all duration-300 shadow-inner"
+            className="w-full p-3 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto placeholder-text-subtitle focus:ring-2 focus:ring-primary-accent focus:border-primary-accent focus:bg-white hover:bg-white valid:bg-white hover:text-black transition-all duration-300 shadow-inner"
             name="name"
             value={personalData.name || ""}
             onChange={handleChangePersonal}
@@ -95,13 +96,13 @@ export default function LeftSidebar() {
 
         </div>
 
-        <div className="mb-8">
-          <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+        <div className="mb-6">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
             Headline
           </label>
           <input
             type="text"
-            className="w-full p-4 border border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto placeholder-text-subtitle focus:ring-2 focus:ring-primary-accent focus:border-primary-accent focus:bg-white hover:bg-white valid:bg-white hover:text-black transition-all duration-300 shadow-inner"
+            className="w-full p-3 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto placeholder-text-subtitle focus:ring-2 focus:ring-primary-accent focus:border-primary-accent focus:bg-white hover:bg-white valid:bg-white hover:text-black transition-all duration-300 shadow-inner"
             name="headline"
             value={personalData.headline || ""}
             onChange={handleChangePersonal}
@@ -109,66 +110,57 @@ export default function LeftSidebar() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+            <label className="block text-xs sm:text-sm font-medium mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse font-roboto text-text-subtitle tracking-tight uppercase">
               Email
             </label>
             <div className="relative">
               <input
                 type="email"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="email"
                 value={personalData.email || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your email"
               />
-              <AiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
+              <AiOutlineMail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+            <label className="block text-xs sm:text-sm font-medium mb-2 sm:mb-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse font-roboto text-text-subtitle tracking-tight uppercase">
               Website
             </label>
             <div className="relative">
               <input
                 type="url"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="website"
                 value={personalData.website || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your website"
               />
-              <BiWorld className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
+              <BiWorld className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
               Twitter
             </label>
             <div className="relative">
               <input
                 type="url"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+               className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="twitter"
                 value={personalData.twitter || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your Twitter profile"
               />
               <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle w-6 h-6 hover:text-primary-accent transition-colors duration-200"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle w-5 h-5 hover:text-primary-accent transition-colors duration-200"
                 viewBox="0 0 24 24"
                 fill="none"
               >
@@ -181,23 +173,20 @@ export default function LeftSidebar() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
               LinkedIn
             </label>
             <div className="relative">
               <input
                 type="url"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="linkedin"
                 value={personalData.linkedin || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your LinkedIn profile"
               />
               <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle w-6 h-6 hover:text-primary-accent transition-colors duration-200"
+                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-text-subtitle w-5 sm:w-6 h-5 sm:h-6 hover:text-primary-accent transition-colors duration-200"
                 viewBox="0 0 24 24"
                 fill="none"
               >
@@ -232,44 +221,38 @@ export default function LeftSidebar() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
               Phone
             </label>
             <div className="relative">
               <input
                 type="tel"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="phone"
                 value={personalData.phone || ""}
                 onChange={handleChangePersonal}
                 placeholder="+1 (123) 456-7890"
               />
-              <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
+              <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle hover:text-primary-accent transition-colors duration-200" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
               Location
             </label>
             <div className="relative">
               <input
                 type="text"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="address"
                 value={personalData.address || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your location"
               />
               <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle w-6 h-6 hover:text-primary-accent transition-colors duration-200"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle w-5 sm:w-6 h-5 sm:h-6 hover:text-primary-accent transition-colors duration-200"
                 viewBox="0 0 24 24"
                 fill="none"
               >
@@ -294,25 +277,22 @@ export default function LeftSidebar() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
-            <label className="block text-sm font-medium mb-3 font-roboto text-text-subtitle tracking-tight uppercase">
+          <label className="block text-xs sm:text-sm font-medium mb-2 font-roboto bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent animate-pulse text-text-subtitle tracking-tight uppercase">
               GitHub
             </label>
             <div className="relative">
               <input
                 type="url"
-                className="w-full p-4 pl-12 border border-[rgba(255,255,255,0.1)] rounded-xl 
-             bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)]
-             backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent 
-             focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
+                className="w-full p-3 pl-10 text-sm sm:text-base border border-[rgba(255,255,255,0.1)] rounded-xl bg-white placeholder-text-subtitle placeholder-shown:bg-[rgba(255,255,255,0.05)] backdrop-blur-sm text-text-title font-roboto focus:ring-2 focus:ring-primary-accent focus:border-primary-accent hover:bg-white hover:text-black transition-all duration-300 shadow-inner"
                 name="github"
                 value={personalData.github || ""}
                 onChange={handleChangePersonal}
                 placeholder="Your GitHub profile"
               />
               <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subtitle w-6 h-6 hover:text-primary-accent transition-colors duration-200"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtitle w-5 sm:w-6 h-5 sm:h-6 hover:text-primary-accent transition-colors duration-200"
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 xmlns="http://www.w3.org/2000/svg"
