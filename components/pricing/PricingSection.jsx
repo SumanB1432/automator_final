@@ -69,7 +69,7 @@ const PricingSection = () => {
       bestSeller: true,
     },
     {
-      name: "Silver",
+      name: "Diamond",
       priceUSD: "$99",
       priceINR: "₹999",
       description: "Untill you are hired",

@@ -119,7 +119,6 @@ const Resume: React.FC = () => {
       const event = new CustomEvent('resumeUpdated', {
         detail: {
           urd : urdData,
-          subscriptionType: "FreeTrialStarted"
         }
       });
       document.dispatchEvent(event);
@@ -155,14 +154,12 @@ const Resume: React.FC = () => {
         },
       });
 
-      toast.success("Document uploaded successfully!");
+      toast.success("Document updated successfully!");
       notifyExtensionOnResumeSubmit(urdData)
-      localStorage.setItem("SubscriptionType", "FreeTrialStarted");
+   
 
-      const getSubscription = ref(db, `user/${uid}/Payment`);
-      await update(getSubscription, { SubscriptionType: "FreeTrialStarted" });
 
-      window.location.href = "/home";
+
     } catch (err) {
       toast.error(
         err instanceof Error

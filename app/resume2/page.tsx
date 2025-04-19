@@ -282,7 +282,7 @@ const Resume: React.FC = () => {
             </label>
 
             {pdfName ? (
-              <div className="flex items-center justify-between bg-[#1A1A2E] text-[#84CC16] px-4 py-2 rounded-md mt-2">
+              <div className="flex items-center justify-between bg-[#1A1A2E] text-[#ffffff] px-4 py-2 rounded-md mt-2">
                 <span>{pdfName}</span>
                 <button
                   type="button"
@@ -305,7 +305,7 @@ const Resume: React.FC = () => {
               Submit
             </button>
             {/* need to be removed */}
-            <p>Selected File: {Resume}</p>
+          
             {pdf && (
               <iframe
                 src={URL.createObjectURL(pdf)}
