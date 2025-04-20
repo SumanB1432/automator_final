@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-
 import { get, ref, getDatabase, update } from "firebase/database";
 import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
@@ -12,16 +11,15 @@ import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import master from "./mastercard.svg";
-import visa from "./visa.svg"
+import visa from "./visa.svg";
 import rupay from "./rupay.svg";
-import upi from "./upi.svg"
-const db = getDatabase(app)
+import upi from "./upi.svg";
 
+const db = getDatabase(app);
 
 const Payment = () => {
-
-  const [currency, setCurrency] = useState("INR");
-  const [amount, setAmount] = useState(499);
+  const [currency, setCurrency] = useState("");
+  const [amount, setAmount] = useState(0);
   const [promocode, setPromocode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [coupon, setCoupon] = useState("");
@@ -34,7 +32,7 @@ const Payment = () => {
     { Icon: FaLinkedin, color: "#60a5fa", href: "https://www.linkedin.com/company/aikingsolutions/posts/?feedView=all" },
     { Icon: FaYoutube, color: "#ef4444", href: "https://www.youtube.com/@JobFormAutomator" },
   ];
-  const paymentMethods = [master, visa, rupay, upi]
+  const paymentMethods = [master, visa, rupay, upi];
 
   useEffect(() => {
     // Redirect user if not signed in
@@ -49,11 +47,11 @@ const Payment = () => {
     fetch("/api/location")
       .then((response) => response.json())
       .then((data) => {
-        console.log("country", data)
+        console.log("country", data);
         setCountry(data.country_code);
         setCountryname(data.country_name);
         setCurrency(data.country_code === "IN" ? "INR" : "USD");
-        setAmount(data.country_code === "IN" ? 1 : 20);
+        setAmount(data.country_code === "IN" ? 499 : 20);
       });
 
     // Load Razorpay script
@@ -67,7 +65,6 @@ const Payment = () => {
       unsubscribe();
     };
   }, []);
-
 
   const handlePayment = async (e) => {
     e.preventDefault();
@@ -94,14 +91,13 @@ const Payment = () => {
   const initiateRazorpay = (order, currency) => {
     if (typeof window !== "undefined" && window.Razorpay) {
       var options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY, // Use NEXT_PUBLIC for env variables in Next.js
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
         amount: order.amount,
         currency,
         name: "JobForm Automator",
         description: "Subscription",
         order_id: order.id,
         handler: async function (response) {
-          // Fire validation in the background (optional but recommended)
           fetch("https://us-central1-browser-extension-01.cloudfunctions.net/app/order/validate", {
             method: "POST",
             body: JSON.stringify(response),
@@ -110,7 +106,6 @@ const Payment = () => {
             console.error("Payment validation failed:", err);
           });
 
-          // ✅ Proceed with post-payment actions immediately
           const notifyExtensionOnPayment = (uid) => {
             const event = new CustomEvent("paymentSuccessfull", { detail: { uid } });
             document.dispatchEvent(event);
@@ -119,7 +114,6 @@ const Payment = () => {
           const currentUser = auth?.currentUser?.uid;
           notifyExtensionOnPayment(currentUser);
 
-          // Referral update
           const currentDate = new Date();
           const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
 
@@ -132,7 +126,7 @@ const Payment = () => {
           const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
 
           update(userRef, {
-            amount: amount, // Or finalAmount / 100 based on your logic
+            amount: amount,
             paymentDate: formattedDateTime,
           })
             .then(() => {
@@ -142,16 +136,14 @@ const Payment = () => {
               console.error("Referral update error:", error);
             });
 
-          // Reset email count
           const paymentRef = ref(db, `user/${currentUser}/Payment`);
           update(paymentRef, {
             email_count: 0,
           }).then(() => {
             console.log("Email count reset.");
           });
-        // marketing email status update
-          const marketingRef = ref(db, `marketing_email/${currentUser}`);
 
+          const marketingRef = ref(db, `marketing_email/${currentUser}`);
           get(marketingRef)
             .then((snapshot) => {
               if (snapshot.exists()) {
@@ -177,24 +169,18 @@ const Payment = () => {
     }
   };
 
-
-
   const applyPromocode = async (e) => {
     e.preventDefault();
     document.getElementById('promocode').value = '';
     let db = getDatabase(app);
     const userRef = ref(db, "promo_codes/" + promocode);
-    // console.log(country,)
     get(userRef).then(async (snapshot) => {
-      console.log(snapshot.val())
+      console.log(snapshot.val());
       if (snapshot.val() === null) {
-        toast.error("Invalid promocode!")
+        toast.error("Invalid promocode!");
         return;
       }
-      // console.log(country,snapshot.val().currency_type , 'SUMAN')
       if ((country === "IN" && snapshot.val().currency_type === "INR") || (country !== "IN" && snapshot.val().currency_type === "USD")) {
-
-
         if (snapshot.val().discount_type === "fixed") {
           setCoupon(promocode);
           setDiscount(snapshot.val().discount_value);
@@ -203,15 +189,13 @@ const Payment = () => {
           let finalValue = Math.floor(amount * (snapshot.val().discount_value / 100));
           setDiscount(finalValue);
         }
-      }
-      else {
-        toast.error(`Invalid Promocode :This promocode is not applicable for  ${country_name}`)
+      } else {
+        toast.error(`Invalid Promocode :This promocode is not applicable for  ${country_name}`);
       }
     }).catch((err) => {
       toast.error(err);
     });
   };
-
 
   const deleteCoupon = () => {
     setCoupon("");
@@ -278,7 +262,7 @@ const Payment = () => {
                 </div>
                 <div className="flex items-center">
                   <MdCall className="text-[#0FAE96] mr-3" />
-                  <span>+1 (555) 123-4567</span>
+                  <span>+91 9766116839</span>
                 </div>
                 <div className="flex items-center">
                   <MdEmail className="text-[#0FAE96] mr-3" />
@@ -287,22 +271,17 @@ const Payment = () => {
               </div>
 
               <div className="mt-6 flex justify-center gap-4 sm:gap-6">
-
-                {socialLinks.map((
-                  { Icon, href, color }, idx) => (
+                {socialLinks.map(({ Icon, href, color }, idx) => (
                   <motion.a
                     key={idx}
                     onClick={() => window.open(href, "_blank")}
-                    whileHover={{
-                      scale: 1.2, rotate: 5, color: `${color}`
-                    }}
+                    whileHover={{ scale: 1.2, rotate: 5, color: `${color}` }}
                     transition={{ duration: 0.3 }}
                     className="text-[#B6B6B6]"
                   >
                     <Icon size={14} className="sm:size-14" />
                   </motion.a>
-                )
-                )}
+                ))}
               </div>
             </div>
           </motion.div>
@@ -318,17 +297,38 @@ const Payment = () => {
               Your Order
             </h2>
             <div className="space-y-6">
-              {/* <div className="flex justify-between text-[#B6B6B6] text-sm sm:text-base">
-                <span>Plan:</span>
-                <span className="font-medium">{plan}</span>
-              </div> */}
               <div className="flex justify-between text-[#B6B6B6] text-sm sm:text-base">
-                <span>Total ({currency}):</span>
-                <span className="font-medium text-lg sm:text-xl">
-                  {coupon
-                    ? `${currency} ${subtotal.toFixed(2)}`
-                    : `${currency} ${amount.toFixed(2)}`}
-                </span>
+                <span>Total ({currency || "Loading"}):</span>
+                {amount === 0 && currency === "" ? (
+                  <div className="flex items-center">
+                    <svg
+                      className="animate-spin h-5 w-5 text-[#0FAE96]"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  </div>
+                ) : (
+                  <span className="font-medium text-lg sm:text-xl">
+                    {coupon
+                      ? `${currency} ${subtotal.toFixed(2)}`
+                      : `${currency} ${amount.toFixed(2)}`}
+                  </span>
+                )}
               </div>
 
               {/* Promo Code */}
@@ -394,23 +394,21 @@ const Payment = () => {
                   Trusted Payment Options
                 </p>
                 <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-3">
-                  {paymentMethods.map(
-                    (src, idx) => (
-                      <motion.div
-                        key={idx}
-                        whileHover={{ scale: 1.1, y: -3 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Image
-                          src={src}
-                          alt="Payment Method"
-                          width={40}
-                          height={30}
-                          className="opacity-80 hover:opacity-100 transition-opacity duration-300"
-                        />
-                      </motion.div>
-                    )
-                  )}
+                  {paymentMethods.map((src, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.1, y: -3 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Image
+                        src={src}
+                        alt="Payment Method"
+                        width={40}
+                        height={30}
+                        className="opacity-80 hover:opacity-100 transition-opacity duration-300"
+                      />
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </div>

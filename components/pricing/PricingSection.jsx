@@ -2,12 +2,8 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 
-
-
-
-
 const PricingSection = () => {
-  const [currency, setCurrency] = useState("INR");
+  const [currency, setCurrency] = useState("");
   const [country, setCountry] = useState("");
   const [country_name, setCountryname] = useState("");
 
@@ -16,18 +12,16 @@ const PricingSection = () => {
     fetch("/api/location")
       .then((response) => response.json())
       .then((data) => {
-        console.log("country", data)
+        console.log("country", data);
         setCountry(data.country_code);
         setCountryname(data.country_name);
         setCurrency(data.country_code === "IN" ? "INR" : "USD");
-
       });
-
-  })
+  }, []);
 
   useEffect(() => {
-    console.log(country, country_name, currency)
-  }, [currency, country, country_name])
+    console.log(country, country_name, currency);
+  }, [currency, country, country_name]);
 
   const formatPrice = (usd, inr) => {
     return currency === "INR"
@@ -116,7 +110,6 @@ const PricingSection = () => {
     }
   }
 
-
   return (
     <section className="bg-[#11011E] text-[#ECF1F0] py-20 px-6 sm:px-8">
       <div className="max-w-6xl mx-auto text-center">
@@ -163,10 +156,19 @@ const PricingSection = () => {
               </h3>
               <p className="text-sm text-[#B6B6B6] mt-2">{plan.description}</p>
               <div className="mt-6 text-4xl font-bold">
-                {formatPrice(plan.priceUSD, plan.priceINR)}
+                {currency && country ? (
+                  formatPrice(plan.priceUSD, plan.priceINR)
+                ) : (
+                  <div className="flex justify-center items-center">
+                    <div className="loader border-t-4 border-[#0FAE96] rounded-full w-8 h-8 animate-spin"></div>
+                  </div>
+                )}
               </div>
 
-              <button className={`mt-6 w-full px-4 py-2 rounded-xl ${plan.buttonStyle}`} onClick={() => handlePyment(plan.name, plan.priceUSD, plan.priceINR)}>
+              <button
+                className={`mt-6 w-full px-4 py-2 rounded-xl ${plan.buttonStyle}`}
+                onClick={() => handlePyment(plan.name, plan.priceUSD, plan.priceINR)}
+              >
                 {plan.buttonText}
               </button>
 
@@ -183,7 +185,7 @@ const PricingSection = () => {
           ))}
         </div>
       </div>
-      {/* Custom CSS to blur/dim non-hovered cards */}
+      {/* Custom CSS to blur/dim non-hovered cards and for loader */}
       <style jsx>{`
         .pricing-grid:hover .card {
           filter: blur(4px);
@@ -194,6 +196,18 @@ const PricingSection = () => {
           filter: blur(0px) !important;
           opacity: 1 !important;
           transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+        .loader {
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #0FAE96;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </section>
