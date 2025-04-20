@@ -33,7 +33,6 @@ const Payment = () => {
     { Icon: FaYoutube, color: "#ef4444", href: "https://www.youtube.com/@JobFormAutomator" },
   ];
   const paymentMethods = [master, visa, rupay, upi];
-
   useEffect(() => {
     // Redirect user if not signed in
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -43,15 +42,27 @@ const Payment = () => {
       }
     });
 
-    // Fetch user location data
-    fetch("/api/location")
-      .then((response) => response.json())
+    // Fetch user location data client-side
+    fetch("https://geolocation-db.com/json/")
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to fetch location");
+        return response.json();
+      })
       .then((data) => {
-        console.log("country", data);
-        setCountry(data.country_code);
-        setCountryname(data.country_name);
-        setCurrency(data.country_code === "IN" ? "INR" : "USD");
-        setAmount(data.country_code === "IN" ? 499 : 20);
+        console.log("Client location data:", data);
+        const countryCode = data.country_code || "US";
+        setCountry(countryCode);
+        setCountryname(data.country_name || "Unknown");
+        setCurrency(countryCode === "IN" ? "INR" : "USD");
+        setAmount(countryCode === "IN" ? 499 : 20);
+      })
+      .catch((err) => {
+        console.error("Client location error:", err);
+        setCountry("US");
+        setCountryname("United States");
+        setCurrency("USD");
+        setAmount(20);
+        toast.error("Unable to detect location, defaulting to USD");
       });
 
     // Load Razorpay script

@@ -6,27 +6,37 @@ const PricingSection = () => {
   const [currency, setCurrency] = useState("");
   const [country, setCountry] = useState("");
   const [country_name, setCountryname] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch user location data
-    fetch("/api/location")
-      .then((response) => response.json())
+    // Fetch user location data client-side
+    fetch("https://geolocation-db.com/json/")
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to fetch location");
+        return response.json();
+      })
       .then((data) => {
-        console.log("country", data);
-        setCountry(data.country_code);
-        setCountryname(data.country_name);
-        setCurrency(data.country_code === "IN" ? "INR" : "USD");
+        console.log("Client location data:", data);
+        const countryCode = data.country_code || "US";
+        setCountry(countryCode);
+        setCountryname(data.country_name || "Unknown");
+        setCurrency(countryCode === "IN" ? "INR" : "USD");
+      })
+      .catch((err) => {
+        console.error("Client location error:", err);
+        setError("Unable to detect location, defaulting to USD");
+        setCountry("US");
+        setCountryname("United States");
+        setCurrency("USD");
       });
   }, []);
 
   useEffect(() => {
-    console.log(country, country_name, currency);
-  }, [currency, country, country_name]);
+    console.log("State updated:", { country, country_name, currency, error });
+  }, [currency, country, country_name, error]);
 
   const formatPrice = (usd, inr) => {
-    return currency === "INR"
-      ? `${inr.toLocaleString("en-IN")}`
-      : `${usd}`;
+    return currency === "INR" ? `${inr.toLocaleString("en-IN")}` : `${usd}`;
   };
 
   const plans = [
@@ -106,7 +116,9 @@ const PricingSection = () => {
   function handlePyment(name, usd, inr) {
     if (name !== "Basic") {
       const selectedPrice = currency === "INR" ? inr : usd;
-      window.location.href = `/payment?plan=${encodeURIComponent(name)}&price=${encodeURIComponent(selectedPrice)}&currency=${currency}`;
+      window.location.href = `/payment?plan=${encodeURIComponent(
+        name
+      )}&price=${encodeURIComponent(selectedPrice)}¤cy=${currency}`;
     }
   }
 
@@ -121,8 +133,9 @@ const PricingSection = () => {
         <h2 className="text-3xl sm:text-4xl font-semibold font-raleway mt-6">
           The perfect plan for your job hunt
         </h2>
-        <p className="text-lg sm:text-xl text-[#B6B6B6] mt-3">
-          Choose the plan that best supports your job search and unlock more powerful features.
+        <p className moving-right-to-left="text-lg sm:text-xl text-[#B6B6B6] mt-3">
+          Choose the plan that best supports your job search and unlock more
+          powerful features.
         </p>
 
         {/* Pricing Cards */}
@@ -133,13 +146,11 @@ const PricingSection = () => {
               ref={(el) => (cardRefs.current[index] = el)}
               className={`
                 card relative group p-6 sm:p-8 rounded-3xl border transition-all duration-700 ease-in-out transform
-                ${isInView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-10"
-                }
-                ${plan.bestSeller
-                  ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
-                  : "border-[#ffffff1A] bg-[#FFFFFF05]"
+                ${isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+                ${
+                  plan.bestSeller
+                    ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
+                    : "border-[#ffffff1A] bg-[#FFFFFF05]"
                 }
                 hover:scale-[1.02] hover:shadow-2xl
               `}
@@ -167,7 +178,9 @@ const PricingSection = () => {
 
               <button
                 className={`mt-6 w-full px-4 py-2 rounded-xl ${plan.buttonStyle}`}
-                onClick={() => handlePyment(plan.name, plan.priceUSD, plan.priceINR)}
+                onClick={() =>
+                  handlePyment(plan.name, plan.priceUSD, plan.priceINR)
+                }
               >
                 {plan.buttonText}
               </button>
