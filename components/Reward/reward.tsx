@@ -276,37 +276,38 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                     <div className="text-gray-300">Total Earnings:</div>
                     <div className="text-2xl font-bold text-[#0FAE96]">${(((indianEarning) / 90) + foreignEarning).toFixed(2)}</div>
                 </div>
-                <div className="bg-gray-700 p-6 rounded-lg text-sm text-gray-300 flex justify-center items-center">
-                    <div className="flex flex-col md:flex-row md:space-x-12 space-y-6 md:space-y-0 w-full">
+                <div className="bg-gray-700 p-4 sm:p-6 rounded-lg text-sm text-gray-300 flex justify-center items-center w-full">
+                    <div className="flex flex-col md:flex-row md:space-x-12 space-y-6 md:space-y-0 w-full max-w-4xl justify-center items-center md:items-start">
                         {/* Indian User Breakdown */}
-                        <div className="flex flex-col items-start gap-2">
-                            <div className="flex items-start gap-2">
+                        <div className="flex flex-col items-center md:items-start gap-2 w-full md:w-auto">
+                            <div className="flex items-start gap-2 text-center md:text-left">
                                 <span className="text-xl">🇮🇳</span>
                                 <div>
                                     <div className="text-white font-medium">Breakdown: 1 Paid Indian</div>
                                     <div>User × <span className="text-white font-semibold">₹250</span> Commission</div>
                                 </div>
                             </div>
-                            <div className="mt-2 ml-7 text-white">
+                            <div className="mt-2 md:ml-7 text-white">
                                 Total Indian Earnings: <span className="font-semibold">₹{indianEarning}</span>
                             </div>
                         </div>
 
                         {/* Foreign User Breakdown */}
-                        <div className="flex flex-col items-start gap-2">
-                            <div className="flex items-start gap-2">
+                        <div className="flex flex-col items-center md:items-start gap-2 w-full md:w-auto">
+                            <div className="flex items-start gap-2 text-center md:text-left">
                                 <span className="text-xl">🌍</span>
                                 <div>
                                     <div className="text-white font-medium">Breakdown: 1 Paid Foreign</div>
                                     <div>User × <span className="text-white font-semibold">$10</span> Commission</div>
                                 </div>
                             </div>
-                            <div className="mt-2 ml-7 text-white">
+                            <div className="mt-2 md:ml-7 text-white">
                                 Total Foreign Earnings: <span className="font-semibold">${foreignEarning}</span>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             {/* Confirmation Modal */}
