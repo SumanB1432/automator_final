@@ -41,6 +41,10 @@ const ReferralInvite = () => {
     }
   };
 
+  const handledashboard=()=>{
+    window.location.href="dashboard"
+  }
+
   const handleCopy = () => {
     const referralURL = `${window.location.origin}/${fullName}`;
     navigator.clipboard.writeText(referralURL).then(() => {
@@ -72,6 +76,12 @@ const ReferralInvite = () => {
           >
             {isLogin !== null && isLogin !== "null" ? "Get Referral Link" : "Log In"}
           </button>
+          {isLogin && <button
+            onClick={handledashboard}
+            className="ml-4 w-full sm:w-auto inline-block bg-[#0FAE96] bg-primary-accent text-white font-raleway font-semibold text-sm sm:text-base py-3 px-6 sm:px-8 rounded-lg hover:bg-opacity-80 transition duration-300 focus:ring-2 focus:ring-primary-accent focus:ring-opacity-50 hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transform hover:scale-105"
+          >
+            Dashboard
+          </button>}
         </div>
         <div className="flex justify-center md:justify-end">
           <Image

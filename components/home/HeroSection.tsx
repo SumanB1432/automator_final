@@ -1,8 +1,23 @@
 /** @format */
 "use client";
 import Image from "next/image";
+import React,{useState,useEffect} from "react";
+import { get, ref, getDatabase, update, set } from "firebase/database";
+import app, { auth } from "@/firebase/config";
+const db = getDatabase(app);
 
 const HeroSection = () => {
+  // const [uid,setUid] = useState("");
+  // useEffect(()=>{
+  //   let uid = auth?.currentUser?.uid;
+  //   if(uid){
+  //     setUid(uid)
+  //   }
+
+  // },[])
+  // useEffect(()=>{
+  //   let subRef = (db,`user/${uid}`)
+  // })
   return (
     <div className="relative bg-[#11011E] pt-32 pb-[3.6rem] px-6 md:px-16 lg:px-20 text-center overflow-hidden">
       {/* Blurred Accent Elements */}

@@ -59,10 +59,13 @@ export default function ReferralPage({ params }: { params: Promise<ReferralParam
     };
 
     return (
-        <div className="h-screen bg-[#11011E] text-[#ECF1F0] flex flex-col justify-center items-center">
-            <h1 className="text-3xl font-bold text-[#0FAE96]">Tracking your visit...</h1>
-            <p className="mt-4 text-lg">You came through referral link: <strong>{resolvedParams?.referral}</strong></p>
-            <p className="text-sm mt-2 text-gray-400">Redirecting to homepage...</p>
+        <div className="flex items-center justify-center h-screen w-full bg-[#11011E]">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-[#0FAE96] border-solid mb-4"></div>
+          <p className="text-[#ECF1F0] text-lg font-medium">
+            Loading,Please Wait...
+          </p>
         </div>
+      </div>
     );
 }

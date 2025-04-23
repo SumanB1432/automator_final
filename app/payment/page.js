@@ -134,10 +134,12 @@ const Payment = () => {
           };
 
           const referralCode = getReferralCodeFromCookie();
+          console.log("referral code",referralCode)
           const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
 
           update(userRef, {
             amount: amount,
+            currency:currency,
             paymentDate: formattedDateTime,
           })
             .then(() => {
@@ -158,6 +160,7 @@ const Payment = () => {
           get(marketingRef)
             .then((snapshot) => {
               if (snapshot.exists()) {
+                console.log("marketting email update")
                 return update(marketingRef, { status: "Premium" });
               } else {
                 console.log("No marketing_email entry found for user.");
