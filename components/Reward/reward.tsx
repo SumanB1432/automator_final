@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { get, ref, getDatabase, update, set } from "firebase/database";
+import { get, ref, getDatabase, update, set, push } from "firebase/database";
 import app, { auth } from "@/firebase/config";
 const db = getDatabase(app)
 
@@ -7,7 +7,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
     const referralGoal = 3;
     const isEligible = totalRef >= referralGoal;
     const [uid, setUid] = useState("")
-
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [linkedinURL, setLinkedinURL] = useState("");
@@ -19,15 +18,29 @@ const RewardsDashboard = ({ totalRef, userName }) => {
     const [indianEarning, setIndianEarning] = useState(0)
     const [foreignEarning, setForeignEarning] = useState(0)
     const [indUser, setIndUser] = useState(0);
-    const [foreignUser, setForeignUser] = useState(0)
+    const [foreignUser, setForeignUser] = useState(0);
+    const [showBankModal, setShowBankModal] = useState(false);
+    const [bankForm, setBankForm] = useState({
+        name: "",
+        accountNumber: "",
+        ifscOrSwift: "",
+        contactNo: "",
+    });
+    const [bankSubmitLoading, setBankSubmitLoading] = useState(false);
+    const [submitMsg, setSubmitMsg] = useState("");
+    const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
+
+    // Calculate total earnings for eligibility check
+    const totalEarnings = parseFloat(((indianEarning / 90) + foreignEarning).toFixed(2));
+    const isEarningsEligible = totalEarnings >= 50;
+    
 
     useEffect(() => {
         const uid = auth.currentUser?.uid;
         if (uid) {
             setUid(uid)
         }
-    })
-
+    }, [])
 
     useEffect(() => {
         // Fetch user location data client-side
@@ -46,7 +59,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                 setCountry("US");
             });
 
-    })
+    }, [])
 
     const handleCopy = async () => {
         try {
@@ -58,16 +71,11 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         }
     };
 
-
-
-
-
     const deleteReferralsFromDB = async (userName) => {
         // TODO: Replace this with your actual Firebase DB deletion logic
         console.log(`Deleting referrals for user: ${userName}`);
         let userRef = ref(db, `referrals/${userName}`)
         await set(userRef, null)
-
     };
 
     const isValidLinkedInPost = (url) => {
@@ -75,16 +83,11 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         return pattern.test(url);
     };
 
-
-
-
-
     const handleLinkedInSubmit = async () => {
         if (!isValidLinkedInPost(linkedinURL)) {
             setShareError("Invalid LinkedIn post URL");
             return;
         }
-
 
         const shareRef = ref(db, `sharedLinks/${userName}`);
 
@@ -103,8 +106,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         }
     };
 
-
-
     const handleClaim = async () => {
         setLoading(true);
         try {
@@ -119,7 +120,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         }
     };
 
-
     useEffect(() => {
         const getRef = async function () {
             const referralRef = ref(db, `referrals/${userName}`);
@@ -132,7 +132,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
 
                 Object.values(data).forEach((user) => {
                     if (user.currency === "INR") {
-
                         inrCount++;
                     } else if (user.currency === "USD") {
                         foreignCount++;
@@ -144,17 +143,13 @@ const RewardsDashboard = ({ totalRef, userName }) => {
             } else {
                 console.log("No referral data found.");
             }
-
         }
         getRef()
-
-
     }, [uid])
 
     useEffect(() => {
         setIndianEarning(250 * indUser)
         setForeignEarning(10 * foreignUser)
-
     }, [indUser, foreignUser])
 
     return (
@@ -199,7 +194,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                     Claim Your Premium
                 </button>
             </div>
-
 
             {/* Card 2: LinkedIn Share */}
             <div className="bg-gray-800 p-4 sm:p-6 mb-6 rounded-2xl shadow-lg border border-gray-700 hover:border-purple-500 transition-all duration-300 w-full">
@@ -264,8 +258,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                 )}
             </div>
 
-
-
             {/* Card 3: Earnings */}
             <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 hover:border-purple-500 transition-all duration-300">
                 <div className="text-xl font-semibold flex items-center gap-2 mb-4">
@@ -274,8 +266,31 @@ const RewardsDashboard = ({ totalRef, userName }) => {
 
                 <div className="flex justify-between items-center mb-4">
                     <div className="text-gray-300">Total Earnings:</div>
-                    <div className="text-2xl font-bold text-[#0FAE96]">${(((indianEarning) / 90) + foreignEarning).toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-[#0FAE96]">${totalEarnings}</div>
                 </div>
+                <p className="text-sm text-gray-400 mb-4">
+                    Minimum $50 required to claim earnings
+                </p>
+                {/* <button
+                    onClick={() => setShowBankModal(true)}
+                    disabled={!isEarningsEligible}
+                    className={`mt-6 mb-6 bg-gradient-to-r from-[#0FAE96] to-[#0FAE96] text-white font-semibold text-base sm:text-lg px-5 py-2 rounded-xl shadow-md hover:opacity-90 transition-all duration-300 hover:scale-105 w-full sm:w-auto ${!isEarningsEligible ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : ''}`}
+                >
+                    Claim Your Earnings
+                </button> */}
+
+                <button
+                    disabled={!isEarningsEligible}
+                    onClick={() => setShowBankModal(true)}
+                    className={`mt-2 mb-6 w-full sm:w-auto font-semibold text-base sm:text-lg px-5 sm:px-6 py-2 rounded-xl shadow-md transition-all duration-300 hover:scale-105
+            ${isEarningsEligible
+                            ? "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96] text-white hover:opacity-90 cursor-pointer"
+                            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                >
+                    Claim Your Earnings
+                </button>
+
                 <div className="bg-gray-700 p-4 sm:p-6 rounded-lg text-sm text-gray-300 flex justify-center items-center w-full">
                     <div className="flex flex-col md:flex-row md:space-x-12 space-y-6 md:space-y-0 w-full max-w-4xl justify-center items-center md:items-start">
                         {/* Indian User Breakdown */}
@@ -307,7 +322,6 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                         </div>
                     </div>
                 </div>
-
             </div>
 
             {/* Confirmation Modal */}
@@ -333,6 +347,99 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                                 disabled={loading}
                             >
                                 {loading ? 'Claiming...' : 'Yes, Claim & Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showBankModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                    <div className="bg-gray-900 p-6 rounded-xl max-w-md w-full text-white border border-gray-600 shadow-lg">
+                        <h3 className="text-xl font-bold mb-4">Bank Details</h3>
+                        <p className="text-gray-300 mb-4">Please enter your payout details to receive funds.</p>
+
+                        <input
+                            type="text"
+                            placeholder="Name on Bank Account"
+                            className="mb-3 w-full p-2 rounded bg-gray-800 border border-gray-700"
+                            value={bankForm.name}
+                            onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Account Number"
+                            className="mb-3 w-full p-2 rounded bg-gray-800 border border-gray-700"
+                            value={bankForm.accountNumber}
+                            onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Confirm Account Number"
+                            className="mb-3 w-full p-2 rounded bg-gray-800 border border-gray-700"
+                            value={confirmAccountNumber}
+                            onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            placeholder={country === "IN" ? "IFSC Code" : "SWIFT Code"}
+                            className="mb-4 w-full p-2 rounded bg-gray-800 border border-gray-700"
+                            value={bankForm.ifscOrSwift}
+                            onChange={(e) => setBankForm({ ...bankForm, ifscOrSwift: e.target.value })}
+                        />
+
+                        <input
+                            type="tel"
+                            placeholder="Contact No."
+                            className="mb-3 w-full p-2 rounded bg-gray-800 border border-gray-700"
+                            value={bankForm.contactNo}
+                            onChange={(e) => setBankForm({ ...bankForm, contactNo: e.target.value })}
+                        />
+
+                        {submitMsg && <p className="text-green-400 text-sm mb-4">{submitMsg}</p>}
+
+                        <div className="flex justify-end gap-4">
+                            <button
+                                className="px-4 py-2 bg-gray-700 rounded-md hover:bg-gray-600 transition"
+                                onClick={() => setShowBankModal(false)}
+                                disabled={bankSubmitLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-gradient-to-r from-[#0FAE96] to-[#0FAE96] rounded-md font-semibold hover:opacity-90 transition"
+                                onClick={async () => {
+                                    if (bankForm.accountNumber !== confirmAccountNumber) {
+                                        alert("Account numbers do not match!");
+                                        return;
+                                    }
+                                    setShowModal(true)
+
+                                    setBankSubmitLoading(true);
+                                    const requestRef = ref(db, `payoutRequests/${uid}`);
+                                    try {
+                                        await set(requestRef, {
+                                            uid,
+                                            userName,
+                                            name: bankForm.name,
+                                            accountNumber: bankForm.accountNumber,
+                                            ifscOrSwift: bankForm.ifscOrSwift,
+                                            country,
+                                            earning: ((indianEarning / 90) + foreignEarning).toFixed(2),
+                                            contactNo: bankForm.contactNo,
+                                            status: "pending",
+                                            requestedAt: new Date().toISOString(),
+                                        });
+                                        setSubmitMsg("✅ Request submitted! Payment will be processed within 1 hour.");
+                                    } catch (err) {
+                                        console.error("Payout request failed", err);
+                                        setSubmitMsg("❌ Something went wrong. Try again.");
+                                    } finally {
+                                        setBankSubmitLoading(false);
+                                    }
+                                }}
+                                disabled={bankSubmitLoading}
+                            >
+                                {bankSubmitLoading ? "Submitting..." : "Submit Request"}
                             </button>
                         </div>
                     </div>
