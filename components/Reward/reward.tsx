@@ -271,13 +271,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                 <p className="text-sm text-gray-400 mb-4">
                     Minimum $50 required to claim earnings
                 </p>
-                {/* <button
-                    onClick={() => setShowBankModal(true)}
-                    disabled={!isEarningsEligible}
-                    className={`mt-6 mb-6 bg-gradient-to-r from-[#0FAE96] to-[#0FAE96] text-white font-semibold text-base sm:text-lg px-5 py-2 rounded-xl shadow-md hover:opacity-90 transition-all duration-300 hover:scale-105 w-full sm:w-auto ${!isEarningsEligible ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : ''}`}
-                >
-                    Claim Your Earnings
-                </button> */}
+
 
                 <button
                     disabled={!isEarningsEligible}
@@ -435,6 +429,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
                                         setSubmitMsg("❌ Something went wrong. Try again.");
                                     } finally {
                                         setBankSubmitLoading(false);
+                                        deleteReferralsFromDB(userName)
                                     }
                                 }}
                                 disabled={bankSubmitLoading}
