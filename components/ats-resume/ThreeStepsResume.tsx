@@ -30,12 +30,6 @@ export default function ThreeStepsResume() {
       }
       else {
         setUser(null);
-        console.log("No user signed in");
-        toast.error("You need to be signed in to upload your resume.");
-        setTimeout(() => {
-          window.location.href = "/sign-in";
-        }, 3000)
-
       }
     });
     return () => unsubscribe();
