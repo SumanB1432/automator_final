@@ -8,6 +8,7 @@ import { ref, get, getDatabase } from "firebase/database";
 import { pdfjs } from "react-pdf";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Modal from "@/app/Modal"; // Adjust the import path as necessary
+import { fetchUserDetails } from "../fetch_user_details/page";
 
 export default function GetHired() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,7 +41,9 @@ export default function GetHired() {
         setUser(null);
         console.log("No user signed in");
         toast.error("You need to be signed in to upload your resume.");
-        window.location.href = "/sign-in";
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 2000);
       }
     });
 
@@ -424,6 +427,90 @@ export default function GetHired() {
 
   // Keep analyzeResumeForATS and analyzeResumeForSkill functions as they are
 
+  const handleBuildButtonClick = async () => {
+    // Step 1: Check if user is logged in
+    if (!user) {
+      setTimeout(() => {
+        window.location.href = "/sign-in";
+      }, 2000)
+
+      return; // stop further execution
+    }
+
+    // Step 2: Check if API key and user data exist
+    const userData = await fetchUserDetails(user?.uid);
+
+    if (userData) {
+      const { apiKey, urd, rd } = userData;
+
+      if (apiKey === "API_KEY_NOT_FOUND") {
+        toast.error("Please Upload Your Gemini Key!");
+        setTimeout(() => {
+          window.location.href = "/gemini";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+      if (rd === "RD_DATA_NOT_FOUND") {
+        toast.error("Please Upload Your Resume!");
+        setTimeout(() => {
+          window.location.href = "/resume2";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+      
+      setApiKey(apiKey)
+      localStorage.setItem("api_key", apiKey);
+    }
+
+
+    // Step 3: If all checks passed, open the modal
+    openModalForBuild();
+  };
+
+  const handleAnalyzeButtonClick = async () => {
+    // Step 1: Check if user is logged in
+    if (!user) {
+      setTimeout(() => {
+        window.location.href = "/sign-in";
+      }, 2000)
+
+      return; // stop further execution
+    }
+
+    // Step 2: Check if API key and user data exist
+    const userData = await fetchUserDetails(user?.uid);
+
+    if (userData) {
+      const { apiKey, urd, rd } = userData;
+
+      if (apiKey === "API_KEY_NOT_FOUND") {
+        toast.error("Please Upload Your Gemini Key!");
+        setTimeout(() => {
+          window.location.href = "/gemini";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+      if (rd === "RD_DATA_NOT_FOUND") {
+        toast.error("Please Upload Your Resume!");
+        setTimeout(() => {
+          window.location.href = "/resume2";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+      
+      setApiKey(apiKey)
+      localStorage.setItem("api_key", apiKey);
+    }
+
+
+    // Step 3: If all checks passed, open the modal
+    openModalForAnalyze();
+  };
+
   return (
     <div className={`bg-gradient-to-b font-sans from-[#11011E] via-[#35013e] to-[#11011E] bg-[#11011E] text-white pt-16 px-4 sm:px-6 md:px-16 lg:px-20 ${isModalOpen ? "pointer-events-none" : "pointer-events-auto"}`}>
       <div className="bg-[#FFFFFF05] rounded-xl px-6 sm:px-8 md:px-10 py-12 sm:py-14 md:py-16 border-[1.5px] border-[#ffffff17] max-w-7xl mx-auto flex flex-col lg:flex-row justify-between animate-fadeIn">
@@ -457,14 +544,14 @@ export default function GetHired() {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
-              onClick={openModalForBuild}
+              onClick={handleBuildButtonClick}
               disabled={buildLoading}
             >
               {buildLoading ? "Building..." : "Build your Resume"}
             </button>
             <button
               className="bg-[#0FAE96] hover:bg-[#288d7d] text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 text-sm sm:text-base"
-              onClick={openModalForAnalyze}
+              onClick={handleAnalyzeButtonClick}
               disabled={analyzeLoading}
             >
               {analyzeLoading ? "Analyzing..." : "Analyze Your Resume"}

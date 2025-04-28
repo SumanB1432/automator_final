@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { toast } from "react-toastify";
 import { pdfjs } from "react-pdf";
+import { fetchUserDetails } from "../fetch_user_details/page";
 
 
 export default function ThreeStepsResume() {
@@ -22,26 +23,21 @@ export default function ThreeStepsResume() {
 
 
   useEffect(() => {
-    const api_key = localStorage.getItem("api_key");
-    if (!api_key) {
-      toast.error("API key is missing. Please configure your API key.");
-      window.location.href = "/settings";
-      return;
-    }
-    setApiKey(api_key);
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         console.log("User signed in:", currentUser.uid);
-      } else {
+      }
+      else {
         setUser(null);
         console.log("No user signed in");
         toast.error("You need to be signed in to upload your resume.");
-        window.location.href = "/sign-in";
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 3000)
+
       }
     });
-
     return () => unsubscribe();
   }, [auth]);
 
@@ -253,6 +249,50 @@ export default function ThreeStepsResume() {
     };
   }, []);
 
+
+  const handleAnalyzeButtonClick = async () => {
+    // Step 1: Check if user is logged in
+    if (!user) {
+      console.log(user,user?.uid)
+      setTimeout(() => {
+        window.location.href = "/sign-in";
+      }, 2000)
+
+      return; // stop further execution
+    }
+
+    // Step 2: Check if API key and user data exist
+    const userData = await fetchUserDetails(user?.uid);
+
+    if (userData) {
+      const { apiKey, urd, rd } = userData;
+
+      if (apiKey === "API_KEY_NOT_FOUND") {
+        toast.error("Please Upload Your Gemini Key!");
+        setTimeout(() => {
+          window.location.href = "/gemini";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+      if (rd === "RD_DATA_NOT_FOUND") {
+        toast.error("Please Upload Your Resume!");
+        setTimeout(() => {
+          window.location.href = "/resume2";
+        }, 2000);
+        return; // important! stop further execution
+      }
+
+
+      setApiKey(apiKey)
+      localStorage.setItem("api_key", apiKey);
+    }
+
+
+    // Step 3: If all checks passed, open the modal
+    openModalForAnalyze();
+  };
+
   return (
     <div className="text-white py-16 px-6 lg:px-24">
       <div className="max-w-4xl mx-auto flex flex-col items-center space-y-6">
@@ -263,7 +303,7 @@ export default function ThreeStepsResume() {
         </div>
         <h2 className="text-3xl font-bold">3 Steps to Get Your Dream Job</h2>
         <p className="text-gray-400">
-        Build your resume in one click, fix skill gaps, auto-apply with AI, and get hired for your dream job—faster than ever.
+          Build your resume in one click, fix skill gaps, auto-apply with AI, and get hired for your dream job—faster than ever.
         </p>
 
         {/* Steps */}
@@ -272,11 +312,10 @@ export default function ThreeStepsResume() {
             <div
               key={step.id}
               ref={(el) => (stepRefs.current[index] = el)} // Assign DOM element
-              className={`bg-[#FFFFFF05]  border-[#ffffff17] border-[1.5px] rounded-lg p-6 space-y-4 transition-all duration-500 ease-in-out transform ${
-                isInView
+              className={`bg-[#FFFFFF05]  border-[#ffffff17] border-[1.5px] rounded-lg p-6 space-y-4 transition-all duration-500 ease-in-out transform ${isInView
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-10"
-              }`}
+                }`}
             >
               {/* Icon */}
               <div className="bg-[#2C223B] w-12 h-12 flex items-center justify-center rounded-full">
@@ -297,12 +336,12 @@ export default function ThreeStepsResume() {
         {/* Call to Action */}
         <button
           className="bg-[#0FAE96] hover:bg-[#228273] text-white py-3 px-6 rounded-lg font-semibold mt-8"
-          onClick={openModalForAnalyze}
+          onClick={handleAnalyzeButtonClick}
           disabled={analyzeLoading || buildLoading}
         >
           {analyzeLoading ? "Analyzing..." : "Analyze Your Skills"}
         </button>
-        </div>
+      </div>
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

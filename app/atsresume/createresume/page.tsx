@@ -14,6 +14,8 @@ import Luxary from "@/components/resume_templates/luxary";
 import Unique from "@/components/resume_templates/Unique";
 import Classic from "@/components/resume_templates/Classic";
 import { HiMenu, HiX } from "react-icons/hi";
+import { fetchUserDetails } from "@/components/fetch_user_details/page";
+import { toast } from "react-toastify";
 
 const CreateResume: React.FC = () => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -62,18 +64,50 @@ const CreateResume: React.FC = () => {
   useEffect(() => {
     const auth = getAuth();
     setUid(auth.currentUser ? auth.currentUser.uid : null);
-    const api_key = localStorage.getItem("api_key");
-    const JD = localStorage.getItem("jobDescription");
-    const RD = localStorage.getItem("resumeText");
-    setJD(JD);
-    setRD(RD);
-    if (!api_key) {
-      console.error("API Key is missing in localStorage!");
-      return;
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async function () {
+      let api_key = localStorage.getItem("api_key");
+      const userData = await fetchUserDetails(uid);
+
+      if (userData) {
+        const { apiKey, urd, rd } = userData;
+
+        if (apiKey === "API_KEY_NOT_FOUND") {
+          toast.error("Please Upload Your Gemini Key!");
+          setTimeout(() => {
+            window.location.href = "/gemini";
+          }, 2000);
+          return; // important! stop further execution
+        }
+
+        if (rd === "RD_DATA_NOT_FOUND") {
+          toast.error("Please Upload Your Resume!");
+          setTimeout(() => {
+            window.location.href = "/resume2";
+          }, 2000);
+          return; // important! stop further execution
+        }
+
+        api_key = apiKey;
+        setApiKey(api_key);
+        localStorage.setItem("api_key", apiKey);
+      }
+
+      const JD = localStorage.getItem("jobDescription");
+      const RD = localStorage.getItem("resumeText");
+      setJD(JD);
+      setRD(RD);
+      if (!api_key) {
+        console.error("API Key is missing in localStorage!");
+        return;
+      }
+      console.log(api_key);
+      setApiKey(api_key);
     }
-    console.log(api_key);
-    setApiKey(api_key);
-  }, []);
+    fetchData()
+  }, [uid]);
 
   const geminiClient = new GoogleGenerativeAI(apiKey);
 
@@ -216,7 +250,7 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
   useEffect(() => {
 
 
-   
+
 
     analyzeResumeForSkill();
     // setResumeData(sampleData);
@@ -322,9 +356,8 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
 
           {/* Left Sidebar */}
           <div
-            className={`lg:w-3/12 w-3/4 h-screen scrollbar-hidden print:hidden transition-transform duration-300 ${
-              isLeftSidebarOpen ? "translate-x-0" : "-translate-x-full"
-            } lg:translate-x-0 fixed lg:static bg-[#0F011E] z-40 top-0 pt-16 lg:pt-0 overflow-x-hidden`}
+            className={`lg:w-3/12 w-3/4 h-screen scrollbar-hidden print:hidden transition-transform duration-300 ${isLeftSidebarOpen ? "translate-x-0" : "-translate-x-full"
+              } lg:translate-x-0 fixed lg:static bg-[#0F011E] z-40 top-0 pt-16 lg:pt-0 overflow-x-hidden`}
           >
             <LeftSidebar />
           </div>
@@ -344,9 +377,8 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
 
           {/* Right Sidebar with Print Button */}
           <div
-            className={`lg:w-3/12 w-3/4 h-screen scrollbar-hidden print:hidden transition-transform duration-300 ${
-              isRightSidebarOpen ? "translate-x-0" : "translate-x-full"
-            } lg:translate-x-0 fixed lg:static bg-[#0F011E] z-40 top-0 pt-16 lg:pt-0 right-0 overflow-x-hidden`}
+            className={`lg:w-3/12 w-3/4 h-screen scrollbar-hidden print:hidden transition-transform duration-300 ${isRightSidebarOpen ? "translate-x-0" : "translate-x-full"
+              } lg:translate-x-0 fixed lg:static bg-[#0F011E] z-40 top-0 pt-16 lg:pt-0 right-0 overflow-x-hidden`}
           >
             <div className="p-4">
               <button
