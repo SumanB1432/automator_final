@@ -1,6 +1,5 @@
-"use client"
+"use client";
 import React, { useState } from "react";
-import emailjs from "emailjs-com";
 import { toast } from "react-toastify";
 
 const ContactUs = () => {
@@ -19,35 +18,34 @@ const ContactUs = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-    const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-    const userId = process.env.NEXT_PUBLIC_EMAILJS_USER_ID;
-    
-    const templateParams = {
-      user_name: formData.name,
-      from_email: formData.email,
-      phoneNumber: formData.phoneNumber,
-      userQuery: formData.userQuery,
-    };
-
-    emailjs.send(serviceId, templateId, templateParams, userId)
-      .then(() => {
+  
+    try {
+      const response = await fetch("/api/sendemails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      if (response.ok) {
         toast.success("Your query has been sent successfully!");
         setFormData({ name: "", email: "", phoneNumber: "", userQuery: "" });
-      })
-      .catch(() => {
+      } else {
         toast.error("There was an issue sending your query. Please try again later.");
-      });
+      }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("There was an error. Please try again later.");
+    }
   };
+  
 
   return (
-    
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] px-4">
       <div className="flex flex-col md:flex-row items-center justify-center mx-auto gap-40">
-
         {/* Left Illustration */}
         <div className="hidden md:block md:w-1/3">
           <img
@@ -75,7 +73,6 @@ const ContactUs = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-
               />
             </div>
             <div>
@@ -91,7 +88,6 @@ const ContactUs = () => {
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 pattern="[0-9]{10}"
-
               />
             </div>
             <div>
@@ -106,7 +102,6 @@ const ContactUs = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-
               />
             </div>
             <div>
@@ -114,26 +109,21 @@ const ContactUs = () => {
                 Query
               </label>
               <textarea
-                type="text"
                 name="userQuery"
                 placeholder="query"
                 className="border border-[rgba(255,255,255,0.1)] w-full px-3 py-2 rounded-md bg-[#1A1A2E] text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] placeholder-[#B6B6B6]"
                 required
-
                 value={formData.userQuery}
                 onChange={handleChange}
               />
             </div>
-            <br></br>
+            <br />
             <button
-            
               type="submit"
               className="w-full py-2 bg-[#0FAE96] text-[#FFFFFF] rounded-md font-raleway font-medium text-base hover:opacity-90 bg-[#0FAE96] text-black px-4 py-2 rounded-md hover:bg-[#0FAE96]/80 transform transition duration-200 hover:scale-105 text-sm sm:text-base"
-         
             >
               Send Message
             </button>
-
           </form>
         </div>
       </div>
