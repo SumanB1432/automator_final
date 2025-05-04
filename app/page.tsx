@@ -1,4 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import CompaniesSection from '@/components/home/CompaniesSection';
 import FAQSection from '@/components/home/FAQSection';
 import FeaturesSection from '@/components/home/FeaturesSection';
@@ -9,24 +12,24 @@ import PricingSection from '@/components/pricing/PricingSection';
 import TestimonialSection from "../components/home/TestimonialSection";
 import JobSeeker from "../components/JobSeeker";
 import VideoSection from "../components/home/video";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-
+import ResumeUpload from "@/components/upload/ResumeUpload";
 export default function Mainpage({ params }) {
   const router = useRouter();
-  
+  const [jobDescription, setJobDescription] = useState('');
+  const [recruiterSuggestion, setRecruiterSuggestion] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+
   useEffect(() => {
     if (params?.referral) {
       document.cookie = `referral=${params.referral}; path=/; max-age=${30 * 24 * 60 * 60}`;
-      router.push("/");  // Redirect to homepage
+      router.push("/"); // Redirect to homepage
     }
   }, [params?.referral, router]);
 
   return (
     <div className='bg-[#11011E]'>
       <HeroSection />
-      <VideoSection/>
+      <VideoSection />
       <CompaniesSection />
       <HowItWorks />
       <FeaturesSection />
@@ -35,6 +38,18 @@ export default function Mainpage({ params }) {
       <ResumeATSChecker />
       <FAQSection />
       <JobSeeker />
+      
+      {/* Merged ResumeUpload section */}
+      <div className="max-w-6xl mx-auto p-6 space-y-10">
+        <ResumeUpload
+          jobDescription={jobDescription}
+          setJobDescription={setJobDescription}
+          recruiterSuggestion={recruiterSuggestion}
+          setRecruiterSuggestion={setRecruiterSuggestion}
+          jobTitle={jobTitle}
+          setJobTitle={setJobTitle}
+        />
+      </div>
     </div>
   );
 }
