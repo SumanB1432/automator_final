@@ -287,7 +287,6 @@ export default function CandidatesPage()  {
               Send Email
             </button>
             <button
-              onClick={}
               className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
             >
               Message All
