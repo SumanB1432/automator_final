@@ -188,9 +188,7 @@ const GetEmail = () => {
                                     <ul className="space-y-4">
                                         {result.interestEmails.map((email) => (
                                             <li
-                                                key={ Inflammation
-                                                    email.id
-                                                }
+                                                key={email.id}
                                                 className="p-6 bg-gray-50 rounded-lg shadow-sm"
                                             >
                                                 <div className="flex justify-between items-start">
