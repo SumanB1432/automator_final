@@ -168,31 +168,31 @@ export default function CandidatesPage()  {
     )
   };
 
-  const handleSendMessageAll = async () => {
-    const candidates = filteredCandidates.filter((c) => selectedCandidates.includes(c.id))
-      .map((c) => ({
-        name: c.name,
-        phone: c.phone.replace(/\D/g, "")
-      }))
-    try {
-      const response = await fetch("/api/sendwhatsapp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ candidates }),
-      });
+  // const handleSendMessageAll = async () => {
+  //   const candidates = filteredCandidates.filter((c) => selectedCandidates.includes(c.id))
+  //     .map((c) => ({
+  //       name: c.name,
+  //       phone: c.phone.replace(/\D/g, "")
+  //     }))
+  //   try {
+  //     const response = await fetch("/api/sendwhatsapp", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ candidates }),
+  //     });
 
-      if (response.ok) {
-        alert("Messages sent successfully!");
-      } else {
-        alert("Failed to send messages.");
-      }
-    } catch (error) {
-      console.error("Error sending messages:", error);
-      alert("An error occurred while sending messages.");
-    }
-  };
+  //     if (response.ok) {
+  //       alert("Messages sent successfully!");
+  //     } else {
+  //       alert("Failed to send messages.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error sending messages:", error);
+  //     alert("An error occurred while sending messages.");
+  //   }
+  // };
 
   return (
     <div className="flex flex-col lg:flex-row h-auto min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
@@ -287,7 +287,7 @@ export default function CandidatesPage()  {
               Send Email
             </button>
             <button
-              onClick={handleSendMessageAll}
+              onClick={}
               className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
             >
               Message All
