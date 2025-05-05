@@ -87,7 +87,7 @@ export default function ResumeUpload({
         jt: jobTitle,
       });
 
-      const res = await fetch(`/api/parseresume?${query.toString()}`, {
+      const res = await fetch(`http://localhost:3001/api/parseresume?${query.toString()}`, {
         method: 'POST',
         body: formData,
       });
@@ -96,9 +96,14 @@ export default function ResumeUpload({
 
       const { candidates }: { candidates: Candidate[] } = await res.json();
       setCandidates(candidates);
+      console.log(candidates,"candidate")
       setSelectedFiles([]);
       toast.success('Resumes parsed successfully!');
-      router.push('/candidates');
+
+      setTimeout(()=>{
+        window.location.href = "/hr/candidates"
+      },3000)
+      
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || 'Unexpected error occurred.');

@@ -1,6 +1,8 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { Candidate } from "@/types/candidate";
 
+// Filter interface to manage candidate search filters
 interface Filter {
   jobTitle: string;
   education: string;
@@ -28,78 +30,7 @@ interface CandidateStore {
   clearFilters: () => void;
 }
 
-export const useCandidateStore = create<CandidateStore>((set) => ({
-  candidates: [],
-  filteredCandidates: [],
-  filters: {
-    jobTitle: "",
-    education: "",
-    location: "",
-    skills: [],
-    minExperience: "",
-    maxExperience: "",
-    minScore: "",
-    maxScore: "",
-  },
-  availableSkills: ["JavaScript", "Python", "React", "Node.js", "SQL"],
-  setCandidates: (candidates) =>
-    set((state) => ({
-      candidates,
-      filteredCandidates: applyFilters(candidates, state.filters),
-    })),
-  clearCandidates: () => set({ candidates: [], filteredCandidates: [] }),
-  updateApproval: (id) =>
-    set((state) => ({
-      candidates: state.candidates.map((c) =>
-        c.id === id ? { ...c, approved: !c.approved } : c
-      ),
-      filteredCandidates: state.filteredCandidates.map((c) =>
-        c.id === id ? { ...c, approved: !c.approved } : c
-      ),
-    })),
-  shortlistedCandidates: [],
-  setShortlistedCandidates: (candidates) => set({ shortlistedCandidates: candidates }),
-  step: 1,
-  setStep: (step) => set({ step }),
-  setFilters: (newFilters) =>
-    set((state) => {
-      const updatedFilters = { ...state.filters, ...newFilters };
-      // Validate experience and score ranges
-      if (
-        updatedFilters.minExperience &&
-        updatedFilters.maxExperience &&
-        +updatedFilters.minExperience > +updatedFilters.maxExperience
-      ) {
-        return state; // Prevent invalid experience range
-      }
-      if (
-        updatedFilters.minScore &&
-        updatedFilters.maxScore &&
-        +updatedFilters.minScore > +updatedFilters.maxScore
-      ) {
-        return state; // Prevent invalid score range
-      }
-      return {
-        filters: updatedFilters,
-        filteredCandidates: applyFilters(state.candidates, updatedFilters),
-      };
-    }),
-  clearFilters: () =>
-    set((state) => ({
-      filters: {
-        jobTitle: "",
-        education: "",
-        location: "",
-        skills: [],
-        minExperience: "",
-        maxExperience: "",
-        minScore: "",
-        maxScore: "",
-      },
-      filteredCandidates: state.candidates,
-    })),
-}));
-
+// Apply filters to candidates data
 const applyFilters = (candidates: Candidate[], filters: Filter): Candidate[] => {
   return candidates.filter((candidate) => {
     const matchesJobTitle = filters.jobTitle
@@ -116,7 +47,7 @@ const applyFilters = (candidates: Candidate[], filters: Filter): Candidate[] => 
       : true;
     const matchesExperience =
       (filters.minExperience
-        ? candidate.experience >= +filters.minExperience // Convert string to number
+        ? candidate.experience >= +filters.minExperience
         : true) &&
       (filters.maxExperience
         ? candidate.experience <= +filters.maxExperience
@@ -134,3 +65,82 @@ const applyFilters = (candidates: Candidate[], filters: Filter): Candidate[] => 
     );
   });
 };
+
+// Create store with persist
+export const useCandidateStore = create<CandidateStore>()(
+  persist(
+    (set) => ({
+      candidates: [],
+      filteredCandidates: [],
+      filters: {
+        jobTitle: "",
+        education: "",
+        location: "",
+        skills: [],
+        minExperience: "",
+        maxExperience: "",
+        minScore: "",
+        maxScore: "",
+      },
+      availableSkills: ["JavaScript", "Python", "React", "Node.js", "SQL"],
+      setCandidates: (candidates) =>
+        set((state) => ({
+          candidates,
+          filteredCandidates: applyFilters(candidates, state.filters),
+        })),
+      clearCandidates: () => set({ candidates: [], filteredCandidates: [] }),
+      updateApproval: (id) =>
+        set((state) => ({
+          candidates: state.candidates.map((c) =>
+            c.id === id ? { ...c, approved: !c.approved } : c
+          ),
+          filteredCandidates: state.filteredCandidates.map((c) =>
+            c.id === id ? { ...c, approved: !c.approved } : c
+          ),
+        })),
+      shortlistedCandidates: [],
+      setShortlistedCandidates: (candidates) => set({ shortlistedCandidates: candidates }),
+      step: 1,
+      setStep: (step) => set({ step }),
+      setFilters: (newFilters) =>
+        set((state) => {
+          const updatedFilters = { ...state.filters, ...newFilters };
+          if (
+            updatedFilters.minExperience &&
+            updatedFilters.maxExperience &&
+            +updatedFilters.minExperience > +updatedFilters.maxExperience
+          ) {
+            return state;
+          }
+          if (
+            updatedFilters.minScore &&
+            updatedFilters.maxScore &&
+            +updatedFilters.minScore > +updatedFilters.maxScore
+          ) {
+            return state;
+          }
+          return {
+            filters: updatedFilters,
+            filteredCandidates: applyFilters(state.candidates, updatedFilters),
+          };
+        }),
+      clearFilters: () =>
+        set((state) => ({
+          filters: {
+            jobTitle: "",
+            education: "",
+            location: "",
+            skills: [],
+            minExperience: "",
+            maxExperience: "",
+            minScore: "",
+            maxScore: "",
+          },
+          filteredCandidates: state.candidates,
+        })),
+    }),
+    {
+      name: "candidate-store", // LocalStorage key
+    }
+  )
+);
