@@ -87,7 +87,7 @@ export default function ResumeUpload({
         jt: jobTitle,
       });
 
-      const res = await fetch(`http://localhost:3001/api/parseresume?${query.toString()}`, {
+      const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes?${query.toString()}`, {
         method: 'POST',
         body: formData,
       });

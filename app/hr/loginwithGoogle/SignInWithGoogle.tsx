@@ -51,12 +51,12 @@ function SignInwithGoogle() {
           notifyExtensionOnLogin(user.uid);
 
           if (!subscriptionType) {
-            window.location.href = "/gemini";
+            window.location.href = "hr/gemini";
           }else if (
             subscriptionType === "FreeTrialStarted" ||
             subscriptionType === "Premium"
           ) {
-            window.location.href = "/";
+            window.location.href = "/hr";
           } else {
             window.location.href = "hr/gemini";
           }

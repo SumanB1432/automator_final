@@ -61,46 +61,12 @@ function SignInwithGoogle() {
               const formSnapshot = await get(getForm)
               const subscriptionType = subscriptionSnapshot.val();
 
-
-              // console.log(subscriptionType + "Hello")
-              // console.log(formSnapshot.val(), "form")
-
-              // website-login.js (on your website)
               function notifyExtensionOnLogin(uid) {
                 const event = new CustomEvent('userLoggedIn', { detail: { uid } });
                 console.log("event1")
                 document.dispatchEvent(event);
               }
               notifyExtensionOnLogin(user.uid)
-
-              //     const getReferralCodeFromCookie = () => {
-              //       const cookie = document.cookie.split('; ').find(row => row.startsWith('referral='));
-              //       return cookie ? cookie.split('=')[1] : null;
-              //     };
-              //     const referralCode = getReferralCodeFromCookie()
-              //     console.log(referralCode, "code",typeof(referralCode))
-
-              //     //** SAVE REFERAL CODE IN DATABASE  */
-              //     const currentDate = new Date();
-              //     const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
-              //     let currentUser = auth.currentUser.uid;
-
-              //     if(referralCode ){
-              //     const newDocRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
-              //     console.log(newDocRef,typeof(newDocRef),"referrals");
-              //     if(!newDocRef){
-              //     set(newDocRef, {
-              //       signupDate: formattedDateTime,
-              //       amount: 0,
-              //     }
-
-
-              //     ).then(() => {
-
-              //     })
-              //   }
-              // }
-
 
               if (!subscriptionType) {
                 // If Subscriptiontype is undefined, redirect to Gemini page
