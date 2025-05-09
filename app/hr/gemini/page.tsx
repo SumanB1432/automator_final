@@ -21,7 +21,7 @@ const GeminiPage: React.FC = () => {
         console.log("User signed in:", currentUser);
       } else {
         toast.error("You need to be signed in to upload your Gemini key!");
-        window.location.href = "/sign-in";
+        window.location.href = "/hr/login";
       }
     });
 
@@ -80,6 +80,7 @@ const GeminiPage: React.FC = () => {
       console.error("Error generating content:", error);
     } finally {
       setLoading(false);
+      window.location.href = "/hr"
     }
   };
 

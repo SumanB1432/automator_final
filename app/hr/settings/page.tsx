@@ -8,7 +8,7 @@ const Settings = function () {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     async function updateKey() {
-        window.location.href = "/updategemini";
+        window.location.href = "/hr/updategemini";
     }
 
     async function deleteAccount() {
@@ -42,7 +42,7 @@ const Settings = function () {
     
             setTimeout(() => {
                 console.log("Redirecting...");
-                window.location.href = "hr/login";
+                window.location.href = "/hr/login";
             }, 2000);
         } catch (error) {
             console.error("Error logging out:", error.message);

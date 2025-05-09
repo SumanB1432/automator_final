@@ -152,6 +152,43 @@ export default function CandidatesPage() {
     alert("All emails have been processed.");
   };
 
+
+  const handleSendMessageAll = async () => {
+    const candidates = filteredCandidates
+      .filter((c) => selectedCandidates.includes(c.id))
+      .map((c) => ({
+        name: c.name || "", // Ensure name is passed
+        phone: c.phone.replace(/\D/g, ""), // Remove non-digit characters
+      }));
+  
+    if (candidates.length === 0) {
+      alert("No candidates selected.");
+      return;
+    }
+  
+    try {
+      const response = await fetch("/api/sendmessege", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ candidates }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert("Messages sent successfully!");
+      } else {
+        console.error("Send failed:", data);
+        alert("Some messages failed to send. Check console for details.");
+      }
+    } catch (error) {
+      console.error("Error sending messages:", error);
+      alert("An error occurred while sending messages.");
+    }
+  };
+  
   const handleCandidateSelect = (id: string) => {
     setSelectedCandidates((prev) =>
       prev.includes(id) ? prev.filter((candidateId) => candidateId !== id) : [...prev, id]
@@ -225,6 +262,7 @@ export default function CandidatesPage() {
                 Send Email
               </button>
               <button
+              onClick={handleSendMessageAll}
                 className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
               >
                 Message All

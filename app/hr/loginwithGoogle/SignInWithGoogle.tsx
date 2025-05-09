@@ -6,15 +6,22 @@ import { getDatabase, ref, set, get } from "firebase/database";
 import google from "./igoogle.svg";
 import Image from "next/image";
 import axios from "axios";
+import { checkEmailType } from "../utils/emailCheck";
 
 function SignInwithGoogle() {
   function googleLogin() {
     const provider = new GoogleAuthProvider();
+
     signInWithPopup(auth, provider).then(async (result) => {
       const user = result.user;
       let name = user.displayName;
       let email = user.email;
       let profilePhoto = user.photoURL;
+      const emailCheck = checkEmailType(email);
+      if (emailCheck.message == false) {
+        toast.error("Only company/HR emails are allowed.", { position: "top-center" });
+        return; // ⛔ Stop further execution
+      }
       const db = getDatabase(app);
 
       const userRef = ref(db, "hr/" + user.uid);
@@ -52,13 +59,13 @@ function SignInwithGoogle() {
 
           if (!subscriptionType) {
             window.location.href = "hr/gemini";
-          }else if (
+          } else if (
             subscriptionType === "FreeTrialStarted" ||
             subscriptionType === "Premium"
           ) {
             window.location.href = "/hr";
           } else {
-            window.location.href = "hr/gemini";
+            window.location.href = "/hr/gemini";
           }
         };
 
@@ -88,7 +95,7 @@ function SignInwithGoogle() {
               await setCommonLocalStorage();
 
 
-   
+
 
               await redirectUserBasedOnStatus();
             })

@@ -1,9 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from 'firebase/auth'
-//  import { getAnalytics } from "firebase/analytics";
+import { getAuth } from 'firebase/auth';
 import { getDatabase } from "firebase/database";
-// import { getAnalytics } from "firebase/analytics";
-import { getStorage } from "firebase/storage"
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,16 +13,17 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-// const analytics = getAnalytics(app);
-// export const app = initializeApp(firebaseConfig);
-// export const analytics = getAnalytics(app);
+
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Check if we're using placeholder Firebase config
+export const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyDummyKey-ThisIsAPlaceholder";
+
+
+
 export const database = getDatabase(app);
-export const storage = getStorage(app)
-
-
-export const auth = getAuth(app)
+export const storage = getStorage(app);
+export const auth = getAuth(app);
 
 export default app;
-

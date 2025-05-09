@@ -68,9 +68,19 @@ function HRLogin() {
         localStorage.setItem("api_key", apiKey);
 
         toast.success("HR logged in successfully", { position: "top-center" });
-
+        if(apiKey){
+          setTimeout(()=>{
+           window.location.href = "/hr"
+          })
+          
+        }
+        else{
+          setTimeout(()=>{
+            window.location.href = "/hr/gemini";
+          },2000)
+        }
         // Direct HR to /gemini only
-        window.location.href = "/gemini";
+        // window.location.href = "/hr/gemini";
       } else {
         toast.error("Email is not verified. Please verify your email and try again!", {
           position: "bottom-center",
@@ -108,7 +118,7 @@ function HRLogin() {
             className="w-full p-3 border border-gray-600 rounded-lg bg-[#1A1A2E] text-white focus:ring-2 focus:ring-[#0FAE96]"
           />
           <div className="text-right">
-            <Link href="/passwordreset" className="text-[#0FAE96] hover:text-[#FF00C7] transition-colors duration-200">Forgot password?</Link>
+            <Link href="/hr/passwordreset" className="text-[#0FAE96] hover:text-[#FF00C7] transition-colors duration-200">Forgot password?</Link>
           </div>
           <button type="submit" disabled={loading} className="w-full bg-[#0FAE96] text-white p-3 rounded-lg hover:opacity-90 transition duration-300 transform hover:scale-105">
             {loading ? "Signing in..." : "Sign in"}
@@ -118,7 +128,7 @@ function HRLogin() {
           </div>
         </form>
         <p className="text-center text-gray-400 mt-4">
-          Don&apos;t have an account? <Link href="/sign-up" className="text-[#0FAE96] hover:text-[#FF00C7] transition-colors duration-200">Sign up</Link>
+          Don&apos;t have an account? <Link href="/hr/signUp" className="text-[#0FAE96] hover:text-[#FF00C7] transition-colors duration-200">Sign up</Link>
         </p>
       </div>
     </main>
