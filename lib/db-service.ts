@@ -57,13 +57,13 @@ export const storeRecording = async (sessionId: string, recordingBlobs: Blob[]):
           new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timeout - possible CORS issue")), 5000))
         ]);
         return result as string;
-      } catch (error) {
-        console.error("Local Firebase Storage error (likely CORS):", error.message);
+      } catch (err) {
+        console.error("Local Firebase Storage error (likely CORS):", err.message);
         toast({
           title: "Local Development",
           description: "Using local video URL due to CORS limitations.",
         });
-        return URL.createObjectURL(videoBlob); // ✅ Use this in local mode
+        return URL.createObjectURL(videoBlob); 
       }
     }
     
