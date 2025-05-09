@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { getFirestore } from "firebase/firestore";
-import { collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
-import { useRouter, useSearchParams } from "next/navigation";
+import { getFirestore, collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 import FilterSidebar from "@/components/tallentpool/FilterSidebar";
 import PaginationControls from "@/components/tallentpool/PaginationControls";
 import CandidateList from "@/components/tallentpool/CandidateList";
@@ -36,39 +35,41 @@ export default function SearchPage() {
   const [newSkill, setNewSkill] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const firestore = getFirestore(app)
-
+  const firestore = getFirestore(app);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
   const recruiterId = "demo_recruiter";
   const usageRef = doc(firestore, `recruiters/${recruiterId}/usage`, "metrics");
 
-  // Check for JD filter values on page load
+  // ✅ Updated: use window.location.search instead of useSearchParams
   useEffect(() => {
-    const jobTitleParam = searchParams.get('jobTitle');
-    const educationParam = searchParams.get('education');
-    const locationParam = searchParams.get('location');
-    const skillsParam = searchParams.get('skills');
-    const experienceRangeParam = searchParams.get('experienceRange');
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
 
-    if (jobTitleParam || educationParam || locationParam || skillsParam || experienceRangeParam) {
-      try {
-        const filterValues = {
-          jobTitle: jobTitleParam || '',
-          education: educationParam || '',
-          location: locationParam || '',
-          skills: skillsParam ? JSON.parse(skillsParam) : [],
-          experienceRange: experienceRangeParam ? JSON.parse(experienceRangeParam) : [0, 10],
-        };
-        applyFiltersFromJD(filterValues);
-      } catch (err) {
-        console.error('Error parsing query params:', err);
-        setError('Failed to apply JD filters.');
+      const jobTitleParam = params.get("jobTitle");
+      const educationParam = params.get("education");
+      const locationParam = params.get("location");
+      const skillsParam = params.get("skills");
+      const experienceRangeParam = params.get("experienceRange");
+
+      if (jobTitleParam || educationParam || locationParam || skillsParam || experienceRangeParam) {
+        try {
+          const filterValues = {
+            jobTitle: jobTitleParam || '',
+            education: educationParam || '',
+            location: locationParam || '',
+            skills: skillsParam ? JSON.parse(skillsParam) : [],
+            experienceRange: experienceRangeParam ? JSON.parse(experienceRangeParam) : [0, 10],
+          };
+          applyFiltersFromJD(filterValues);
+        } catch (err) {
+          console.error('Error parsing query params:', err);
+          setError('Failed to apply JD filters.');
+        }
       }
     }
-  }, [searchParams, applyFiltersFromJD, setError]);
+  }, [applyFiltersFromJD, setError]);
 
   const updateUsageMetrics = useCallback(
     async (updates: { matchesFound?: number; candidatesViewed?: number }) => {
@@ -78,10 +79,8 @@ export default function SearchPage() {
           ? currentDoc.data()
           : { matchesFound: 0, candidatesViewed: 0, quotaLeft: 100 };
 
-        const updatedMatchesFound =
-          (updates.matchesFound ?? currentData.matchesFound) || 0;
-        const updatedCandidatesViewed =
-          (updates.candidatesViewed ?? currentData.candidatesViewed) || 0;
+        const updatedMatchesFound = (updates.matchesFound ?? currentData.matchesFound) || 0;
+        const updatedCandidatesViewed = (updates.candidatesViewed ?? currentData.candidatesViewed) || 0;
         const updatedQuotaLeft = Math.max(100 - updatedMatchesFound, 0);
 
         await setDoc(
@@ -126,7 +125,7 @@ export default function SearchPage() {
   }, [setCandidates, setError, setLoading]);
 
   useEffect(() => {
-    if(candidates.length === 0) {
+    if (candidates.length === 0) {
       fetchCandidates();
     }
   }, [candidates, fetchCandidates]);
@@ -135,49 +134,39 @@ export default function SearchPage() {
     const debounced = debounce(async () => {
       let result = [...candidates];
 
-      //Fuse.js for fuzzy search
       const fuseOptions = {
         keys: ['jobTitle', 'education', 'location', 'skills'],
-        threshold: 0.3, 
+        threshold: 0.3,
         includeScore: true,
       };
-      
+
       const fuse = new Fuse(result, fuseOptions);
 
       if (jobTitle.trim()) {
         const fuseResults = fuse.search(jobTitle.trim());
-      result = fuseResults.map(({ item }) => item);
+        result = fuseResults.map(({ item }) => item);
       }
 
       if (education.trim()) {
-        
-        const educationKeywords = education
-          .toLowerCase()
-          .split(',')
-          .map((keyword) => keyword.trim());
-
-        
+        const educationKeywords = education.toLowerCase().split(',').map((keyword) => keyword.trim());
         result = result.filter((c) =>
           educationKeywords.some((keyword) =>
-            c.education?.toLowerCase().includes(keyword) 
+            c.education?.toLowerCase().includes(keyword)
           )
         );
       }
 
       if (location.trim()) {
         const fuseResults = fuse.search(location.trim());
-      result = fuseResults.map(({ item }) => item);
+        result = fuseResults.map(({ item }) => item);
       }
 
       if (skills.length > 0) {
         let matchedSkillsCandidates: Candidate[] = [];
 
-        
         skills.forEach((skill) => {
-          const fuseResults = fuse.search(skill); 
-
-          const matchedItems = fuseResults.map(({ item }) => item); 
-
+          const fuseResults = fuse.search(skill);
+          const matchedItems = fuseResults.map(({ item }) => item);
           matchedSkillsCandidates = [...matchedSkillsCandidates, ...matchedItems];
         });
 
@@ -222,7 +211,7 @@ export default function SearchPage() {
 
   const handleViewCandidate = useCallback(
     async (email: string) => {
-      window.open(`/candidate/${email}`, "_blank");;
+      window.open(`/candidate/${email}`, "_blank");
       try {
         const currentDoc = await getDoc(usageRef);
         const currentViewed = currentDoc.exists()
@@ -237,10 +226,7 @@ export default function SearchPage() {
     [updateUsageMetrics, usageRef, setError]
   );
 
-  const addSkill = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    skill: string
-  ) => {
+  const addSkill = (e: React.KeyboardEvent<HTMLInputElement>, skill: string) => {
     if (e.key === "Enter" && skill.trim() && !skills.includes(skill.trim())) {
       setFilter({ skills: [...skills, skill.trim()] });
       setNewSkill("");
