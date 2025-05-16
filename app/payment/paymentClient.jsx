@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect } from "react";
 import { get, ref, getDatabase, update } from "firebase/database";
@@ -18,7 +19,7 @@ import upi from "./upi.svg";
 
 const db = getDatabase(app);
 
-const Payment = () => {
+const PaymentClient = () => {
   const [currency, setCurrency] = useState("");
   const [amount, setAmount] = useState(0);
   const [promocode, setPromocode] = useState("");
@@ -452,4 +453,4 @@ const Payment = () => {
   );
 };
 
-export default Payment;
+export default PaymentClient;
