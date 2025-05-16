@@ -1,6 +1,6 @@
 
 import { Suspense } from "react";
-import PaymentClient from "./PaymentClient.jsx";
+import  PaymentClient from "../../components/payment/PaymentClient"
 
 export default function PaymentPage() {
   console.log("hello")
