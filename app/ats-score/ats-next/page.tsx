@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle, Lightbulb, Layout, FileText, Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 
 
@@ -9,6 +10,7 @@ const ATSResumeEvaluation = () => {
   const [atsData, setAtsData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [skillData, setSkilllsData] = useState<any>(null)
+  const router = useRouter();
 
 
 
@@ -91,6 +93,10 @@ const ATSResumeEvaluation = () => {
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
+
+  const handleClick = () => {
+    router.push('/atsresume');
+  }
 
   const StarRating = ({ rating }: { rating: number }) => (
     <div className="flex space-x-1">
@@ -183,7 +189,9 @@ const ATSResumeEvaluation = () => {
             </div>
             <div className="flex items-center gap-4">
               <StarRating rating={Math.round(atsData.atsScore / 20)} />
-              <button className="px-6 py-2 bg-gradient-to-r from-[#0FAE96] to-[#7000FF] text-white font-semibold rounded-xl shadow-[0_6px_24px_rgba(15,174,150,0.6)] hover:shadow-[0_8px_32px_rgba(112,0,255,0.7)] hover:scale-105 transition-all duration-300 transform relative overflow-hidden group">
+              <button className="px-6 py-2 bg-gradient-to-r from-[#0FAE96] to-[#7000FF] text-white font-semibold rounded-xl shadow-[0_6px_24px_rgba(15,174,150,0.6)] hover:shadow-[0_8px_32px_rgba(112,0,255,0.7)] hover:scale-105 transition-all duration-300 transform relative overflow-hidden group" 
+              onClick={handleClick}
+              >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.3)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-shimmer"></span>
                 <span className="relative z-10 flex items-center">
                   Create Now
@@ -283,7 +291,9 @@ const ATSResumeEvaluation = () => {
             ))}
 
           </div>
-          <button className="mt-8 px-6 py-3 bg-[#0FAE96] text-white font-semibold rounded-xl shadow-[0_4px_20px_rgba(15,174,150,0.5)] hover:bg-[#0E8C77] hover:scale-105 hover:shadow-[0_6px_30px_rgba(15,174,150,0.7)] transition-all duration-300 transform relative overflow-hidden">
+          <button className="mt-8 px-6 py-3 bg-[#0FAE96] text-white font-semibold rounded-xl shadow-[0_4px_20px_rgba(15,174,150,0.5)] hover:bg-[#0E8C77] hover:scale-105 hover:shadow-[0_6px_30px_rgba(15,174,150,0.7)] transition-all duration-300 transform relative overflow-hidden"
+          onClick={handleClick}
+          >
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.2)] to-transparent animate-shimmer"></span>
             Optimize Now
           </button>

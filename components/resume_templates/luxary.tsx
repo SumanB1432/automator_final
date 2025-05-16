@@ -92,17 +92,12 @@ export default function Luxary() {
           section: "WORK EXPERIENCE",
         });
         if (exp.description) {
-          const descriptionItems = exp.description
-            .split(",")
-            .map((detail) => detail.trim());
-          descriptionItems.forEach((detail, i) =>
-            elements.push({
-              id: `experience-${index}-desc-${i}`,
-              type: "experience-desc",
-              data: { text: detail, parentId: index },
-              section: "WORK EXPERIENCE",
-            })
-          );
+          elements.push({
+            id: `experience-${index}-desc`,
+            type: "experience-desc",
+            data: { description: exp.description, parentId: index },
+            section: "WORK EXPERIENCE",
+          });
         }
       });
     }
@@ -576,14 +571,38 @@ export default function Luxary() {
           </div>
         );
       case "experience-desc":
-        return (
-          <ul
-            className="list-disc ml-4 sm:ml-6 text-xs sm:text-sm text-gray-800 mb-3 sm:mb-4"
-            style={descriptionStyle}
-          >
-            <li>{element.data.text}</li>
-          </ul>
-        );
+  // Return null if description is undefined or empty
+  if (!element.data.description || element.data.description.trim().length === 0) {
+    return null;
+  }
+
+  // Protect ".js" by replacing the period with a placeholder
+  const sentences = element.data.description
+    .replace(
+      /(\b(?:Express|React|Node)\.js\b)/g,
+      (match) => match.replace(".", "[DOT]")
+    )
+    .split(/\.\s+(?=[A-Z])/) // Split on ". " followed by a capital letter
+    .map((sentence: string) =>
+      sentence
+        .replace(/\[DOT\]/g, ".") // Restore ".js"
+        .trim()
+    )
+    .filter((sentence: string) => sentence.length > 0);
+
+  return (
+    <ul
+      className="list-disc ml-4 sm:ml-6 text-xs sm:text-sm text-gray-800 mb-3 sm:mb-4"
+      style={descriptionStyle}
+    >
+      {sentences.map((detail: string, i: number) => (
+        <li key={`experience-${element.data.parentId}-desc-${i}`}>
+          {detail}
+          {i < sentences.length - 1 && detail.endsWith(".") ? "" : "."}
+        </li>
+      ))}
+    </ul>
+  );
       case "project-header":
         return (
           <div className="mb-2 sm:mb-2">

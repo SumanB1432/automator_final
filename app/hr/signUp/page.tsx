@@ -1,6 +1,6 @@
 "use client";
 
-import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, updateProfile, signOut } from "firebase/auth";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import app from "@/firebase/config";
@@ -17,22 +17,18 @@ function Register() {
     const [loading, setLoading] = useState(false);
     const [emailError, setEmailError] = useState("");
 
-
-    const handleRegister = async (e: unknown) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
         setLoading(true);
         const auth = getAuth();
         const displayName = `${fname} ${lname}`;
 
         try {
-
-
             const checkEmail = checkEmailType(email);
             if (checkEmail.message == false) {
                 setEmailError("Warning: Please use a company or HR email"); // Show error below input
                 setLoading(false);
                 return;
-
             } else {
                 setEmailError("");
             }
@@ -46,7 +42,7 @@ function Register() {
                 const db = getDatabase(app);
                 const newDocRef = ref(db, "hr/" + user.uid);
 
-                await set(newDocRef, { fname, lname, email, password });
+                await set(newDocRef, { fname, lname, email }); // Removed password for security
 
                 toast.success("Registered! Check your email for verification.", { position: "top-center" });
 
@@ -54,6 +50,11 @@ function Register() {
                     email: email,
                     name: displayName || "User",
                 });
+
+                // Sign out to prevent immediate email verification check
+                await signOut(auth);
+
+    
             }
         } catch (error) {
             toast.error(error.message || "An unknown error occurred", { position: "bottom-center" });

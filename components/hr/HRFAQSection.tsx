@@ -12,25 +12,25 @@ const FAQSection = () => {
 
   const faqs = [
     {
-      question: "How does Jobform Automator work?",
+      question: "How does JobForm Automator help HRs?",
       answer:
-        "Jobform Automator uses AI to instantly apply to jobs, optimize your resume, and reach recruiters—so you can get hired faster with less effort.",
+        "It automates resume downloads, parsing, candidate outreach, and even interviews—so you spend less time on manual work and more time hiring the right people.",
     },
     {
-      question: "Can I customize the information that gets filled in?",
+      question: "Which platforms does it support?",
       answer:
-        "Yes, you can customize the information inside settings page in the Automator Site.",
+        "We support major job boards like LinkedIn, Naukri, Indeed, Monster, and more. Just install the extension, and we take care of the rest.",
     },
     {
-      question: "Is there a cost to use Jobform Automator?",
+      question: "Can I trust the resume parsing accuracy?",
       answer:
-        "There are both free and premium plans available depending on your needs.",
+        "Yes. Our AI is trained on thousands of resumes and tested to deliver over 98% field-level accuracy—comparable to human recruiters.",
     },
     {
       question:
-        "When can I expect to get hired using Jobform Automator?",
+        "How quickly can I start?",
       answer:
-        "The timeline depends on the job market and the positions you're applying for, but the tool significantly streamlines your application process.",
+        "Set up takes less than 5 minutes. Just add our extension to Chrome and you’re ready to automate.",
     },
   ];
 

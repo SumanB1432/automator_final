@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getFirestore } from 'firebase/firestore';
-import { collection, getDocs, query, updateDoc, where, doc } from 'firebase/firestore';
+import { get, getDatabase, ref, update } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { Candidate } from '@/components/types/types';
 import { use } from 'react';  // Make sure to import 'use'
@@ -21,32 +20,38 @@ export default function CandidateEdit({ params }: CandidateEditProps) {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const firestore = getFirestore(app)
+  const db = getDatabase(app)
 
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
-        const q = query(collection(firestore, 'candidates'), where('email', '==', normalizedEmail));
-        const snapshot = await getDocs(q);
+        const snapshot = await get(ref(db, 'talent_pool'));
+        if (snapshot.exists()) {
+          const candidatesObj: { [key: string]: Candidate } = snapshot.val();
+          const candidateEntry = Object.entries(candidatesObj).find(
+            ([, cand]) => cand.email.toLowerCase() === normalizedEmail
+          );
 
-        if (!snapshot.empty) {
-          const docSnap = snapshot.docs[0];
-          const data = docSnap.data();
-          setCandidate({
-            id: docSnap.id,
-            name: data.name || '',
-            email: data.email || '',
-            location: data.location || '',
-            score: data.score || 0,
-            parsedText: data.parsedText || '',
-            skills: data.skills || [],
-            experience: data.experience || 0,
-            jobTitle: data.jobTitle || '',
-            education: data.education || '',
-            matchScore: data.matchScore || 0,
-            phone: data.phone || '',
-            resumeUrl: data.resumeUrl || '',
-          });
+          if (candidateEntry) {
+            const [id, data] = candidateEntry;
+            setCandidate({
+              id,
+              name: data.name || '',
+              email: data.email || '',
+              location: data.location || '',
+              score: data.score || 0,
+              parsedText: data.parsedText || '',
+              skills: data.skills || [],
+              experience: data.experience || 0,
+              jobTitle: data.jobTitle || '',
+              education: data.education || '',
+              matchScore: data.matchScore || 0,
+              phone: data.phone || '',
+              resumeUrl: data.resumeUrl || '',
+            });
+          } else {
+            setError('Candidate not found');
+          }
         } else {
           setError('Candidate not found');
         }
@@ -59,13 +64,13 @@ export default function CandidateEdit({ params }: CandidateEditProps) {
     };
 
     fetchCandidate();
-  }, [normalizedEmail]);
+  }, [normalizedEmail, db]);
 
   const handleSave = async () => {
     if (candidate && candidate.id) {
       try {
-        const docRef = doc(firestore, 'candidates', candidate.id);
-        await updateDoc(docRef, {
+        const candidateRef = ref(db, `talent_pool/${candidate.id}`);
+        await update(candidateRef, {
           name: candidate.name,
           jobTitle: candidate.jobTitle,
           location: candidate.location,
@@ -85,7 +90,7 @@ export default function CandidateEdit({ params }: CandidateEditProps) {
   if (error) return <p className="text-red-600">{error}</p>;
 
   return (
-    <div className="p-6">
+    <div className="p-12 h-full">
       <h1 className="text-2xl font-semibold mb-4">Edit Candidate</h1>
       <div className="space-y-4">
         <div className="flex gap-4">

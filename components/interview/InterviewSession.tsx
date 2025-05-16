@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
@@ -10,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { generateInterviewQuestion } from "@/lib/gemini-utils";
 import type { SessionType } from "@/app/interview/interview_dashboard/page";
 import { debounce } from "lodash";
+import { saveSessionWithRecording } from "@/lib/db-service";
 
 export interface SessionTypes {
   jobDescription?: string;
@@ -33,7 +35,7 @@ interface InterviewSessionProps {
   isRecording: boolean;
   setIsRecording: React.Dispatch<React.SetStateAction<boolean>>;
   onComplete: (feedback: SessionType["feedback"]) => void;
-  stream?: MediaStream | null; // Add stream prop from parent
+  stream?: MediaStream | null;
 }
 
 const InterviewSession: React.FC<InterviewSessionProps> = ({
@@ -42,7 +44,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   isRecording,
   setIsRecording,
   onComplete,
-  stream, // Use stream from parent
+  stream,
 }) => {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [hasMediaPermission, setHasMediaPermission] = useState<boolean>(false);
@@ -116,15 +118,13 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             }
           };
 
-          // Wait for metadata to ensure video is ready
           videoRef.current.onloadedmetadata = () => {
             console.log("Video metadata loaded, attempting to play");
             playVideo();
           };
 
-          // Initialize recorder
           console.log("Initializing recorder with stream");
-          recorderRef.current.initialize(activeStream); // Use original stream for recording
+          recorderRef.current.initialize(activeStream);
           recorderRef.current.start();
           setIsRecording(true);
           toast({
@@ -180,7 +180,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
         session.recordings.forEach((url) => URL.revokeObjectURL(url));
       }
     };
-  }, [stream]); // Add stream as dependency
+  }, [stream]);
 
   const initializeSpeechSynthesis = () => {
     if ("speechSynthesis" in window) {
@@ -729,25 +729,23 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       setMediaStream(null);
     }
 
-    let recordingUrl: string | null = null;
+    let recordedBlob: Blob | null = null;
     if (isRecording) {
       try {
         console.log("Stopping recorder");
-        const recordedBlob = await recorderRef.current.stop();
+        recordedBlob = await recorderRef.current.stop();
         if (recordedBlob) {
-          recordingUrl = URL.createObjectURL(recordedBlob);
-          console.log("Recording URL created:", recordingUrl);
+          console.log(`Recording blob captured, size: ${recordedBlob.size} bytes`);
           toast({
-            title: "Recording Saved",
-            description: "The interview video has been saved.",
+            title: "Recording Captured",
+            description: "The interview video has been captured and is being saved.",
             variant: "default",
           });
         } else {
           console.warn("No final recording data");
           toast({
             title: "No Recording",
-            description:
-              "No video data was recorded, but the interview has been saved.",
+            description: "No video data was recorded, but the interview will be saved.",
             variant: "default",
           });
         }
@@ -760,8 +758,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
         );
         toast({
           title: "Recording Error",
-          description:
-            "Failed to save the final recording, but the interview will still end.",
+          description: "Failed to capture the recording, but the interview will be saved.",
           variant: "destructive",
         });
       }
@@ -791,29 +788,75 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
     const { strengths, improvements } = generateFeedback(finalTranscript);
 
-    const updatedSession = {
+    // Prepare session data for saving
+    const sessionData: Omit<SessionType, 'recording' | 'timestamp' | 'recordingUrl'> = {
       ...session!,
-      recording: recordingUrl,
+      transcript: finalTranscript,
       feedback: {
         strengths,
         improvements,
         overallScore,
         transcript: finalTranscript,
-        recording: recordingUrl,
+        recording: null, // Will be updated with recordingUrl
       },
       isCompleted: true,
     };
 
-    console.log("Updated session:", updatedSession);
-    setSession(updatedSession);
-    onComplete(updatedSession.feedback!);
+    try {
+      // Save session and recording, get the recordingUrl
+      console.log("Calling saveSessionWithRecording with recordedBlob:", !!recordedBlob);
+      const recordingUrl = await saveSessionWithRecording(
+        sessionData,
+        recordedBlob ? [recordedBlob] : []
+      );
+      console.log(`Recording URL from saveSessionWithRecording: ${recordingUrl || 'none'}`);
 
-    toast({
-      title: "Interview Completed",
-      description:
-        "Your interview session has ended. Check the feedback for details.",
-      variant: "default",
-    });
+      // Update session state with the recording URL
+      const updatedSession: SessionType = {
+        ...sessionData,
+        recording: recordingUrl ? [recordingUrl] : null,
+        recordingUrl: recordingUrl || undefined,
+        feedback: {
+          ...sessionData.feedback,
+          recording: recordingUrl ? [recordingUrl] : null,
+        },
+      };
+
+      console.log("Updated session with recording URL:", JSON.stringify(updatedSession, null, 2));
+      setSession(updatedSession);
+      onComplete(updatedSession.feedback!);
+
+      toast({
+        title: "Interview Completed",
+        description: `Your interview session has been saved. ${
+          recordingUrl ? "Video uploaded." : "No video recorded."
+        }`,
+        variant: "default",
+      });
+    } catch (error: any) {
+      console.error("Error saving session with recording:", error.message, error.stack);
+      toast({
+        title: "Save Error",
+        description: `Failed to save session: ${error.message}. Data may be saved locally.`,
+        variant: "destructive",
+      });
+
+      // Fallback to local session update
+      const updatedSession: SessionType = {
+        ...sessionData,
+        recording: recordedBlob ? [URL.createObjectURL(recordedBlob)] : null,
+        recordingUrl: undefined,
+        feedback: {
+          ...sessionData.feedback,
+          recording: recordedBlob ? [URL.createObjectURL(recordedBlob)] : null,
+        },
+      };
+
+      console.log("Fallback session:", JSON.stringify(updatedSession, null, 2));
+      setSession(updatedSession);
+      onComplete(updatedSession.feedback!);
+    }
+
     console.log("Interview finished, feedback sent");
   };
 
@@ -849,9 +892,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             onClick={toggleMic}
           >
             {micEnabled ? (
-              <Mic className="h-4 w-4" />
+              <Mic className="h-4 w-4 ml-2.5" />
             ) : (
-              <MicOff className="h-4 w-4" />
+              <MicOff className="h-4 w-4 ml-2.5" />
             )}
             <span className="sr-only">{micEnabled ? "Disable microphone" : "Enable microphone"}</span>
           </Button>
@@ -867,9 +910,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             onClick={toggleVideo}
           >
             {videoEnabled ? (
-              <Video className="h-4 w-4" />
+              <Video className="h-4 w-4 ml-2.5" />
             ) : (
-              <VideoOff className="h-4 w-4" />
+              <VideoOff className="h-4 w-4 ml-2.5" />
             )}
             <span className="sr-only">{videoEnabled ? "Disable video" : "Enable video"}</span>
           </Button>
@@ -885,9 +928,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             onClick={toggleVoice}
           >
             {voiceEnabled ? (
-              <Volume2 className="h-4 w-4" />
+              <Volume2 className="h-4 w-4 ml-2.5" />
             ) : (
-              <VolumeX className="h-4 w-4" />
+              <VolumeX className="h-4 w-4 ml-2.5" />
             )}
             <span className="sr-only">{voiceEnabled ? "Disable voice" : "Enable voice"}</span>
           </Button>

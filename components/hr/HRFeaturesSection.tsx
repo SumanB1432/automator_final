@@ -7,27 +7,27 @@ const FeaturesSection = () => {
   const features = [
     {
       icon: "/images/Bag.png",
-      title: "Apply Without the Burnout",
+      title: "Resume Auto-Download",
       description:
-        "No more repetitive typing. Upload your resume once, and we handle the rest.",
+        "Zero clicks, zero missed candidates.",
     },
     {
       icon: "/images/globle.png",
-      title: "Stand Out. Get Picked",
+      title: "AI Resume Parsing",
       description:
-        "Build an ATS-optimized resume that passes filters. Send personalized AI emails to recruiters.",
+        "Structured data ready for your ATS; export anytime.",
     },
     {
       icon: "/images/bolt.png",
-      title: "Know What You’re Missing",
+      title: "AI Candidate Outreach",
       description:
-        "Our Skill Engine scans real job listings and tells you exactly which skills you need—and where to learn them for free.",
+        "Personalised sequences that nurture talent while you sleep.",
     },
     {
       icon: "/images/shield.png",
-      title: "Secure & Private",
+      title: " AI Video Interviews",
       description:
-        "Your personal information is encrypted and never shared—ensuring complete privacy.",
+        "Consistent questions, real-time scoring, shareable highlights.",
     },
   ];
 
@@ -81,7 +81,7 @@ const FeaturesSection = () => {
 
         {/* Section Subheading - improved readability */}
         <p className="mt-4 text-base md:text-lg text-[#B6B6B6] text-center max-w-2xl mx-auto">
-        The job you want isn’t waiting. Neither should you.
+        All-in-one feature stack
         </p>
 
         {/* Features Grid - better responsive layout */}

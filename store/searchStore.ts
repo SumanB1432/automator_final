@@ -63,21 +63,41 @@ export const useSearchStore = create<SearchState>((set) => ({
       };
 
       const fuseOptions = {
-        keys: ['jobTitle', 'location', 'skills'], 
+        keys: ['jobTitle', 'location', 'skills'],
         threshold: 0.3,
         includeScore: true,
       };
 
       const fuse = new Fuse(state.candidates, fuseOptions);
 
-      
-      let result = [...state.candidates];
-      
-      if (filterValues.jobTitle.trim()) {
-        const fuseResults = fuse.search(filterValues.jobTitle.trim());
-        result = fuseResults.map(({ item }) => item);
 
+      let result = [...state.candidates];
+    //Changes for JobTitle 
+      if (filterValues.jobTitle.trim()) {
+        const cleaned = filterValues.jobTitle
+          .toLowerCase()
+          .replace(/\band\b/g, '')
+          .replace(/[^a-z\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        const words = cleaned.split(' ');
+
+        const jobTitleFuse = new Fuse(state.candidates, {
+          keys: ['jobTitle'],
+          threshold: 0.4,
+          includeScore: true,
+          shouldSort: true,
+        });
+
+        const jobTitleResults = words.reduce((acc, word) => {
+          const matches = jobTitleFuse.search(word).map(({ item }) => item);
+          return acc.length === 0 ? matches : acc.filter((item) => matches.includes(item));
+        }, [] as Candidate[]);
+
+        result = jobTitleResults;
       }
+
       if (filterValues.education.trim()) {
         // Split the education field by commas, considering different areas/fields
         const educationKeywords = filterValues.education

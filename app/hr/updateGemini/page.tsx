@@ -9,6 +9,7 @@ import { getDatabase, ref, update } from "firebase/database";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
+import { KeyRound, ExternalLink, Loader2 } from 'lucide-react';
 
 const GeminiPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -22,7 +23,7 @@ const GeminiPage: React.FC = () => {
         console.log("User signed in:", currentUser);
       } else {
         toast.error("You need to be signed in to upload your Gemini key!");
-        window.location.href = "hr/sign-in";
+        window.location.href = "/hr/login";
       }
     });
 
@@ -81,40 +82,91 @@ const GeminiPage: React.FC = () => {
   };
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] p-6">
-      <div className="w-full max-w-md p-8 bg-[rgba(255,255,255,0.05)] rounded-2xl shadow-2xl border border-[rgba(255,255,255,0.1)] text-center">
-        <h1 className="text-2xl font-semibold font-raleway text-[#ECF1F0] mb-text-2xl font-raleway font-semibold mb-6 text-center animate-slideDown text-[#ECF1F0]">Update Your Free Gemini Key</h1>
-        <iframe
-          className="w-full rounded-xl aspect-video mb-6"
-          src="https://www.youtube.com/embed/5VbhMJKTbak?si=7N-YplG58Z6EXs4R"
-          title="YouTube video player"
-          allowFullScreen
-        ></iframe>
-        <form onSubmit={submitHandler} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Enter Your Gemini Key"
-            required
-            className="w-full p-3 border border-gray-600 rounded-lg bg-[#1A1A2E] text-white focus:ring-2 focus:ring-[#0FAE96]"
-            onChange={(e) => setGeminiKey(e.target.value)}
-            disabled={loading}
-          />
-          <a
-            href="https://aistudio.google.com/app/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-[#0FAE96] hover:underline"
-          >
-            Don’t have a key? Get your Gemini Key here
-          </a>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#0FAE96] text-white p-3 rounded-lg hover:opacity-90 transition duration-300 transform hover:scale-105"
-          >
-            {loading ? "Submitting..." : "Submit"}
-          </button>
-        </form>
+    <main className="flex items-center justify-center min-h-screen bg-[#11011E] p-6">
+      <div className="relative w-full max-w-md">
+        {/* Decorative elements */}
+        <div className="absolute -top-10 -left-10 w-20 h-20 bg-[#7000FF] rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-[#FF00C7] rounded-full blur-3xl opacity-20"></div>
+
+        {/* Main card */}
+        <div className="relative w-full bg-[rgba(255,255,255,0.02)] rounded-2xl shadow-2xl border border-[rgba(255,255,255,0.05)] p-8 overflow-hidden z-10">
+          {/* Subtle mesh gradient overlay */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJncmlkIiB4PSIwIiB5PSIwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjxwYXRoIGQ9Ik0gMjAgMCBMIDAgMCAwIDIwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4wMykiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')]"></div>
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Header with glow effect */}
+            <div className="flex items-center justify-center mb-6">
+              <div className="relative">
+                
+                <h1 className="text-3xl font-raleway font-bold text-[#ECF1F0]">
+                Activate powerful features at minimal cost.
+                </h1>
+              </div>
+            </div>
+
+            {/* Video player with enhanced border */}
+            <div className="relative mb-8 rounded-xl overflow-hidden border border-[rgba(255,255,255,0.05)] shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#7000FF]/10 to-[#FF00C7]/10 pointer-events-none"></div>
+              <iframe
+                className="w-full aspect-video"
+                src="https://www.youtube.com/embed/5VbhMJKTbak?si=7N-YplG58Z6EXs4R"
+                title="YouTube video player"
+                allowFullScreen
+              ></iframe>
+            </div>
+
+            {/* Form with subtle animations */}
+            <form onSubmit={submitHandler} className="space-y-5">
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-[#3e0969] rounded-lg blur opacity-30 group-hover:opacity-70 transition duration-1000"></div>
+                <input
+                  type="text"
+                  placeholder="Enter Your Gemini Key"
+                  required
+                  className="relative w-full p-4 border border-[rgba(255,255,255,0.05)] rounded-lg bg-[rgba(255,255,255,0.02)] text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] transition-all duration-300 placeholder-[#B6B6B6]"
+                  onChange={(e) => setGeminiKey(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="flex justify-center">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-[#0FAE96] hover:underline transition duration-200 group focus-visible:ring-2 focus-visible:ring-[#0FAE96]"
+                >
+                  <span className="font-inter">Don't have a key? Get your Gemini Key here</span>
+                  <ExternalLink className="ml-1 w-4 h-4 text-[#0FAE96] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-70 ${loading ? 'cursor-not-allowed' : ''}`}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="animate-spin mr-2 text-white" size={18} />
+                    <span>Processing...</span>
+                  </div>
+                ) : (
+                  <span>Submit Key</span>
+                )}
+              </button>
+            </form>
+
+            {/* Added trust indicators */}
+            <div className="mt-6 flex items-center justify-center space-x-2 text-[#B6B6B6] font-inter text-xs">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <span>Secure Connection</span>
+              <span>•</span>
+              <span>Encrypted</span>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );

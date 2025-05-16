@@ -15,11 +15,34 @@ export default function DeleteAccountModal({ onClose }) {
   const handleDelete = () => {
     if (confirmation === "DELETE") {
       alert("Account Deleted Successfully!");
+      handleLogout()
       onClose();
     } else {
       alert("Please type 'DELETE' to confirm.");
     }
   };
+
+  async function handleLogout() {
+    try {
+      await auth.signOut();
+      console.log("User signed out");
+      localStorage.clear();
+      console.log("LocalStorage cleared");
+
+      const notificationSuccess = notifyExtensionOnLogout();
+      console.log("Notification success:", notificationSuccess);
+      if (!notificationSuccess) {
+        console.warn("Logout notification may not have been processed correctly");
+      }
+
+      setTimeout(() => {
+        console.log("Redirecting...");
+        window.location.href = "/";
+      }, 1000);
+    } catch (error) {
+      console.error("Error logging out:", error.message);
+    }
+  }
 
   return (
     <div

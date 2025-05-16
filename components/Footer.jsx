@@ -73,7 +73,7 @@ const Footer = () => {
               ))}
             </div>
             <p className="mt-4 text-sm text-gray-400 font-light text-center">
-              © 2024 JobFormAutomator. <span className="hidden sm:inline">All rights reserved.</span>
+              +91 9766116839 <span className="hidden sm:inline">contact@jobformautomator.com</span>
             </p>
           </div>
 

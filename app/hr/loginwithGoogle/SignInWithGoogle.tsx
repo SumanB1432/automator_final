@@ -58,14 +58,14 @@ function SignInwithGoogle() {
           notifyExtensionOnLogin(user.uid);
 
           if (!subscriptionType) {
-            window.location.href = "hr/gemini";
+            window.location.href = "/hr/gemini";
           } else if (
-            subscriptionType === "FreeTrialStarted" ||
+            subscriptionType === "Free" ||
             subscriptionType === "Premium"
           ) {
             window.location.href = "/hr";
           } else {
-            window.location.href = "/hr/gemini";
+            window.location.href = "/hr";
           }
         };
 

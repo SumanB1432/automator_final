@@ -9,7 +9,7 @@ import HRResumeATSChecker from "@/components/hr/HRResumeATSChecker";
 import HRTestimonialSection from "@/components/hr/HRTestimonialSection";
 import HRVideoSection from "@/components/hr/HRVideoSection";
 import JobSeeker from "@/components/JobSeeker";
-import PricingSection from "@/components/pricing/PricingSection";
+import PricingSection from "@/components/hr/pricing";
 
 export default function HRPage() {
   return (

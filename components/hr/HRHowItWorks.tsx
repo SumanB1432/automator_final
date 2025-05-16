@@ -2,10 +2,10 @@
 "use client";
 import Image, { StaticImageData } from "next/image";
 import Link from "next/link";
-import aiImg from "../../public/images/autoapply.jpeg";
-import emailImg from "../../public/images/email.jpeg";
-import resumeImg from "../../public/images/resume.jpeg";
-import skillsImg from "../../public/images/skill.jpeg";
+import AutoCom from "../../public/images/autocom.jpeg";
+import Parse from "../../public/images/parse.jpeg";
+import Download from "../../public/images/download.jpeg";
+import Interview from "../../public/images/interview.jpeg";
 
 interface StepProps {
   id: number;
@@ -52,39 +52,39 @@ const HowItWorks = () => {
   const steps = [
     {
       id: 1,
-      title: "🧠 Apply Smarter with AI",
+      title: "📄 One-Click Download",
       description:
-        "Apply to hundreds of jobs daily on LinkedIn and Monster. We also auto-fill long, boring forms on company sites so you don’t have to.",
+        "Our Chrome extension automatically downloads every resume the moment it appears — from LinkedIn, Indeed, Naukri, and more. ",
       buttonText: "Add to Chrome",
       buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
-      image: aiImg,
+      image: Download,
     },
     {
       id: 2,
-      title: "📧 Reach Recruiters—Without Lifting a Finger",
+      title: "🧠 Human-Precision Parsing",
       description:
-        "Send personalized, AI-written emails directly to recruiters. Stand out in crowded inboxes while you focus on what matters.",
-      buttonText: "Send Auto Email",  
-      buttonLink: "https://www.jobformautomator.com/send-auto-mail",
-      image: emailImg,
+        "AI reads each resume like an expert recruiter, outputs match percentage (>98 % accuracy).",
+      buttonText: "Start for Free",  
+      buttonLink: "https://www.jobformautomator.com/hr/resumeUpload",
+      image: Parse,
     },
     {
       id: 3,
-      title: "📄 Create the Perfect Resume in Seconds",
+      title: "💬 Automated Outreach",
       description:
-        "Generate a keyword-optimized ATS resume that gets through filters. No guesswork—just one click to a job-winning document.",
-      buttonText:"Create Auto Resume",
-      buttonLink:"https://www.jobformautomator.com/atsresume",
-      image: resumeImg,
+        "AI drafts, sends, and replies to personalised emails that double response rates.",
+      buttonText: "Start Now", 
+      buttonLink:"https://www.jobformautomator.com/hr/hrEmail",
+      image: AutoCom,
     },
     {
       id: 4,
-      title: "💡 Know the Skills. Close the Gaps. Get Hired.",
+      title: "🤖 Interview Intelligence",
       description:
-        "Discover which skills you're missing—based on real-time job market data. Learn them for free. Improve your chances instantly. Plus: Our ATS checker tells you exactly why your resume may be getting rejected.",
-        buttonText:"Skills Suggestion",
-        buttonLink:"https://www.jobformautomator.com/atsresume",
-      image: skillsImg,
+        "AI interviewer asks role-specific questions, records video, scores answers, and flags top talent—bias-free.",
+        buttonText:"Start for Free",
+        buttonLink:"https://www.jobformautomator.com/hr/interview",
+      image: Interview,
     },
   ];
 
@@ -96,11 +96,10 @@ const HowItWorks = () => {
           <div className="text-[#0FAE96] text-sm md:text-base font-medium">How it works?</div>
         </div>
         <h1 className="text-white text-2xl md:text-4xl font-bold leading-tight">
-          6 Features. 1 Goal. Your Job.
+          4 Features, 1 Goal, Great Hire.
         </h1>
         <p className="text-[#B6B6B6] max-w-3xl text-sm md:text-lg leading-relaxed">
-          See how our extension automates form-filling, matches you with jobs,
-          and saves you time on every application.
+        Why HR teams switch to JobForm Automator
         </p>
       </div>
 

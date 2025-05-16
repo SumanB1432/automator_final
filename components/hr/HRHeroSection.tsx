@@ -39,20 +39,20 @@ const HeroSection = () => {
                 height={12}
               />
             ))}
-          <span className="font-roboto text-[#B6B6B6] text-xs">5 star rated</span>
+          <span className="font-roboto text-[#B6B6B6] text-xs">Loved by busy HR teams worldwide</span>
         </span>
       </div>
 
       {/* Main Heading */}
       <h1 className="relative z-10 font-raleway font-bold text-[#ECF1F0] text-[1.65rem] sm:text-3xl md:text-4xl lg:text-[3.9rem] mb-4 leading-normal animate-slideInUp">
-        <span className="block">Stop Wasting Time,</span>
-        <span className="block mt-2 sm:mt-6">Get Hired.</span>
+        <span className="block">Less manual Work,</span>
+        <span className="block mt-2 sm:mt-6">More great Hires</span>
 
       </h1>
 
       {/* Subheading */}
       <p className="relative z-10 font-roboto text-[#B6B6B6] text-base sm:text-lg md:text-xl lg:text-xl mb-8 animate-fadeIn">
-        ⏱ Apply 10x faster <br /> 📈 Get 3x more interviews <br /> 💼 Spend time growing skills, not applying jobs
+        ⏱ Stop wasting hours downloading resumes <br /> 📄 See the best fit in hours, not days <br /> 🤖 Automate emails & first-round interviews
       </p>
 
 
@@ -84,7 +84,7 @@ const HeroSection = () => {
           ))}
         </div>
         <p className="font-roboto text-[#B6B6B6] text-sm">
-          <span className="text-[#0FAE96] font-bold">350+</span> JobSeeker using JobFrom Automator
+          <span className="text-[#0FAE96] font-bold">350+</span> recruiters already accelerating hiring with JobForm Automator
         </p>
       </div>
     </div>

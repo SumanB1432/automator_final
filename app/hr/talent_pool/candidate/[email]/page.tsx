@@ -1,19 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { getFirestore } from 'firebase/firestore';
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  increment,
-} from 'firebase/firestore';
+import { getDatabase, ref, get, set, update } from 'firebase/database';
 import { Candidate } from '@/components/types/types';
 import Link from 'next/link';
 import app from '@/firebase/config';
@@ -23,58 +12,60 @@ export default function CandidatePage() {
   const email = decodeURIComponent(rawEmail).toLowerCase();
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
-  const firestore = getFirestore(app)
+  const db = getDatabase(app);
+
+  const incrementCandidateView = useCallback(async () => {
+    const recruiterId = 'demo_recruiter'; // Replace with actual recruiter ID
+    const usageRef = ref(db, `recruiters/${recruiterId}/usage/metrics`);
+
+    try {
+      const snapshot = await get(usageRef);
+      if (!snapshot.exists()) {
+        await set(usageRef, {
+          candidatesViewed: 1,
+          matchesFound: 0,
+          quotaLeft: 99,
+        });
+      } else {
+        await update(usageRef, {
+          candidatesViewed: snapshot.val().candidatesViewed + 1,
+          quotaLeft: snapshot.val().quotaLeft - 1,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update candidate view metrics:', error);
+    }
+  }, [db]); // Include db as a dependency since it's used inside
 
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
-        const q = query(collection(firestore, 'candidates'), where('email', '==', email));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          const data = doc.data() as Omit<Candidate, 'id'>;
-          const candidateData = { id: doc.id, ...data };
-          setCandidate(candidateData);
-
-          await incrementCandidateView();
+        const snapshot = await get(ref(db, 'talent_pool'));
+        if (snapshot.exists()) {
+          const candidatesObj: { [key: string]: Candidate } = snapshot.val();
+          const found = Object.values(candidatesObj).find(
+            (candidate) => candidate.email === email
+          );
+          setCandidate(found ?? null); // Use nullish coalescing to avoid {}
         } else {
-          console.warn('Candidate not found');
+          setCandidate(null);
         }
       } catch (err) {
-        console.error('Error fetching candidate:', err);
+        console.error('Failed to fetch candidate:', err);
+        setCandidate(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCandidate();
-  }, [email]);
+  }, [email, db]);
 
-  
-  const incrementCandidateView = async () => {
-    const recruiterId = 'demo_recruiter';
-
-    const usageRef = doc(firestore, `recruiters/${recruiterId}/usage/summary`);
-
-    try {
-      const docSnap = await getDoc(usageRef);
-      if (!docSnap.exists()) {
-        await setDoc(usageRef, {
-          candidatesViewed: 1,
-          matchesFound: 0,
-          quotaLeft: 99, 
-        });
-      } else {
-        await updateDoc(usageRef, {
-          candidatesViewed: increment(1),
-          quotaLeft: increment(-1),
-        });
-      }
-    } catch (error) {
-      console.error('Failed to update candidate view metrics:', error);
+  useEffect(() => {
+    if (candidate) {
+      incrementCandidateView();
     }
-  };
+  }, [candidate, incrementCandidateView]); // Add incrementCandidateView to deps
 
   if (loading) return <p className="p-6 text-gray-500">Loading candidate...</p>;
 
@@ -82,7 +73,7 @@ export default function CandidatePage() {
     return (
       <div className="p-6">
         <p className="text-red-500 mb-4">Candidate not found.</p>
-        <Link href="/hr/tallent_pool/search" className="text-blue-600 hover:underline">
+        <Link href="/hr/talent_pool/search" className="text-blue-600 hover:underline">
           ← Back to Search
         </Link>
       </div>

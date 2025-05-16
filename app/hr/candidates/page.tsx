@@ -5,7 +5,7 @@ import { FaCheck, FaTimes } from "react-icons/fa";
 import FilterModalForm from "@/components/FilterModalForm";
 import { Candidate } from "@/types/candidate";
 import { AnimatePresence, motion } from "framer-motion";
-import { getDatabase, set, ref as databaseRefUtil } from 'firebase/database';
+import { getDatabase, set, ref as databaseRefUtil, get } from 'firebase/database';
 import app, { auth } from "@/firebase/config";
 import debounce from 'lodash/debounce';
 
@@ -18,6 +18,12 @@ export default function CandidatesPage() {
   const [recruiterSuggestion, setRecruiterSuggestion] = useState<string>(" ");
   const [uid, setUid] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState<string>("");
+  const [emailBody, setEmailBody] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [email, setEmail] = useState<string>("")
+  const db = getDatabase(app)
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
   const areAllSelected = filteredCandidates.length > 0 && selectedCandidates.length === filteredCandidates.length;
@@ -32,32 +38,83 @@ export default function CandidatesPage() {
   };
 
   useEffect(() => {
-    setIsClient(true); // Mark as client-side after mount
-    const currentUid = auth?.currentUser?.uid;
-    setUid(currentUid ?? "ZEgE8varFRNnThMfjpbEm7h8gJY2");
+    setIsClient(true);
 
+    // Firebase auth state listener
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log(user?.uid)
+      setUid(user?.uid || null);
+    });
+
+    // localStorage access
     if (typeof window !== "undefined") {
-      const storedJobTitle = localStorage.getItem("jobTitle") ?? " ";
-      const storedJobDescription = localStorage.getItem("jobDescription") ?? " ";
-      const storedRecruiterSuggestion = localStorage.getItem("recruiterSuggestion") ?? " ";
-      setJobTitle(storedJobTitle);
-      setJobDescription(storedJobDescription);
-      setRecruiterSuggestion(storedRecruiterSuggestion);
+      try {
+        const storedJobTitle = localStorage.getItem("jobTitle") ?? "";
+        const storedJobDescription = localStorage.getItem("jobDescription") ?? "";
+        const storedRecruiterSuggestion = localStorage.getItem("recruiterSuggestion") ?? "";
+        setJobTitle(storedJobTitle);
+        setJobDescription(storedJobDescription);
+        setRecruiterSuggestion(storedRecruiterSuggestion);
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
+        setJobTitle("");
+        setJobDescription("");
+        setRecruiterSuggestion("");
+      }
     }
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
+
+
+  useEffect(() => {
+    const getEmail = async () => {
+      if (!uid) return;
+
+      try {
+        const emailRef = databaseRefUtil(db, `hr/${uid}/email`);
+        const snapshot = await get(emailRef);
+        if (snapshot.exists()) {
+          setEmail(snapshot.val());
+        } else {
+          console.log("No email found for this HR.");
+        }
+      } catch (error) {
+        console.error("Error fetching email:", error);
+      }
+    };
+
+    getEmail();
+
+
+  }, [uid])
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
   const saveCandidateToRealtimeDatabase = useCallback(
     debounce(async (jobTitle: string, jd: string, recruiterSuggestion: string) => {
-      if (!jobTitle || !jd || !recruiterSuggestion) {
-        console.log("Skipping save: Missing required fields");
+      // Validate inputs
+      if (!jobTitle || !jd || !recruiterSuggestion || !uid) {
+        console.log("Skipping save: Missing required fields or UID");
         return;
       }
 
       try {
         const db = getDatabase(app);
-        const baseTitle = jobTitle.trim().replace(/\s+/g, "").toLowerCase();
+        // Ensure baseTitle is safe for Firebase keys
+        const baseTitle = jobTitle
+          .trim()
+          .replace(/\s+/g, "") // Replace spaces with hyphens instead of removing
+          .replace(/[.#$[\]]/g, "") // Remove invalid Firebase key characters
+          .toLowerCase();
+
+        if (!baseTitle) {
+          console.log("Skipping save: Invalid job title");
+          return;
+        }
+
+        // Construct the database reference explicitly
         const candidateRef = databaseRefUtil(db, `hr/${uid}/jobProfiles/${baseTitle}`);
 
         await set(candidateRef, {
@@ -68,7 +125,7 @@ export default function CandidatesPage() {
           updatedAt: Date.now(),
         });
 
-        console.log("Job Profile saved successfully");
+        console.log("Job Profile saved successfully at:", `hr/${uid}/jobProfiles/${baseTitle}`);
       } catch (error) {
         console.error("❌ Error saving candidate:", error);
       }
@@ -101,10 +158,21 @@ export default function CandidatesPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSendEmail = async () => {
-    const hr_id = "123456789";
-    const companyName = "AIKING";
-    const companyEmail = "[suman85bera@gmail.com](mailto:suman85bera@gmail.com)";
+  const handleSendEmail = () => {
+    setIsEmailModalOpen(true);
+    setEmailSubject("");
+    setEmailBody("");
+    setEmailError("");
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      setEmailError("Both subject and body are required.");
+      return;
+    }
+
+
+    const companyEmail = email;
     const db = getDatabase(app);
 
     for (const candidate of filteredCandidates) {
@@ -114,20 +182,21 @@ export default function CandidatesPage() {
       };
 
       try {
-        const response = await fetch("http://localhost:8080/send-job-application", {
+        const response = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             recipient,
-            hr_id,
-            companyName,
             companyEmail,
+            subject: emailSubject,
+            body: emailBody,
           }),
         });
 
         if (!response.ok) {
+          window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates"
           console.error(`Failed to send email to ${recipient.email}`);
         } else {
           console.log(`Email sent to ${recipient.email}`);
@@ -140,6 +209,8 @@ export default function CandidatesPage() {
             name: candidate.name,
             jobId: baseTitle,
             timestamp: Date.now(),
+            subject: emailSubject,
+            body: emailBody,
           };
 
           await set(emailSentListRef, emailData);
@@ -150,22 +221,22 @@ export default function CandidatesPage() {
     }
 
     alert("All emails have been processed.");
+    setIsEmailModalOpen(false);
   };
-
 
   const handleSendMessageAll = async () => {
     const candidates = filteredCandidates
       .filter((c) => selectedCandidates.includes(c.id))
       .map((c) => ({
-        name: c.name || "", // Ensure name is passed
-        phone: c.phone.replace(/\D/g, ""), // Remove non-digit characters
+        name: c.name || "",
+        phone: c.phone.replace(/\D/g, ""),
       }));
-  
+
     if (candidates.length === 0) {
       alert("No candidates selected.");
       return;
     }
-  
+
     try {
       const response = await fetch("/api/sendmessege", {
         method: "POST",
@@ -174,9 +245,9 @@ export default function CandidatesPage() {
         },
         body: JSON.stringify({ candidates }),
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         alert("Messages sent successfully!");
       } else {
@@ -188,7 +259,7 @@ export default function CandidatesPage() {
       alert("An error occurred while sending messages.");
     }
   };
-  
+
   const handleCandidateSelect = (id: string) => {
     setSelectedCandidates((prev) =>
       prev.includes(id) ? prev.filter((candidateId) => candidateId !== id) : [...prev, id]
@@ -200,16 +271,16 @@ export default function CandidatesPage() {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row h-auto min-h-screen w-full bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+    <div className="flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6]">
       {/* Left Panel */}
-      <div className="w-full lg:w-1/3 bg-white p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl max-h-[50vh] lg:max-h-screen">
+      <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl max-h-[50vh] lg:max-h-screen relative z-10">
         {/* Sticky Header */}
-        <div className="sticky top-0 bg-white z-10 pb-4">
+        <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-extrabold text-gray-900">Candidates</h2>
+            <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
             <button
               onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300 flex items-center gap-2 shadow-md"
+              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center gap-2 shadow-md"
               aria-label={isFilterModalOpen ? "Close filter modal" : "Open filter modal"}
             >
               {isFilterModalOpen ? (
@@ -224,14 +295,14 @@ export default function CandidatesPage() {
               {isFilterModalOpen ? "Close" : "Filter"}
             </button>
           </div>
-          <hr className="border-t border-gray-300 mt-3" />
+          <hr className="border-t border-[rgba(255,255,255,0.05)] mt-3" />
           {isClient && jobTitle && (
             <div
               style={{
-                backgroundColor: '#FFE4E1',
+                backgroundColor: 'rgba(15, 174, 150, 0.1)',
                 padding: '10px',
                 borderRadius: '8px',
-                color: '#333',
+                color: '#ECF1F0',
                 fontWeight: '500',
               }}
             >
@@ -240,9 +311,9 @@ export default function CandidatesPage() {
           )}
           {/* Active Filters Indicator */}
           {isClient && (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               {hasActiveFilters && (
-                <span className="inline-flex items-center gap-4 px-3 py-1 mt-4 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 shadow-sm">
+                <span className="inline-flex items-center gap-4 px-3 py-1 mt-4 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
                   <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
                   </svg>
@@ -251,19 +322,19 @@ export default function CandidatesPage() {
               )}
               <button
                 onClick={handleDownloadDetails}
-                className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
+                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               >
                 Download Details
               </button>
               <button
                 onClick={handleSendEmail}
-                className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
+                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               >
                 Send Email
               </button>
               <button
-              onClick={handleSendMessageAll}
-                className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
+                onClick={handleSendMessageAll}
+                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               >
                 Message All
               </button>
@@ -272,83 +343,85 @@ export default function CandidatesPage() {
                   type="checkbox"
                   checked={areAllSelected}
                   onChange={handleSelectAll}
-                  className="h-5 w-5 text-indigo-600 cursor-pointer"
+                  className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
                 />
-                <label className="text-sm text-gray-700 font-medium">Select All</label>
+                <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
               </div>
             </div>
           )}
         </div>
-        <hr className="border-t border-gray-300 my-2" />
+        <hr className="border-t border-[rgba(255,255,255,0.05)] my-2" />
 
         {/* Candidate List */}
         {isClient && (
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
+            <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
             {filteredCandidates.length > 0 ? (
               filteredCandidates.map((c: Candidate) => (
                 <motion.div
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className={`bg-gray-50 rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-indigo-500" : ""}`}
+                  className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex justify-between">
                     <div>
-                      <p className="text-lg font-bold text-gray-900">{c.name}</p>
-                      <p className="text-sm text-gray-600 mt-1">{c.email}</p>
+                      <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
+                      <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         checked={selectedCandidates.includes(c.id)}
                         onChange={() => handleCandidateSelect(c.id)}
-                        className="h-6 w-6 text-indigo-600 cursor-pointer"
+                        className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
                       />
                     </div>
                   </div>
-                  <div className="float-right mt-2 text-xs bg-indigo-600 rounded-full px-3 py-1 text-white font-semibold shadow-sm">
+                  <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
                     Score: {c.score}
                   </div>
                 </motion.div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8 text-lg">No candidates found</p>
+              <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
             )}
           </div>
         )}
       </div>
 
       {/* Right Panel */}
-      <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-gray-100 relative">
+      <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative">
+        <div className="absolute -z-10 w-96 h-96 rounded-full bg-[#FF00C7] blur-[180px] opacity-25 bottom-10 right-10"></div>
         {selectedCandidate ? (
-          <div className="bg-white rounded-xl p-6 shadow-lg">
+          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-6 shadow-lg">
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-3xl font-extrabold text-gray-900">{selectedCandidate.name}</h2>
-                <p className="text-gray-500 mt-1">{selectedCandidate.location}</p>
-                <p className="mt-2 text-sm text-gray-600">{selectedCandidate.email}</p>
-                <p className="mt-1 text-sm text-gray-600">{selectedCandidate.phone}</p>
+                <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">{selectedCandidate.name}</h2>
+                <p className="text-[#B6B6B6] mt-1">{selectedCandidate.location}</p>
+                <p className="mt-2 text-sm text-[#B6B6B6]">{selectedCandidate.email}</p>
+                <p className="mt-1 text-sm text-[#B6B6B6]">{selectedCandidate.phone}</p>
                 <div className="flex flex-wrap gap-3 mt-4">
                   <button
                     onClick={() => {
                       const phone = selectedCandidate.phone.replace(/\D/g, "");
-                      const message = `Hi ${selectedCandidate.name}, we’ve shortlisted you for an interview. Let us know when you’re available to proceed.`;
+                      const message = `Hi ${selectedCandidate.name}, we've shortlisted you for an interview. Let us know when you're available to proceed.`;
                       const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
                       window.open(url, "_blank");
                     }}
-                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300 shadow-sm cursor-pointer"
+                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
                   >
                     Message
                   </button>
                   <button
                     onClick={() => {
                       const subject = "Interview Shortlisting";
-                      const body = `Hi ${selectedCandidate.name},\n\nYou’ve been shortlisted for an interview. Please reply with your availability.\n\nBest regards,`;
+                      const body = `Hi ${selectedCandidate.name},\n\nYou've been shortlisted for an interview. Please reply with your availability.\n\nBest regards,`;
                       const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${selectedCandidate.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                       window.open(gmailLink, "_blank");
                     }}
-                    className="bg-indigo-600 text-white px-6 py-2 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300 shadow-sm cursor-pointer"
+                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
                   >
                     Send Email
                   </button>
@@ -358,14 +431,14 @@ export default function CandidatesPage() {
               <div className="space-x-3 flex items-center">
                 <button
                   onClick={() => updateApproval(selectedCandidate.id)}
-                  className={`p-3 rounded-full shadow-md cursor-pointer ${selectedCandidate.approved ? "bg-green-500 text-white" : "bg-white text-gray-600 hover:bg-green-100"} transition duration-200`}
+                  className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${selectedCandidate.approved ? "bg-[#0FAE96] text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-[#0FAE96]/20 hover:text-[#ECF1F0]"}`}
                   aria-label={selectedCandidate.approved ? "Approved" : "Approve candidate"}
                 >
                   <FaCheck className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => updateApproval(selectedCandidate.id)}
-                  className={`p-3 rounded-full shadow-md cursor-pointer ${!selectedCandidate.approved ? "bg-red-500 text-white" : "bg-white text-gray-600 hover:bg-red-100"} transition duration-200`}
+                  className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${!selectedCandidate.approved ? "bg-red-500 text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-red-500/20 hover:text-[#ECF1F0]"}`}
                   aria-label={selectedCandidate.approved ? "Reject candidate" : "Rejected"}
                 >
                   <FaTimes className="w-5 h-5" />
@@ -373,20 +446,20 @@ export default function CandidatesPage() {
               </div>
             </div>
 
-            <hr className="my-6 border-gray-200" />
+            <hr className="my-6 border-[rgba(255,255,255,0.05)]" />
 
             <div className="flex justify-between items-center mb-4">
-              <p className="text-2xl font-semibold text-gray-900">Resume</p>
+              <p className="text-2xl font-semibold font-raleway text-[#ECF1F0]">Resume</p>
               <button
                 onClick={handleDownload}
-                className="inline-flex items-center px-3 py-1 mt-4 gap-2 rounded-md text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white cursor-pointer shadow-md hover:drop-shadow-lg"
+                className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] inline-flex items-center gap-2"
                 aria-label="Download resume"
               >
                 Download Resume
               </button>
             </div>
 
-            <div className="w-full overflow-hidden border rounded-xl shadow-lg bg-white h-[400px] sm:h-[500px] lg:h-[calc(100vh-300px)]">
+            <div className="w-full overflow-hidden border border-[rgba(255,255,255,0.05)] rounded-xl shadow-lg bg-[rgba(255,255,255,0.02)] h-[400px] sm:h-[500px] lg:h-[calc(100vh-300px)]">
               {selectedCandidate.resumeUrl ? (
                 <iframe
                   src={`${selectedCandidate.resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
@@ -394,14 +467,14 @@ export default function CandidatesPage() {
                   className="w-full h-full"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-50">
+                <div className="w-full h-full flex items-center justify-center text-[#B6B6B6] bg-[rgba(255,255,255,0.01)]">
                   Resume not available
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center text-gray-400 text-lg">
+          <div className="h-full flex items-center justify-center text-[#B6B6B6] text-lg">
             Select a candidate to view details
           </div>
         )}
@@ -415,9 +488,72 @@ export default function CandidatesPage() {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           >
             <FilterModalForm onClose={() => setIsFilterModalOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Modal */}
+      <AnimatePresence>
+        {isEmailModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="bg-[#11011E] p-6 rounded-xl w-full max-w-md border border-[rgba(255,255,255,0.05)] shadow-xl"
+            >
+              <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Email Subject</label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
+                    placeholder="Enter email subject"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Email Body</label>
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                    placeholder="Enter email body"
+                    required
+                  />
+                </div>
+                {emailError && (
+                  <p className="text-red-500 text-sm">{emailError}</p>
+                )}
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsEmailModalOpen(false)}
+                    className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEmailSubmit}
+                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

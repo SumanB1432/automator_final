@@ -12,9 +12,9 @@ const ResumeATSChecker = () => {
   // Animation sequence for benefits items
   const [animatedItems, setAnimatedItems] = useState([]);
   const benefits = [
-    { icon: CheckCircle, text: "Build an ATS-optimized resume in one click." },
-    { icon: CheckCircle, text: "Discover the skills you’re missing—and how to gain them." },
-    { icon: CheckCircle, text: "Scan your resume for hidden issues and fix them instantly with Us." }
+    { icon: CheckCircle, text: "Saves hours." },
+    { icon: CheckCircle, text: "Improves accuracy." },
+    { icon: CheckCircle, text: "Helps your team focus on better hiring decisions." }
   ];
 
   useEffect(() => {
@@ -74,11 +74,11 @@ const ResumeATSChecker = () => {
           {/* Content Section */}
           <div className="text-center lg:text-left max-w-xl">
             <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            Bad Resume. Gaps in Skills. <span className="text-[#0FAE96]">Still Rejected?</span>
+            Messy Resumes.   <span className="text-[#0FAE96]">Wasted Hours?</span>
             </h3>
 
             <p className="text-sm sm:text-base text-gray-300 mt-3 leading-relaxed">
-              Build a resume that passes filters. Gain the skills recruiters actually want. Get noticed.
+            Let AI do the heavy lifting—parse every resume with human-level accuracy automatically.
             </p>
 
             {/* Benefits */}
@@ -103,9 +103,9 @@ const ResumeATSChecker = () => {
             <div className="bg-[#1D0F30] p-5 rounded-xl border border-[#ffffff10] shadow-lg mb-4 w-full max-w-xs">
               <div className="text-center mb-2">
                 <span className="inline-block px-3 py-1 bg-[#0FAE96] bg-opacity-10 rounded-full text-[#0FAE96] text-xs font-medium mb-2">
-                  It&apos;s Free!
+                Free Setup
                 </span>
-                <h4 className="text-lg font-semibold text-white">Know Where You Stand</h4>
+                <h4 className="text-lg font-semibold text-white">Parse resumes 10x faster</h4>
               </div>
 
               <button
@@ -120,7 +120,7 @@ const ResumeATSChecker = () => {
               </button>
 
               <p className="text-xs text-center text-gray-400 mt-3">
-                Takes less than 5 minutes. Costs nothing. Could change everything.
+                Takes less than 2 minutes. Costs nothing. Could change everything.
               </p>
             </div>
 
@@ -141,7 +141,7 @@ const ResumeATSChecker = () => {
               </div>
 
               <p className="text-xs text-gray-400">
-                <span className="text-[#0FAE96] font-medium">2,400+</span> scans today
+                <span className="text-[#0FAE96] font-medium">2,400+</span> Parse today
               </p>
             </div>
           </div>

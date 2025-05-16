@@ -66,6 +66,7 @@ function HRLogin() {
         }
 
         localStorage.setItem("api_key", apiKey);
+        console.log(apiKey,"key suman")
 
         toast.success("HR logged in successfully", { position: "top-center" });
         if(apiKey){

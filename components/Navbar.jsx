@@ -91,8 +91,9 @@ const Navbar = () => {
           { label: "Home", path: "/" },
           { label: "Referral", path: "/referral" },
           { label: "About", path: "/about" },
-          { label: "Policy", path: "/policy" },
           { label: "ATS Resume", path: "/atsresume" },
+          { label: "For Recruiters", path: "/hr" },
+          
         ].map((item) => (
           <li
             key={item.path}
@@ -144,8 +145,8 @@ const Navbar = () => {
             { label: "Home", path: "/" },
             { label: "Referral", path: "/referral" },
             { label: "About", path: "/about" },
-            { label: "Policy", path: "/policy" },
             { label: "ATS Resume", path: "/atsresume" },
+            { label: "For Recruiters", path: "/hr" },
           ].map((item) => (
             <li
               key={item.path}

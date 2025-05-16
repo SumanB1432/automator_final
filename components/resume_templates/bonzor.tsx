@@ -90,18 +90,13 @@ export default function Resume() {
           data: exp,
           section: "WORK EXPERIENCE",
         });
-        if (exp.description) {
-          const descriptionItems = exp.description
-            .split(",")
-            .map((detail) => detail.trim());
-          descriptionItems.forEach((detail, i) =>
-            elements.push({
-              id: `experience-${index}-desc-${i}`,
-              type: "experience-desc",
-              data: { text: detail, parentId: index },
-              section: "WORK EXPERIENCE",
+       if (exp.description) {
+          elements.push({
+            id: `experience-${index}-desc`,
+            type: "experience-desc",
+            data: { description: exp.description, parentId: index },
+            section: "WORK EXPERIENCE",
             })
-          );
         }
       });
     }
@@ -553,26 +548,56 @@ export default function Resume() {
         );
       case "experience-header":
         return (
-          <div className="mb-2 sm:mb-3">
-            <div className="flex flex-col sm:flex-row sm:justify-between">
-              <span className="text-sm sm:text-base font-medium">
-                {element.data.company}, {element.data.location}
-              </span>
-              <span className="text-xs sm:text-sm text-gray-500" style={{ fontStyle }}>
-                {element.data.dateRange}
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm italic text-gray-600" style={{ fontStyle }}>
-              {element.data.position}
-            </p>
-          </div>
+           <div className="mb-2 sm:mb-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline">
+        <div>
+          <p
+            className="text-sm sm:text-base font-medium"
+            style={{ fontStyle }}
+          >
+            {element.data.position}
+          </p>
+          <span className="text-xs sm:text-sm text-gray-600">
+            {element.data.company}, {element.data.location} | {element.data.dateRange}
+          </span>
+        </div>
+      </div>
+    </div>
         );
       case "experience-desc":
-        return (
-          <ul className="list-disc list-inside text-xs sm:text-sm text-gray-700 mb-3 sm:mb-4 pl-4 print:pl-0">
-            <li>{element.data.text}</li>
-          </ul>
-        );
+  // Return null if description is undefined or empty
+  if (!element.data.description || element.data.description.trim().length === 0) {
+    return null;
+  }
+
+  // Protect ".js" by replacing the period with a placeholder
+  const sentences = element.data.description
+    .replace(
+      /(\b(?:Express|React|Node)\.js\b)/g,
+      (match) => match.replace(".", "[DOT]")
+    )
+    .split(/\.\s+(?=[A-Z])/) // Split on ". " followed by a capital letter
+    .map((sentence: string) =>
+      sentence
+        .replace(/\[DOT\]/g, ".") // Restore ".js"
+        .trim()
+    )
+    .filter((sentence: string) => sentence.length > 0);
+
+  return (
+    <ul
+      className="list-disc list-outside text-xs sm:text-sm text-gray-700 mb-3 sm:mb-4 ml-6 print:ml-4"
+      key={`experience-desc-${element.data.parentId}`}
+    >
+      {sentences.map((detail: string, i: number) => (
+        <li key={`experience-${element.data.parentId}-desc-${i}`}>
+          {detail}
+          {i < sentences.length - 1 && detail.endsWith(".") ? "" : "."}
+        </li>
+      ))}
+    </ul>
+  );
+  
       case "project-header":
         return (
           <div className="mb-2 sm:mb-3">

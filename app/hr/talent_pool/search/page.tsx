@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { getFirestore, collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import { getDatabase, ref, get, set } from "firebase/database";
 import { useRouter } from "next/navigation";
 import FilterSidebar from "@/components/tallentpool/FilterSidebar";
 import PaginationControls from "@/components/tallentpool/PaginationControls";
 import CandidateList from "@/components/tallentpool/CandidateList";
 import { useSearchStore } from "@/store/searchStore";
 import debounce from "lodash/debounce";
-import { Candidate } from "@/components/types/types";
+import { Candidate, Metrics } from "@/components/types/types";
 import Fuse from "fuse.js";
 import app from "@/firebase/config";
 
@@ -35,12 +35,12 @@ export default function SearchPage() {
   const [newSkill, setNewSkill] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const firestore = getFirestore(app);
+  const db = getDatabase(app);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const router = useRouter();
   const recruiterId = "demo_recruiter";
-  const usageRef = doc(firestore, `recruiters/${recruiterId}/usage`, "metrics");
+  const usageRef = ref(db, `recruiters/${recruiterId}/usage/metrics`);
 
   // ✅ Updated: use window.location.search instead of useSearchParams
   useEffect(() => {
@@ -53,19 +53,27 @@ export default function SearchPage() {
       const skillsParam = params.get("skills");
       const experienceRangeParam = params.get("experienceRange");
 
-      if (jobTitleParam || educationParam || locationParam || skillsParam || experienceRangeParam) {
+      if (
+        jobTitleParam ||
+        educationParam ||
+        locationParam ||
+        skillsParam ||
+        experienceRangeParam
+      ) {
         try {
           const filterValues = {
-            jobTitle: jobTitleParam || '',
-            education: educationParam || '',
-            location: locationParam || '',
+            jobTitle: jobTitleParam || "",
+            education: educationParam || "",
+            location: locationParam || "",
             skills: skillsParam ? JSON.parse(skillsParam) : [],
-            experienceRange: experienceRangeParam ? JSON.parse(experienceRangeParam) : [0, 10],
+            experienceRange: experienceRangeParam
+              ? JSON.parse(experienceRangeParam)
+              : [0, 10],
           };
           applyFiltersFromJD(filterValues);
         } catch (err) {
-          console.error('Error parsing query params:', err);
-          setError('Failed to apply JD filters.');
+          console.error("Error parsing query params:", err);
+          setError("Failed to apply JD filters.");
         }
       }
     }
@@ -74,24 +82,22 @@ export default function SearchPage() {
   const updateUsageMetrics = useCallback(
     async (updates: { matchesFound?: number; candidatesViewed?: number }) => {
       try {
-        const currentDoc = await getDoc(usageRef);
-        const currentData = currentDoc.exists()
-          ? currentDoc.data()
+        const snapshot = await get(usageRef);
+        const currentData: Metrics = snapshot.exists()
+          ? snapshot.val()
           : { matchesFound: 0, candidatesViewed: 0, quotaLeft: 100 };
 
-        const updatedMatchesFound = (updates.matchesFound ?? currentData.matchesFound) || 0;
-        const updatedCandidatesViewed = (updates.candidatesViewed ?? currentData.candidatesViewed) || 0;
+        const updatedMatchesFound =
+          (updates.matchesFound ?? currentData.matchesFound) || 0;
+        const updatedCandidatesViewed =
+          (updates.candidatesViewed ?? currentData.candidatesViewed) || 0;
         const updatedQuotaLeft = Math.max(100 - updatedMatchesFound, 0);
 
-        await setDoc(
-          usageRef,
-          {
-            matchesFound: updatedMatchesFound,
-            candidatesViewed: updatedCandidatesViewed,
-            quotaLeft: updatedQuotaLeft,
-          },
-          { merge: true }
-        );
+        await set(usageRef, {
+          matchesFound: updatedMatchesFound,
+          candidatesViewed: updatedCandidatesViewed,
+          quotaLeft: updatedQuotaLeft,
+        });
 
         if (updatedQuotaLeft <= 0) {
           setQuotaExceeded(true);
@@ -109,20 +115,26 @@ export default function SearchPage() {
   const fetchCandidates = useCallback(async () => {
     setLoading(true);
     try {
-      const snapshot = await getDocs(collection(firestore, "candidates"));
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Candidate),
-      }));
-      setCandidates(data.slice(0, 20));
-      setError(null);
+      const snapshot = await get(ref(db, "talent_pool"));
+      if (snapshot.exists()) {
+        const candidatesObj: { [key: string]: Candidate } = snapshot.val();
+        const data = Object.entries(candidatesObj).map(([id, candidate]) => ({
+          id,
+          ...candidate,
+        }));
+        setCandidates(data.slice(0, 20));
+        setError(null);
+      } else {
+        setCandidates([]);
+        setError("No candidates found.");
+      }
     } catch (error) {
       console.error("Error fetching candidates:", error);
       setError("Failed to load candidates.");
     } finally {
       setLoading(false);
     }
-  }, [setCandidates, setError, setLoading]);
+  }, [db, setCandidates, setError, setLoading]);
 
   useEffect(() => {
     if (candidates.length === 0) {
@@ -135,7 +147,7 @@ export default function SearchPage() {
       let result = [...candidates];
 
       const fuseOptions = {
-        keys: ['jobTitle', 'education', 'location', 'skills'],
+        keys: ["jobTitle", "education", "location", "skills"],
         threshold: 0.3,
         includeScore: true,
       };
@@ -143,12 +155,38 @@ export default function SearchPage() {
       const fuse = new Fuse(result, fuseOptions);
 
       if (jobTitle.trim()) {
-        const fuseResults = fuse.search(jobTitle.trim());
-        result = fuseResults.map(({ item }) => item);
+        const cleaned = jobTitle
+          .toLowerCase()
+          .replace(/\band\b/g, "")
+          .replace(/[^a-z\s]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const words = cleaned.split(" ");
+
+        const jobTitleFuse = new Fuse(result, {
+          keys: ["jobTitle"],
+          threshold: 0.4,
+          includeScore: true,
+          shouldSort: true,
+        });
+
+        // Use AND-style manual filtering
+        const fuseResults = words.reduce((acc, word) => {
+          const matches = jobTitleFuse.search(word).map(({ item }) => item);
+          return acc.length === 0
+            ? matches
+            : acc.filter((item) => matches.includes(item));
+        }, [] as Candidate[]);
+
+        result = fuseResults;
       }
 
       if (education.trim()) {
-        const educationKeywords = education.toLowerCase().split(',').map((keyword) => keyword.trim());
+        const educationKeywords = education
+          .toLowerCase()
+          .split(",")
+          .map((keyword) => keyword.trim());
         result = result.filter((c) =>
           educationKeywords.some((keyword) =>
             c.education?.toLowerCase().includes(keyword)
@@ -167,7 +205,10 @@ export default function SearchPage() {
         skills.forEach((skill) => {
           const fuseResults = fuse.search(skill);
           const matchedItems = fuseResults.map(({ item }) => item);
-          matchedSkillsCandidates = [...matchedSkillsCandidates, ...matchedItems];
+          matchedSkillsCandidates = [
+            ...matchedSkillsCandidates,
+            ...matchedItems,
+          ];
         });
 
         matchedSkillsCandidates = [...new Set(matchedSkillsCandidates)];
@@ -188,9 +229,9 @@ export default function SearchPage() {
       setFilteredCandidates(result);
 
       const newMatchesFound = result.length;
-      const currentDoc = await getDoc(usageRef);
-      const previousMatchesFound = currentDoc.exists()
-        ? currentDoc.data().matchesFound || 0
+      const snapshot = await get(usageRef);
+      const previousMatchesFound = snapshot.exists()
+        ? snapshot.val().matchesFound || 0
         : 0;
       const updatedMatchesFound = previousMatchesFound + newMatchesFound;
       await updateUsageMetrics({ matchesFound: updatedMatchesFound });
@@ -213,9 +254,9 @@ export default function SearchPage() {
     async (email: string) => {
       window.open(`/candidate/${email}`, "_blank");
       try {
-        const currentDoc = await getDoc(usageRef);
-        const currentViewed = currentDoc.exists()
-          ? currentDoc.data().candidatesViewed || 0
+        const snapshot = await get(usageRef);
+        const currentViewed = snapshot.exists()
+          ? snapshot.val().candidatesViewed || 0
           : 0;
         await updateUsageMetrics({ candidatesViewed: currentViewed + 1 });
       } catch (err) {
@@ -223,10 +264,13 @@ export default function SearchPage() {
         setError("Failed to update candidate view count.");
       }
     },
-    [updateUsageMetrics, usageRef, setError]
+    [updateUsageMetrics, setError, usageRef]
   );
 
-  const addSkill = (e: React.KeyboardEvent<HTMLInputElement>, skill: string) => {
+  const addSkill = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    skill: string
+  ) => {
     if (e.key === "Enter" && skill.trim() && !skills.includes(skill.trim())) {
       setFilter({ skills: [...skills, skill.trim()] });
       setNewSkill("");

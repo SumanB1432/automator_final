@@ -74,7 +74,7 @@ const HRFooter = () => {
             </div>
 
             <p className="mt-4 text-sm text-gray-400 font-light text-center">
-              © 2024 JobFormAutomator. <span className="hidden sm:inline">All rights reserved.</span>
+              +91 9766116839 <span className="hidden sm:inline">contact@jobformautomator.com</span>
             </p>
           </div>
 
@@ -95,9 +95,9 @@ const HRFooter = () => {
 
                 {section === "Actions" &&
                   [
-                    { name: "Post a Job", path: "/hr/post-job" },
-                    { name: "Analyze Resumes", path: "/hr/analyze-resumes" },
-                    { name: "View Applicants", path: "/hr/applicants" },
+                    { name: "Parse resumes", path: "/hr/post-job" },
+                    { name: "One-Click Download", path: "/hr/analyze-resumes" },
+                    { name: "Automated Outreach", path: "/hr/applicants" },
                   ].map((item) => <FooterLink key={item.name} href={item.path} text={item.name} />)}
 
                 {section === "Support" &&

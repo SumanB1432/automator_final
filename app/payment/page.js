@@ -9,6 +9,7 @@ import { MdLocationOn, MdCall, MdEmail } from "react-icons/md";
 import { FaInstagram, FaFacebook, FaLinkedin, FaYoutube } from "react-icons/fa";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import master from "./mastercard.svg";
 import visa from "./visa.svg";
@@ -33,7 +34,19 @@ const Payment = () => {
     { Icon: FaYoutube, color: "#ef4444", href: "https://www.youtube.com/@JobFormAutomator" },
   ];
   const paymentMethods = [master, visa, rupay, upi];
+
+  const searchParams = useSearchParams();
+
   useEffect(() => {
+    // Extract price from URL
+    const priceFromUrl = searchParams.get("price");
+    let initialAmount = 0;
+    if (priceFromUrl) {
+      // Decode and remove currency symbol (₹ or others) to get numeric value
+      const decodedPrice = decodeURIComponent(priceFromUrl).replace(/[^0-9.]/g, "");
+      initialAmount = parseFloat(decodedPrice) || 0;
+    }
+
     // Redirect user if not signed in
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
@@ -54,14 +67,16 @@ const Payment = () => {
         setCountry(countryCode);
         setCountryname(data.country_name || "Unknown");
         setCurrency(countryCode === "IN" ? "INR" : "USD");
-        setAmount(countryCode === "IN" ? 499 : 20);
+        // Use URL price if available, otherwise fallback to default logic
+        setAmount(initialAmount || (countryCode === "IN" ? 499 : 20));
       })
       .catch((err) => {
         console.error("Client location error:", err);
         setCountry("US");
         setCountryname("United States");
         setCurrency("USD");
-        setAmount(20);
+        // Use URL price if available, otherwise fallback to default
+        setAmount(initialAmount || 20);
         toast.error("Unable to detect location, defaulting to USD");
       });
 
@@ -75,7 +90,7 @@ const Payment = () => {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [searchParams]);
 
   const handlePayment = async (e) => {
     e.preventDefault();

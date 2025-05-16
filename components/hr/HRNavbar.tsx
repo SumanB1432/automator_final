@@ -8,7 +8,6 @@ import { auth } from "@/firebase/config";
 import app from "@/firebase/config";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getDatabase, ref, get } from "firebase/database";
-import { Label } from "recharts";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -93,7 +92,7 @@ const Navbar = () => {
           {label :"Parse Resume",path : "/hr/resumeUpload"},
           { label: "About", path: "/hr/aboutUs" },
           { label: "Policy", path: "/hr/policy" },
-          {label: "Contact Us", path: "/hr/contactUs"},
+          { label: "For Candidates", path: "/" },
         ].map((item) => (
           <li
             key={item.path}
@@ -145,8 +144,8 @@ const Navbar = () => {
           { label: "Home", path: "/hr" },
           {label :"Parse Resume",path : "/hr/resumeUpload"},
           { label: "About", path: "/hr/aboutUs" },
-          { label: "Policy", path: "/hr/policy" },
           {label: "Contact Us", path: "/hr/contactUs"},
+          { label: "For Candidates", path: "/" },
           ].map((item) => (
             <li
               key={item.path}

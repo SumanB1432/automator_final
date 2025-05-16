@@ -1,6 +1,6 @@
 
 'use client'
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from 'next/navigation';
@@ -8,24 +8,39 @@ import { FiPlayCircle, FiMic, FiBarChart2 } from 'react-icons/fi'; // Example us
 import "./interview.css"
 import { isFirebaseConfigured } from "@/firebase/config";
 import { storage } from "@/firebase/config";
-import { useSearchParams } from "next/navigation";
+import { FiCopy, FiCheck } from "react-icons/fi";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/firebase/config";
 
 // ... other imports
 
 const Index = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [copied, setCopied] = useState(false);
+  const [url, setUrl] = useState("");
+  const [uid, setUid] = useState("")
   console.log("⚠️ Using Firebase?", isFirebaseConfigured, "Storage:", !!storage);
 
+  // Wait for Firebase auth to load
   useEffect(() => {
-    const code = searchParams.get("code");
-    console.log(code,"code")
-    if (code) {
-      localStorage.setItem("hr_code", code);
-      console.log("Saved HR Code to localStorage:", code);
-    }
-  }, [searchParams]);
-  
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const userUid = user.uid;
+        setUid(userUid);
+        setUrl(`${window.location.origin}/interview/?code=${userUid}`);
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []);
+
+  const copyToClipboard = () => {
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#11011E] relative overflow-hidden">
@@ -44,7 +59,8 @@ const Index = () => {
             <a href="#features" className="text-[#B6B6B6] hover:text-[#0FAE96] transition-colors">Features</a>
             <a href="#how-it-works" className="text-[#B6B6B6] hover:text-[#0FAE96] transition-colors">How it Works</a>
           </nav>
-          <Button className="g-[#0FAE96] bg-[#077b6a] hover:bg-[#1a9c89] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-colors duration-300 ease-in-out active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0FAE96]/50 focus:ring-offset-2" onClick={() => router.push("/interview/interview_dashboard")}>Start Practice</Button>
+
+          <Button className="g-[#0FAE96] bg-[#077b6a] hover:bg-[#1a9c89] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-colors duration-300 ease-in-out active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0FAE96]/50 focus:ring-offset-2" onClick={() => router.push("/hr/interview/interview_dashboard")}>Start Practice</Button>
         </div>
       </header>
 
@@ -62,9 +78,23 @@ const Index = () => {
               <Button className="g-[#0FAE96] bg-[#077b6a] hover:bg-[#1a9c89] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-colors duration-300 ease-in-out active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0FAE96]/50 focus:ring-offset-2" onClick={() => router.push("/interview/interview_dashboard")} size="lg">Start Practice Interview</Button>
             </div>
           </div>
+          {/* url link */}
+          <div className="mt-6 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] rounded-lg p-4 flex items-center justify-between space-x-4 shadow-md">
+            <span className="text-[#ECF1F0] break-all">
+              {url ? url : "Loading..."}
+            </span>
+            <button
+              onClick={copyToClipboard}
+              className={`text-[#0FAE96] hover:text-white transition-colors ${!url && "cursor-not-allowed opacity-50"
+                }`}
+              disabled={!url}
+            >
+              {copied ? <FiCheck className="w-5 h-5" /> : <FiCopy className="w-5 h-5" />}
+            </button>
+          </div>
 
           {/* Features Section */}
-        
+
 
           <div id="features" className="grid md:grid-cols-3 gap-10 md:gap-12 mt-20"> {/* Increased gap and margin-top */}
             {[
