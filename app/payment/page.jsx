@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import PaymentClient from "./PaymentClient.jsx";
 
 export default function PaymentPage() {
+  console.log("hello")
   return (
     <Suspense
       fallback={
