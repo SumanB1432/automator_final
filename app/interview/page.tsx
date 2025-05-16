@@ -8,7 +8,7 @@ import { FiPlayCircle, FiMic, FiBarChart2 } from 'react-icons/fi';
 import "./interview.css"
 import { isFirebaseConfigured } from "@/firebase/config";
 import { storage } from "@/firebase/config";
-import SearchParamsHandler from './SearchParamsHandler';
+import SearchParamsHandler from './SearchParamsHandler.jsx';
 
 const Index = () => {
   const router = useRouter();
