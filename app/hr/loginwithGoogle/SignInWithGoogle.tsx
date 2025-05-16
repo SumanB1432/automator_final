@@ -6,7 +6,7 @@ import { getDatabase, ref, set, get } from "firebase/database";
 import google from "./igoogle.svg";
 import Image from "next/image";
 import axios from "axios";
-import { checkEmailType } from "../utils/emailCheck";
+// import { checkEmailType } from "../utils/emailCheck";
 
 function SignInwithGoogle() {
   function googleLogin() {
@@ -17,11 +17,11 @@ function SignInwithGoogle() {
       let name = user.displayName;
       let email = user.email;
       let profilePhoto = user.photoURL;
-      const emailCheck = checkEmailType(email);
-      if (emailCheck.message == false) {
-        toast.error("Only company/HR emails are allowed.", { position: "top-center" });
-        return; // ⛔ Stop further execution
-      }
+      // const emailCheck = checkEmailType(email);
+      // if (emailCheck.message == false) {
+      //   toast.error("Only company/HR emails are allowed.", { position: "top-center" });
+      //   return; // ⛔ Stop further execution
+      // }
       const db = getDatabase(app);
 
       const userRef = ref(db, "hr/" + user.uid);
@@ -35,10 +35,10 @@ function SignInwithGoogle() {
           apiSnapshot1.exists()
             ? (apiKey = apiSnapshot1.val())
             : (apiKey = apiSnapshot2.val());
-          localStorage.setItem("api_key", apiKey);
-          localStorage.setItem("UID", user?.uid);
-          localStorage.setItem("IsLogin", true);
-          localStorage.setItem("UserName", user.displayName);
+          localStorage.setItem("api_keyforHR", apiKey);
+          localStorage.setItem("UIDforHR", user?.uid);
+          localStorage.setItem("IsLoginAsHR", true);
+          localStorage.setItem("UserNameforHR", user.displayName);
           const subRef = ref(db, `hr/${user.uid}/Payment/SubscriptionType`);
           const subSnapshot = await get(subRef);
           localStorage.setItem("SubscriptionType", subSnapshot.val());

@@ -28,10 +28,11 @@ const Navbar = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const loginStatus = localStorage.getItem("IsLogin");
+      const loginStatus = localStorage.getItem("IsLoginAsHR");
+      console.log(loginStatus)
       setIsLogin(loginStatus);
 
-      const userId = localStorage.getItem("UID");
+      const userId = localStorage.getItem("UIDforHR");
       if (userId) {
         const findUser = ref(db, `hr/${userId}`);
         get(findUser).then((snapshot) => {

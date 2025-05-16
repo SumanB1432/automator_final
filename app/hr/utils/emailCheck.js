@@ -9,7 +9,7 @@ export function checkEmailType(email) {
     const [localPart, domain] = trimmedEmail.split('@');
   
     const publicDomains = [
-       'gmail.com','yahoo.com', 'hotmail.com', 'outlook.com',
+       "gmail.com",'yahoo.com', 'hotmail.com', 'outlook.com',
       'aol.com', 'icloud.com', 'protonmail.com', 'rediffmail.com'
     ];
   

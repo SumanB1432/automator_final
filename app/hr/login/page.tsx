@@ -47,8 +47,8 @@ function HRLogin() {
       const user = auth.currentUser;
 
       if (user && user.emailVerified) {
-        localStorage.setItem("UID", user.uid);
-        localStorage.setItem("IsLogin", "true");
+        localStorage.setItem("UIDforHR", user.uid);
+        localStorage.setItem("IsLoginAsHR", "true");
 
         // notifyExtensionOnLogin(user.uid);
 

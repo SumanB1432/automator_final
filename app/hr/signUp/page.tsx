@@ -7,7 +7,7 @@ import app from "@/firebase/config";
 import { getDatabase, ref, set } from "firebase/database";
 import axios from "axios";
 import Link from 'next/link';
-import { checkEmailType } from "../utils/emailCheck"
+// import { checkEmailType } from "../utils/emailCheck"
 
 function Register() {
     const [email, setEmail] = useState("");
@@ -24,14 +24,14 @@ function Register() {
         const displayName = `${fname} ${lname}`;
 
         try {
-            const checkEmail = checkEmailType(email);
-            if (checkEmail.message == false) {
-                setEmailError("Warning: Please use a company or HR email"); // Show error below input
-                setLoading(false);
-                return;
-            } else {
-                setEmailError("");
-            }
+            // const checkEmail = checkEmailType(email);
+            // if (checkEmail.message == false) {
+            //     setEmailError("Warning: Please use a company or HR email"); // Show error below input
+            //     setLoading(false);
+            //     return;
+            // } else {
+            //     setEmailError("");
+            // }
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
