@@ -10,6 +10,7 @@ import { storage } from "@/firebase/config";
 import { FiCopy, FiCheck } from "react-icons/fi";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebase/config";
+import {toast} from "react-toastify"
 
 const Index = () => {
   const router = useRouter();
@@ -17,6 +18,19 @@ const Index = () => {
   const [url, setUrl] = useState("");
   const [uid, setUid] = useState("")
   console.log("⚠️ Using Firebase?", isFirebaseConfigured, "Storage:", !!storage);
+
+  useEffect(() => {
+  const isHRLoggedIn = localStorage.getItem("IsLoginAsHR");
+  console.log(isHRLoggedIn)
+
+  if (isHRLoggedIn !== "true") {
+    toast.warning("Access denied. Please log in as an HR user.");
+
+    setTimeout(() => {
+      window.location.href = "/hr/login";
+    }, 2000);
+  }
+}, []);
 
   // Wait for Firebase auth to load
   useEffect(() => {

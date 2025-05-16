@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getDatabase, ref, onValue, get } from 'firebase/database';
 import Link from 'next/link';
 import app from '@/firebase/config';
+import {toast} from "react-toastify"
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -18,6 +19,18 @@ export default function DashboardPage() {
 
   const recruiterId = 'demo_recruiter';
   const db = getDatabase(app);
+
+    useEffect(() => {
+    const isHRLoggedIn = localStorage.getItem("IsLoginAsHR");
+  
+    if (isHRLoggedIn !== "true") {
+      toast.warning("Access denied. Please log in as an HR user.");
+  
+      setTimeout(() => {
+        window.location.href = "/hr/login";
+      }, 2000);
+    }
+  }, []);
 
   useEffect(() => {
     // Realtime listener for metrics

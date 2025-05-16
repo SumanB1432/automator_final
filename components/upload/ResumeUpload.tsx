@@ -6,6 +6,7 @@ import { useCandidateStore } from '@/store/useCandidateStore';
 import { Candidate } from '@/types/candidate';
 import { toast } from 'react-toastify';
 
+
 type Props = {
   jobDescription: string;
   setJobDescription: (text: string) => void;
@@ -31,6 +32,10 @@ export default function ResumeUpload({
   const router = useRouter();
 
   // Load from localStorage
+
+
+
+
   useEffect(() => {
     const storedJobDescription = localStorage.getItem('jobDescription');
     const storedRecruiterSuggestion = localStorage.getItem('recruiterSuggestion');

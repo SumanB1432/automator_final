@@ -4,6 +4,7 @@ import { getDatabase, ref, get } from 'firebase/database';
 import app from "@/firebase/config";
 import { auth } from "@/firebase/config";
 import { useAuthState } from 'react-firebase-hooks/auth'; // Import hook to track auth state
+import { toast } from 'react-toastify';
 
 const HREmailPage = () => {
   const [userEmail, setUserEmail] = useState("");
@@ -24,6 +25,20 @@ const HREmailPage = () => {
 
 
   const db = getDatabase(app);
+
+
+  useEffect(() => {
+  const isHRLoggedIn = localStorage.getItem("IsLoginAsHR");
+
+  if (isHRLoggedIn !== "true") {
+    toast.warning("Access denied. Please log in as an HR user.");
+
+    setTimeout(() => {
+      window.location.href = "/hr/login";
+    }, 2000);
+  }
+}, []);
+
 
   useEffect(() => {
     // Wait until auth state is loaded
