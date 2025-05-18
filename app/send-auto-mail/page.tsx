@@ -1,11 +1,10 @@
 "use client";
-import { useState, useEffect, useRef, use } from "react";
-import { FaBriefcase } from 'react-icons/fa';
-import CompanyCard from '@/components/companies/CompanyCard';
+import { useState, useEffect, useRef } from "react";
+import { FaBriefcase } from "react-icons/fa";
+import CompanyCard from "@/components/companies/CompanyCard";
 import { toast } from "react-toastify";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import app, { auth } from "@/firebase/config";
-
 import { getDatabase, ref, set, get } from "firebase/database";
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -28,13 +27,12 @@ const Page = () => {
 
   const db = getDatabase(app);
 
-
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
     const name = localStorage.getItem("userName");
     const verified = localStorage.getItem("emailVerified");
     const gemini_key = localStorage.getItem("api_key");
-    setGeminiKey(gemini_key)
+    setGeminiKey(gemini_key);
     if (verified !== "true") {
       window.location.href = "/email_auth";
     }
@@ -52,23 +50,25 @@ const Page = () => {
 
     return () => unsubscribe();
   }, []);
+
   useEffect(() => {
     const getEmailCount = async function () {
       try {
         const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
         const snapshot = await get(emailCountRef);
-        const email_count = snapshot.val()
+        const email_count = snapshot.val() || 0;
 
-
-        if (email_count >= 100) {
+        if (email_count >= 10000) {
           setEmailLimitReached(true);
           toast.warning(
             <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
               <h2 className="text-lg font-bold">💼 Email Limit Reached</h2>
               <p className="text-sm mt-1">
-                You've hit the <span className="font-semibold">100 email</span> limit on your free plan.
+                You've hit the <span className="font-semibold">10000 email</span> limit on your free plan.
               </p>
-              <p className="text-sm">Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.</p>
+              <p className="text-sm">
+                Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.
+              </p>
             </div>,
             {
               autoClose: 8000,
@@ -76,57 +76,55 @@ const Page = () => {
           );
           return;
         }
-
       } catch (error) {
-        console.error("Error updating email count in database:", error.message);
+        console.error("Error fetching email count:", error.message);
       }
+    };
+    if (uid) {
+      getEmailCount();
     }
-    getEmailCount()
+  }, [uid]);
 
-  }, [uid])
-
-  // GET URD FROM DATABASE / LOCAL-STORAGE
   useEffect(() => {
     if (!uid) return;
 
     const getUserData = async () => {
-      if (emailLimitReached) return; // ⛔ prevent execution
+      if (emailLimitReached) return;
       let URD = localStorage.getItem("URD");
       if (URD) {
         setUrd(URD);
-      }
-      else {
+      } else {
         try {
           const userRef = ref(db, `user/${uid}/forms/keyvalues/URD`);
           const snapshot = await get(userRef);
           if (snapshot.exists()) {
             setUrd(snapshot.val());
-            localStorage.setItem("URD", snapshot.val())
+            localStorage.setItem("URD", snapshot.val());
           } else {
             toast.error("No URD data found");
           }
         } catch (err) {
           toast.error("Error fetching user data");
         }
-      };
-    }
+      }
+    };
 
     getUserData();
   }, [uid]);
 
   useEffect(() => {
-
     let checkVerifyEmail = async function (userEmail, userName) {
-      if (emailLimitReached) return; // ⛔ prevent execution
+      if (emailLimitReached) return;
       if (userEmail && userName) {
         let response = await fetch("https://jobemailsending-hrjd6kih3q-uc.a.run.app/send-job-application", {
           method: "POST",
           body: JSON.stringify({
             sender_email: userEmail,
-            company_email: "suman85bera@gmail.com",  // Dynamically use recruiter email
-            resume_link: "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
+            company_email: "suman85bera@gmail.com",
+            resume_link:
+              "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
             sender_name: userName,
-            text: "hello"
+            text: "hello",
           }),
           headers: {
             "Content-Type": "application/json",
@@ -134,25 +132,22 @@ const Page = () => {
         });
         const data = await response.json();
         if (response.status === 401) {
-          // Redirect to EmailAuth component (or your authentication route)
           toast.info("For security reasons, please verify your email again.");
           localStorage.setItem("emailPermissionGranted", "false");
           setTimeout(() => {
-            window.location.href = "/email_auth"; // Adjust route as needed
-          }, 2000); // Give the user a moment to see the toast
+            window.location.href = "/email_auth";
+          }, 2000);
         }
       }
-    }
-    checkVerifyEmail(userEmail, userName)
-
-  }, [userEmail])
+    };
+    checkVerifyEmail(userEmail, userName);
+  }, [userEmail]);
 
   useEffect(() => {
     if (!urd) return;
 
-
     const fetchGeminiResponse = async () => {
-      if (emailLimitReached) return; // ⛔ prevent execution
+      if (emailLimitReached) return;
       try {
         const exampleOutput = `[
           {"jobTitle": "Python Developer", "location": "remote", "experience": "2-5"},
@@ -197,9 +192,8 @@ const Page = () => {
   useEffect(() => {
     if (!jsonData || jsonData.length === 0) return;
 
-
     const processData = () => {
-      if (emailLimitReached) return; // ⛔ prevent execution
+      if (emailLimitReached) return;
       const jobTitles = jsonData.map((job) => job.jobTitle);
       setJobTitle(jobTitles);
 
@@ -219,144 +213,119 @@ const Page = () => {
 
   useEffect(() => {
     if (!userEmail) return;
-    if (emailLimitReached) return; // ⛔ prevent execution
-
-    // const verified = localStorage.getItem("emailVerified");
-    // if (verified !== "true") {
-    //   window.location.href = "/email_auth";
-    // }
+    if (emailLimitReached) return;
 
     const DB_email = userEmail.replace(/\./g, ",");
     const userRef = ref(db, `users/${DB_email}`);
 
-    get(userRef).then((snapshot) => {
-      if (!snapshot.exists()) {
-        window.location.href = "/email_auth";
-      }
-    }).catch((err) => {
-      console.error("Database Error:", err.message);
-    });
+    get(userRef)
+      .then((snapshot) => {
+        if (!snapshot.exists()) {
+          window.location.href = "/email_auth";
+        }
+      })
+      .catch((err) => {
+        console.error("Database Error:", err.message);
+      });
   }, [userEmail]);
 
   useEffect(() => {
-    if (!jobTitle.length) return;
+    if (emailLimitReached) return;
+    document.addEventListener("emailsData", function (event) {
+      const jobs = event.detail;
+      console.log("Received jobs from extension:", jobs);
 
+      // Filter out jobs where email is "Not found"
+      const filteredJobs = jobs.filter(job => job.email !== "Not found");
 
-    const fetchCompany = async () => {
-      if (emailLimitReached) return; // ⛔ prevent execution
-      try {
-        console.log(jobTitle, location);
-        const response = await fetch("https://api-hrjd6kih3q-uc.a.run.app/job_search", {
-          method: "POST",
-          body: JSON.stringify({
-            jobTitle,
-            location: location,
-            experience: `${exp}` || "0-1",
-            geminiKey: gemini_key
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        const responseData = await response.json();
-        const jobData = responseData.data;
-
-        console.log("Job search successful!", responseData, jobData);
-        setCompanies(jobData);
-
-        if (jobData) {
-          const emails = jobData.map((company: any) => company.recruiter_email);
-          setEmailArray(emails);
-          console.log("Recruiter Emails:", emails);
-        }
-      } catch (err) {
-        console.error("Error fetching companies:", err.message);
+      // Update state with filtered jobs
+      setCompanies(filteredJobs);
+      if (jobs) {
+        const emails = jobs
+          .map((company: any) => company.email)
+          .filter((email: string) => email !== "Not found");
+        setEmailArray(emails);
+        console.log("Recruiter Emails:", emails);
       }
-    };
-
-    fetchCompany();
-  }, [jobTitle]);
+    });
+  }, []);
 
   useEffect(() => {
-    if (emailArray.length === 0 || hasRun.current) return; // Prevent double execution
+    if (emailArray.length === 0 || hasRun.current || emailLimitReached) return;
 
-
-    hasRun.current = true; // Mark as executed
+    hasRun.current = true;
 
     const sendEmails = async () => {
-      if (emailLimitReached) return; // ⛔ prevent execution
       try {
         let sentEmailCount = 0;
+        console.log("Emails to send:", emailArray);
+
+        // Retrieve current email count once before the loop
+        const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
+        const snapshot = await get(emailCountRef);
+        let existingCount = snapshot.exists() ? snapshot.val() : 0;
+        console.log("Existing email count:", existingCount);
+
         for (const email of emailArray) {
+          // Check if adding one more email exceeds the limit
+          if (existingCount + sentEmailCount >= 10000) {
+            setEmailLimitReached(true);
+            toast.warning(
+              <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
+                <h2 className="text-lg font-bold">💼 Email Limit Reached</h2>
+                <p className="text-sm mt-1">
+                  You've hit the <span className="font-semibold">10000 email</span> limit on your free plan.
+                </p>
+                <p className="text-sm">
+                  Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.
+                </p>
+              </div>,
+              {
+                autoClose: 8000,
+              }
+            );
+            break;
+          }
+
           let response = await fetch("https://jobemailsending-hrjd6kih3q-uc.a.run.app/send-job-application", {
             method: "POST",
             body: JSON.stringify({
               sender_email: userEmail,
-              company_email: email,  // Dynamically use recruiter email
-              resume_link: "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
+              company_email: email,
+              resume_link:
+                "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
               sender_name: userName,
-              text: "hello"
+              text: "hello",
             }),
             headers: {
               "Content-Type": "application/json",
             },
           });
 
-          console.log(`Email sent to ${email}`);
-
-          // Wait for 5 seconds before sending the next email
           if (response.ok) {
             sentEmailCount += 1;
-            const data = await response.json();
             console.log(`Email sent to ${email}`);
-
+            // Update email count in database after each successful email
+            await set(emailCountRef, existingCount + sentEmailCount);
+            console.log(`Updated email count to ${existingCount + sentEmailCount}`);
           } else {
             const data = await response.json();
             console.error("Error from server:", data.error);
 
             if (response.status === 401) {
-              // Redirect to EmailAuth component (or your authentication route)
               toast.info("For security reasons, please verify your email again.");
               localStorage.setItem("emailPermissionGranted", "false");
               setTimeout(() => {
-                window.location.href = "/email_auth"; // Adjust route as needed
-              }, 2000); // Give the user a moment to see the toast
+                window.location.href = "/email_auth";
+              }, 2000);
+              break;
             } else {
-              toast.error(`Error: ${data.error}`); // Display other errors
+              toast.error(`Error: ${data.error}`);
             }
-            await new Promise((resolve) => setTimeout(resolve, 5000));
           }
-          // Update Firebase email count
-          try {
-            const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
-            const snapshot = await get(emailCountRef);
-            let existingCount = snapshot.exists() ? snapshot.val() : 0;
-            const updatedCount = existingCount + sentEmailCount;
-
-            await set(emailCountRef, updatedCount);
-
-            if (updatedCount >= 100) {
-              toast.warning(
-                <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
-                  <h2 className="text-lg font-bold">💼 Email Limit Reached</h2>
-                  <p className="text-sm mt-1">
-                    You've hit the <span className="font-semibold">100 email</span> limit on your free plan.
-                  </p>
-                  <p className="text-sm">Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.</p>
-                </div>,
-                {
-                  autoClose: 8000,
-                }
-              );
-              return;
-            }
-
-          } catch (error) {
-            console.error("Error updating email count in database:", error.message);
-          }
-
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
+
         setIsSending(false);
         setIsSent(true);
       } catch (err) {
@@ -367,25 +336,19 @@ const Page = () => {
     sendEmails();
   }, [emailArray]);
 
-
   const handleUpdatePlan = function () {
-    window.location.href = "/payment"
-  }
-
+    window.location.href = "/payment";
+  };
 
   return (
-
-
     <div className="min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013e] to-[#11011E] py-12 text-white">
       <div className="max-w-7xl w-full flex flex-col gap-6">
-        {/* Heading or Email Limit Message */}
         {emailLimitReached && (
           <>
-         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF] text-center flex flex-col gap-5 scale-[1.2]">
-
+            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF] text-center flex flex-col gap-5 scale-[1.2]">
               <h2 className="text-[32px] font-bold text-[#FFFFFF]">Email Limit Reached</h2>
               <p className="text-[16px] leading-6 text-[#B6B6B6]">
-                Hit the <span className="font-semibold text-[#FFFFFF]">100-email</span> free plan limit.
+                Hit the <span className="font-semibold text-[#FFFFFF]">10000-email</span> free plan limit.
               </p>
               <p className="text-[16px] leading-6 text-[#B6B6B6]">
                 Go <span className="underline font-semibold text-[#0FAE96]">Premium</span> to send more.
@@ -400,31 +363,26 @@ const Page = () => {
           </>
         )}
 
-        {/* Company Cards */}
-        {!emailLimitReached && (<div>
-          <h2 className="text-3xl font-bold flex items-center gap-3">
-            <FaBriefcase className="text-white" />
-            {isSending ? "Searching Jobs..." : "Applications"}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {companies.map((company, index) => (
-              <div
-                key={index}
-                className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150"
-              >
-                <CompanyCard
-                  {...company}
-                  isSending={isSending}
-                  isSent={isSent}
-                />
-              </div>
-            ))}
+        {!emailLimitReached && (
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <FaBriefcase className="text-white" />
+              {isSending ? "Searching Jobs..." : "Applications"}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {companies.map((company, index) => (
+                <div
+                  key={index}
+                  className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150"
+                >
+                  <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </div>
-
   );
 };
 

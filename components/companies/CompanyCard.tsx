@@ -1,15 +1,20 @@
 import { FaBuilding, FaMapMarkerAlt, FaCode, FaPaperPlane, FaCheck, FaSpinner } from 'react-icons/fa';
 
 interface CompanyCardProps {
-  name: string;
+  company: string;
   email: string;
   location: string;
-  roles: string[];
+  title: string;
   isSending: boolean;
   isSent: boolean;
 }
 
-const CompanyCard = ({ name, email, location, roles, isSending, isSent }: CompanyCardProps) => {
+const CompanyCard = ({ company, email, location, title, isSending, isSent }: CompanyCardProps) => {
+  // Don't render the card if email is "Not found"
+  if (email === "Not found") {
+    return null;
+  }
+
   return (
     <div className="bg-[rgba(255,255,255,0.02)] rounded-[18px] p-[30px] border border-[rgba(255,255,255,0.1)] hover:border-[#0FAE96] transition-all backdrop-blur-sm">
       <div className="flex items-center gap-[16px] mb-[20px]">
@@ -17,8 +22,8 @@ const CompanyCard = ({ name, email, location, roles, isSending, isSent }: Compan
           <FaBuilding className="text-[#FFFFFF] text-[20px]" />
         </div>
         <div>
-          <h3 className="text-[28px]  font-semibold text-[#ECF1F0]">{name}</h3>
-          <p className="text-[#B6B6B6]  text-[16px] flex items-center gap-[8px]">
+          <h3 className="text-[28px] font-semibold text-[#ECF1F0]">{company}</h3>
+          <p className="text-[#B6B6B6] text-[16px] flex items-center gap-[8px]">
             <FaMapMarkerAlt className="text-[#0FAE96]" />
             {location}
           </p>
@@ -29,14 +34,14 @@ const CompanyCard = ({ name, email, location, roles, isSending, isSent }: Compan
         <div className="flex items-center gap-[12px] text-[#B6B6B6]">
           <FaCode className="text-[#0FAE96]" />
           <div className="flex flex-wrap gap-[8px]">
-            {roles.map((role, index) => (
-              <span 
-                key={index}
+       
+              <span
+             
                 className="text-[14px] bg-[rgba(255,255,255,0.05)] px-[10px] py-[6px] rounded-[10px]"
               >
-                {role}
+                {title}
               </span>
-            ))}
+        
           </div>
         </div>
       </div>
