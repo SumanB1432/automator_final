@@ -6,7 +6,6 @@ import { useCandidateStore } from '@/store/useCandidateStore';
 import { Candidate } from '@/types/candidate';
 import { toast } from 'react-toastify';
 
-
 type Props = {
   jobDescription: string;
   setJobDescription: (text: string) => void;
@@ -32,10 +31,6 @@ export default function ResumeUpload({
   const router = useRouter();
 
   // Load from localStorage
-
-
-
-
   useEffect(() => {
     const storedJobDescription = localStorage.getItem('jobDescription');
     const storedRecruiterSuggestion = localStorage.getItem('recruiterSuggestion');
@@ -79,36 +74,72 @@ export default function ResumeUpload({
       return;
     }
 
-    const formData = new FormData();
-    selectedFiles.forEach(file => formData.append('file', file));
-
     setLoading(true);
     setError('');
+    const allCandidates: Candidate[] = [];
 
     try {
-      const query = new URLSearchParams({
-        jd: jobDescription,
-        rs: recruiterSuggestion,
-        jt: jobTitle,
-      });
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        toast.info(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`);
 
-      const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes?${query.toString()}`, {
-        method: 'POST',
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('jd', jobDescription);
+        formData.append('rs', recruiterSuggestion);
+        formData.append('jt', jobTitle);
 
-      if (!res.ok) throw new Error('Failed to parse resumes');
+        try {
+          const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
+            method: 'POST',
+            body: formData,
+          });
 
-      const { candidates }: { candidates: Candidate[] } = await res.json();
-      setCandidates(candidates);
-      console.log(candidates, "candidate")
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || `Failed to parse ${file.name}`);
+          }
+
+          const { candidate }: { candidate: Candidate } = await res.json();
+          
+          // Skip candidates with name "Unknown"
+          if (candidate.name === 'Unknown') {
+            toast.warn(`Skipped ${file.name}: Candidate name is 'Unknown'`);
+            continue;
+          }
+
+          allCandidates.push(candidate);
+          toast.success(`Processed ${file.name} successfully!`);
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+          toast.error(`Error processing ${file.name}: ${errorMessage}`);
+          const errorCandidate: Candidate = {
+            id: `error-${file.name}-${i}`,
+            name: 'Processing Error',
+            email: `error_${i}@example.com`,
+            phone: 'N/A',
+            location: 'N/A',
+            score: 0,
+            parsedText: `Error processing ${file.name}: ${errorMessage}`,
+            skills: [],
+            experience: 0,
+            jobTitle: 'Error',
+            education: 'N/A',
+            approved: false,
+            resumeUrl: `File: ${file.name}`,
+          };
+          allCandidates.push(errorCandidate);
+        }
+      }
+
+      setCandidates(allCandidates);
+      console.log(allCandidates, "candidate");
       setSelectedFiles([]);
       toast.success('Resumes parsed successfully!');
 
       setTimeout(() => {
-        window.location.href = "/hr/candidates"
-      }, 3000)
-
+        window.location.href = "/hr/candidates";
+      }, 3000);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || 'Unexpected error occurred.');
@@ -242,8 +273,7 @@ export default function ResumeUpload({
                 console.log('Button clicked', inputRef.current);
                 inputRef.current?.click();
               }}
-              className="bg-[rgba(15,174,150,0.1)] text-[#0FAE96] border border-[#0FAE96]/30 font-raleway font-semibold text-base px-6 py-3 rounded-md transition-all duration-300 hover:scale-105 hover:bg-[#0FAE96]/20 focus:outline-none focus-visible:ring-2 focus-v
-isible:ring-offset-2 focus-visible:ring-[#0FAE96] w-full flex items-center justify-center"
+              className="bg-[rgba(15,174,150,0.1)] text-[#0FAE96] border border-[#0FAE96]/30 font-raleway font-semibold text-base px-6 py-3 rounded-md transition-all duration-300 hover:scale-105 hover:bg-[#0FAE96]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] w-full flex items-center justify-center"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -397,5 +427,4 @@ isible:ring-offset-2 focus-visible:ring-[#0FAE96] w-full flex items-center justi
       </div>
     </div>
   );
-
 }

@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { getDatabase, set, ref as databaseRefUtil, get } from 'firebase/database';
 import app, { auth } from "@/firebase/config";
 import debounce from 'lodash/debounce';
+import { toast } from 'react-toastify'; // Added for toast notifications
 
 export default function CandidatesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -86,8 +87,6 @@ export default function CandidatesPage() {
     };
 
     getEmail();
-
-
   }, [uid])
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
@@ -95,7 +94,7 @@ export default function CandidatesPage() {
   const saveCandidateToRealtimeDatabase = useCallback(
     debounce(async (jobTitle: string, jd: string, recruiterSuggestion: string) => {
       // Validate inputs
-      if (!jobTitle || !jd || !recruiterSuggestion || !uid) {
+      if (!jobTitle || !uid) {
         console.log("Skipping save: Missing required fields or UID");
         return;
       }
@@ -108,6 +107,7 @@ export default function CandidatesPage() {
           .replace(/\s+/g, "") // Replace spaces with hyphens instead of removing
           .replace(/[.#$[\]]/g, "") // Remove invalid Firebase key characters
           .toLowerCase();
+          console.log(baseTitle)
 
         if (!baseTitle) {
           console.log("Skipping save: Invalid job title");
@@ -134,10 +134,11 @@ export default function CandidatesPage() {
   );
 
   useEffect(() => {
-    if (jobTitle && jobDescription && recruiterSuggestion) {
+    console.log(jobDescription,jobTitle,recruiterSuggestion)
+  
       saveCandidateToRealtimeDatabase(jobTitle, jobDescription, recruiterSuggestion);
-    }
-  }, [jobTitle, jobDescription, recruiterSuggestion, saveCandidateToRealtimeDatabase]);
+    
+  }, [jobTitle]);
 
   const handleDownload = () => {
     if (selectedCandidate?.resumeUrl) {
@@ -171,7 +172,6 @@ export default function CandidatesPage() {
       return;
     }
 
-
     const companyEmail = email;
     const db = getDatabase(app);
 
@@ -199,6 +199,7 @@ export default function CandidatesPage() {
           window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates"
           console.error(`Failed to send email to ${recipient.email}`);
         } else {
+          toast.success(`Email sent successfully to ${candidate.email}`); // Added toast
           console.log(`Email sent to ${recipient.email}`);
           const safeEmail = candidate.email.replace(/\./g, ",").toLowerCase();
           const baseTitle = jobTitle.trim().replace(/\s+/g, "").toLowerCase();
@@ -260,7 +261,7 @@ export default function CandidatesPage() {
     }
   };
 
-  const handleCandidateSelect = (id: string) => {
+  const handleCandidateSelect = (id: String) => {
     setSelectedCandidates((prev) =>
       prev.includes(id) ? prev.filter((candidateId) => candidateId !== id) : [...prev, id]
     );
