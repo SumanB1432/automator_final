@@ -94,10 +94,7 @@ export default function CandidatesPage() {
   const saveCandidateToRealtimeDatabase = useCallback(
     debounce(async (jobTitle: string, jd: string, recruiterSuggestion: string) => {
       // Validate inputs
-      if (!jobTitle || !uid) {
-        console.log("Skipping save: Missing required fields or UID");
-        return;
-      }
+
 
       try {
         const db = getDatabase(app);
@@ -136,9 +133,9 @@ export default function CandidatesPage() {
   useEffect(() => {
     console.log(jobDescription,jobTitle,recruiterSuggestion)
   
-      saveCandidateToRealtimeDatabase(jobTitle, jobDescription, recruiterSuggestion);
+    saveCandidateToRealtimeDatabase(jobTitle, jobDescription, recruiterSuggestion);
     
-  }, [jobTitle]);
+  }, [jobTitle,uid]);
 
   const handleDownload = () => {
     if (selectedCandidate?.resumeUrl) {
