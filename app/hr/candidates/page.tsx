@@ -23,7 +23,9 @@ export default function CandidatesPage() {
   const [emailSubject, setEmailSubject] = useState<string>("");
   const [emailBody, setEmailBody] = useState<string>("");
   const [emailError, setEmailError] = useState<string>("");
-  const [email, setEmail] = useState<string>("")
+  const [email, setEmail] = useState<string>("");
+  const [emailFooter, setEmailFooter] = useState<string>("");
+  const [isSending, setIsSending] = useState(false); // New state for 
   const db = getDatabase(app)
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
@@ -92,44 +94,44 @@ export default function CandidatesPage() {
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
 
-useEffect(() => {
-  const debouncedSave = debounce(async () => {
+  useEffect(() => {
+    const debouncedSave = debounce(async () => {
 
 
-    try {
-      const db = getDatabase(app);
-      const baseTitle = jobTitle
-        .trim()
-        .replace(/\s+/g, "") // Consider using hyphens if desired
-        .replace(/[.#$[\]]/g, "")
-        .toLowerCase();
+      try {
+        const db = getDatabase(app);
+        const baseTitle = jobTitle
+          .trim()
+          .replace(/\s+/g, "") // Consider using hyphens if desired
+          .replace(/[.#$[\]]/g, "")
+          .toLowerCase();
 
-      if (!baseTitle) {
-        console.log("⏭ Skipping save: Invalid job title");
-        return;
+        if (!baseTitle) {
+          console.log("⏭ Skipping save: Invalid job title");
+          return;
+        }
+
+        const candidateRef = databaseRefUtil(db, `hr/${uid}/jobProfiles/${baseTitle}`);
+
+        await set(candidateRef, {
+          title: jobTitle,
+          jdText: jobDescription,
+          hrGuideLines: recruiterSuggestion,
+          calendlyLink: "",
+          updatedAt: Date.now(),
+        });
+
+        console.log("✅ Job Profile saved at:", `hr/${uid}/jobProfiles/${baseTitle}`);
+      } catch (error) {
+        console.error("❌ Error saving candidate:", error);
       }
+    }, 500); // 500ms debounce
 
-      const candidateRef = databaseRefUtil(db, `hr/${uid}/jobProfiles/${baseTitle}`);
+    debouncedSave();
 
-      await set(candidateRef, {
-        title: jobTitle,
-        jdText: jobDescription,
-        hrGuideLines: recruiterSuggestion,
-        calendlyLink: "",
-        updatedAt: Date.now(),
-      });
-
-      console.log("✅ Job Profile saved at:", `hr/${uid}/jobProfiles/${baseTitle}`);
-    } catch (error) {
-      console.error("❌ Error saving candidate:", error);
-    }
-  }, 500); // 500ms debounce
-
-  debouncedSave();
-
-  // Cleanup to cancel debounce if inputs change quickly
-  return () => debouncedSave.cancel();
-}, [uid, jobTitle]);
+    // Cleanup to cancel debounce if inputs change quickly
+    return () => debouncedSave.cancel();
+  }, [uid, jobTitle]);
 
 
   const handleDownload = () => {
@@ -151,18 +153,80 @@ useEffect(() => {
     URL.revokeObjectURL(url);
   };
 
-  const handleSendEmail = () => {
-    setIsEmailModalOpen(true);
-    setEmailSubject("");
-    setEmailBody("");
-    setEmailError("");
+
+  // New function to verify email in hr_token
+  const verifyEmailInHrToken = async (userEmail: string): Promise<boolean> => {
+    try {
+      const hrTokenRef = databaseRefUtil(db, `hr_token`);
+      const snapshot = await get(hrTokenRef);
+      if (snapshot.exists()) {
+        const hrTokenData = snapshot.val();
+        // Check if userEmail exists as a key in hr_token (replace dots with commas for Firebase key)
+        return Object.keys(hrTokenData).includes(userEmail.replace(/\./g, ","));
+      }
+      return false;
+    } catch (error) {
+      console.error("Error verifying email in hr_token:", error);
+      return false;
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!email) {
+      alert("No HR email found. Please ensure your email is set up.");
+      return;
+    }
+
+    // Verify email in hr_token
+    const isEmailVerified = await verifyEmailInHrToken(email);
+    if (!isEmailVerified) {
+      window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+      return;
+    }
+
+    // Send demo email to your Gmail
+    try {
+      const demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipient: {
+            name: "Test User",
+            email: "deadpool69cloud@gmail.com", // Replace with your Gmail address
+          },
+          companyEmail: email,
+          subject: "Demo Email: Candidate Management",
+          body: "This is a demo email to verify email functionality.",
+          footer: "Best regards, HR Team",
+        }),
+      });
+
+      if (!demoResponse.ok) {
+        console.error("Failed to send demo email");
+        window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+        return;
+      }
+
+      // If demo email is successful, open the email modal
+      setIsEmailModalOpen(true);
+      setEmailSubject("");
+      setEmailBody("");
+      setEmailFooter("");
+      setEmailError("");
+    } catch (error) {
+      console.error("Error sending demo email:", error);
+      window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+    }
   };
 
   const handleEmailSubmit = async () => {
-    if (!emailSubject.trim() || !emailBody.trim()) {
-      setEmailError("Both subject and body are required.");
+    if (!emailSubject.trim() || !emailBody.trim() || !emailFooter.trim()) {
+      setEmailError(" subject , body and footer all are required.");
       return;
     }
+    setIsSending(true);
 
     const companyEmail = email;
     const db = getDatabase(app);
@@ -184,6 +248,7 @@ useEffect(() => {
             companyEmail,
             subject: emailSubject,
             body: emailBody,
+            footer: emailFooter,
           }),
         });
 
@@ -204,6 +269,7 @@ useEffect(() => {
             timestamp: Date.now(),
             subject: emailSubject,
             body: emailBody,
+            footer: emailFooter,
           };
 
           await set(emailSentListRef, emailData);
@@ -212,8 +278,8 @@ useEffect(() => {
         console.error(`Error sending email to ${recipient.email}:`, error);
       }
     }
-
-    alert("All emails have been processed.");
+    setIsSending(false); // Stop loading
+    toast.success("All emails have been sent successfully!")
     setIsEmailModalOpen(false);
   };
 
@@ -323,14 +389,14 @@ useEffect(() => {
                 onClick={handleSendEmail}
                 className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               >
-                Send Email
+                Send Auto Email
               </button>
-              <button
+              {/* <button
                 onClick={handleSendMessageAll}
                 className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               >
                 Message All
-              </button>
+              </button> */}
               <div className="flex items-center gap-2 mt-4">
                 <input
                   type="checkbox"
@@ -508,23 +574,33 @@ useEffect(() => {
               <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Email Subject</label>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Subject</label>
                   <input
                     type="text"
                     value={emailSubject}
                     onChange={(e) => setEmailSubject(e.target.value)}
                     className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
-                    placeholder="Enter email subject"
+                    placeholder="e.g. Application Update: Interview Invitation"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Email Body</label>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Body</label>
                   <textarea
                     value={emailBody}
                     onChange={(e) => setEmailBody(e.target.value)}
                     className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                    placeholder="Enter email body"
+                    placeholder="Write your main message here. For example, details about the next steps in the hiring process."
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Footer</label>
+                  <textarea
+                    value={emailFooter}
+                    onChange={(e) => setEmailFooter(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                    placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team'"
                     required
                   />
                 </div>
@@ -535,14 +611,42 @@ useEffect(() => {
                   <button
                     onClick={() => setIsEmailModalOpen(false)}
                     className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
+                    disabled={isSending}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleEmailSubmit}
-                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
+                    disabled={isSending}
                   >
-                    Send
+                    {isSending ? (
+                      <div className="flex items-center gap-2">
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Processing...
+                      </div>
+                    ) : (
+                      "Send"
+                    )}
                   </button>
                 </div>
               </div>
