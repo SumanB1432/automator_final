@@ -91,51 +91,46 @@ export default function CandidatesPage() {
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
-  const saveCandidateToRealtimeDatabase = useCallback(
-    debounce(async (jobTitle: string, jd: string, recruiterSuggestion: string) => {
-      // Validate inputs
+
+useEffect(() => {
+  const debouncedSave = debounce(async () => {
 
 
-      try {
-        const db = getDatabase(app);
-        // Ensure baseTitle is safe for Firebase keys
-        const baseTitle = jobTitle
-          .trim()
-          .replace(/\s+/g, "") // Replace spaces with hyphens instead of removing
-          .replace(/[.#$[\]]/g, "") // Remove invalid Firebase key characters
-          .toLowerCase();
-          console.log(baseTitle)
+    try {
+      const db = getDatabase(app);
+      const baseTitle = jobTitle
+        .trim()
+        .replace(/\s+/g, "") // Consider using hyphens if desired
+        .replace(/[.#$[\]]/g, "")
+        .toLowerCase();
 
-        if (!baseTitle) {
-          console.log("Skipping save: Invalid job title");
-          return;
-        }
-
-        // Construct the database reference explicitly
-        const candidateRef = databaseRefUtil(db, `hr/${uid}/jobProfiles/${baseTitle}`);
-
-        await set(candidateRef, {
-          title: jobTitle,
-          jdText: jd,
-          hrGuideLines: recruiterSuggestion,
-          calendlyLink: "",
-          updatedAt: Date.now(),
-        });
-
-        console.log("Job Profile saved successfully at:", `hr/${uid}/jobProfiles/${baseTitle}`);
-      } catch (error) {
-        console.error("❌ Error saving candidate:", error);
+      if (!baseTitle) {
+        console.log("⏭ Skipping save: Invalid job title");
+        return;
       }
-    }, 500),
-    [uid]
-  );
 
-  useEffect(() => {
-    console.log(jobDescription,jobTitle,recruiterSuggestion)
-  
-    saveCandidateToRealtimeDatabase(jobTitle, jobDescription, recruiterSuggestion);
-    
-  }, [jobTitle,uid]);
+      const candidateRef = databaseRefUtil(db, `hr/${uid}/jobProfiles/${baseTitle}`);
+
+      await set(candidateRef, {
+        title: jobTitle,
+        jdText: jobDescription,
+        hrGuideLines: recruiterSuggestion,
+        calendlyLink: "",
+        updatedAt: Date.now(),
+      });
+
+      console.log("✅ Job Profile saved at:", `hr/${uid}/jobProfiles/${baseTitle}`);
+    } catch (error) {
+      console.error("❌ Error saving candidate:", error);
+    }
+  }, 500); // 500ms debounce
+
+  debouncedSave();
+
+  // Cleanup to cancel debounce if inputs change quickly
+  return () => debouncedSave.cancel();
+}, [uid, jobTitle]);
+
 
   const handleDownload = () => {
     if (selectedCandidate?.resumeUrl) {
