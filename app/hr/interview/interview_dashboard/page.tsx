@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import InterviewSetup from "@/components/interview/InterviewSetup";
 import InterviewSession from "@/components/interview/InterviewSession";
-import InterviewFeedback from "@/components/interview/InterviewFeedback";
+import { InterviewFeedback } from "@/components/interview/InterviewFeedback"; // Change to named import
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createSessionId } from "@/lib/session-utils";

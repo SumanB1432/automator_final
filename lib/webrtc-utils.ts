@@ -33,7 +33,6 @@ export class VideoRecorder {
     this.stream = stream;
     this.recordedChunks = [];
 
-    // CHANGE: Log stream details
     console.log("Initializing VideoRecorder with stream:", stream, stream.getTracks());
 
     if (
@@ -46,10 +45,9 @@ export class VideoRecorder {
 
     try {
       const mimeTypes = [
+        "video/webm;codecs=vp8,opus", // Prioritize for broad support
         "video/webm;codecs=vp9,opus",
-        "video/webm;codecs=vp8,opus",
         "video/webm",
-        "video/mp4",
       ];
       const supportedMimeType = mimeTypes.find((type) =>
         MediaRecorder.isTypeSupported(type)
@@ -64,13 +62,15 @@ export class VideoRecorder {
         if (event.data && event.data.size > 0) {
           this.recordedChunks.push(event.data);
           console.log("Data available, chunk size:", event.data.size, "Total chunks:", this.recordedChunks.length);
+        } else {
+          console.warn("Received empty or invalid data chunk");
         }
       };
       this.mediaRecorder.onerror = (event) => {
         console.error("MediaRecorder error:", event);
       };
     } catch (error) {
-      console.error("Error initializing MediaRecorder:", error.message, error.stack); // CHANGE: Detailed error logging
+      console.error("Error initializing MediaRecorder:", error.message, error.stack);
       throw error;
     }
   }
@@ -80,7 +80,6 @@ export class VideoRecorder {
       throw new Error("MediaRecorder not initialized");
     }
 
-    // CHANGE: Log new stream details
     console.log("Updating stream:", newStream, newStream.getTracks());
 
     if (
@@ -108,6 +107,8 @@ export class VideoRecorder {
             if (event.data && event.data.size > 0) {
               this.recordedChunks.push(event.data);
               console.log("Data available after update, chunk size:", event.data.size, "Total chunks:", this.recordedChunks.length);
+            } else {
+              console.warn("Received empty or invalid data chunk after update");
             }
           };
           this.recordedChunks = [...previousChunks];
@@ -144,7 +145,7 @@ export class VideoRecorder {
       this.mediaRecorder.start(1000);
       console.log("Recording started, state:", this.mediaRecorder.state);
     } catch (error) {
-      console.error("Error starting recording:", error.message, error.stack); // CHANGE: Detailed error logging
+      console.error("Error starting recording:", error.message, error.stack);
       throw error;
     }
   }
@@ -156,8 +157,10 @@ export class VideoRecorder {
     }
     return new Promise((resolve, reject) => {
       this.mediaRecorder!.onstop = () => {
+        // Add a slight delay to ensure all chunks are collected
         setTimeout(() => {
           try {
+            console.log("Stopping recorder, recorded chunks:", this.recordedChunks.length);
             const blob = this.createVideoBlob();
             this.recordedChunks = [];
             console.log(
@@ -166,10 +169,10 @@ export class VideoRecorder {
             );
             resolve(blob);
           } catch (error) {
-            console.error("Error creating Blob:", error.message, error.stack); // CHANGE: Detailed error logging
+            console.error("Error creating Blob:", error.message, error.stack);
             reject(error);
           }
-        }, 500);
+        }, 1000); // Increased delay to 1000ms to ensure chunk collection
       };
       this.mediaRecorder!.onerror = (event) => {
         console.error("Stop error:", event);
@@ -179,7 +182,7 @@ export class VideoRecorder {
         this.mediaRecorder!.stop();
         console.log("Stopping recorder, state:", this.mediaRecorder!.state);
       } catch (error) {
-        console.error("Error stopping recorder:", error.message, error.stack); // CHANGE: Detailed error logging
+        console.error("Error stopping recorder:", error.message, error.stack);
         reject(error);
       }
     });
@@ -195,7 +198,14 @@ export class VideoRecorder {
       return null;
     }
     const mimeType = this.mediaRecorder?.mimeType || "video/webm";
-    return new Blob(this.recordedChunks, { type: mimeType });
+    try {
+      const blob = new Blob(this.recordedChunks, { type: mimeType });
+      console.log("Created video blob:", `size=${blob.size}, type=${blob.type}`);
+      return blob;
+    } catch (error) {
+      console.error("Error creating video blob:", error.message, error.stack);
+      return null;
+    }
   }
 
   cleanup(): void {

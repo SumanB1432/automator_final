@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video, VideoOff, Volume2, VolumeX } from "lucide-react";
@@ -9,9 +8,8 @@ import {
 } from "@/lib/webrtc-utils";
 import { useToast } from "@/components/ui/use-toast";
 import { generateInterviewQuestion } from "@/lib/gemini-utils";
-import type { SessionType } from "@/app/interview/interview_dashboard/page";
+import type { SessionType } from "@/pages/Interview";
 import { debounce } from "lodash";
-import { saveSessionWithRecording } from "@/lib/db-service";
 
 export interface SessionTypes {
   jobDescription?: string;
@@ -35,7 +33,6 @@ interface InterviewSessionProps {
   isRecording: boolean;
   setIsRecording: React.Dispatch<React.SetStateAction<boolean>>;
   onComplete: (feedback: SessionType["feedback"]) => void;
-  stream?: MediaStream | null;
 }
 
 const InterviewSession: React.FC<InterviewSessionProps> = ({
@@ -44,7 +41,6 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   isRecording,
   setIsRecording,
   onComplete,
-  stream,
 }) => {
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [hasMediaPermission, setHasMediaPermission] = useState<boolean>(false);
@@ -71,116 +67,164 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   const lastSpeechRef = useRef<string>("");
   const audioContextRef = useRef<AudioContext | null>(null);
   const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  // --- CHANGE START ---
   const hasStartedInterview = useRef<boolean>(false);
+  // --- CHANGE END ---
   const { toast } = useToast();
 
-  useEffect(() => {
-    console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
-    const setupMedia = async () => {
-      if (!window.MediaRecorder) {
-        toast({
-          title: "Browser Not Supported",
-          description:
-            "Your browser does not support video recording. Please use Chrome or Firefox.",
-          variant: "destructive",
-        });
-        setHasMediaPermission(false);
-        return;
-      }
+useEffect(() => {
+  console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
+  const setupMedia = async () => {
+    if (!window.MediaRecorder) {
+      toast({
+        title: "Browser Not Supported",
+        description: "Your browser does not support video recording. Please use Chrome or Firefox.",
+        variant: "destructive",
+      });
+      setHasMediaPermission(false);
+      return;
+    }
 
-      try {
-        let activeStream = stream;
-        if (!activeStream) {
-          activeStream = await requestUserMedia();
-        }
-        console.log("Media stream acquired:", activeStream.getTracks());
-        setMediaStream(activeStream);
-        setHasMediaPermission(true);
+    try {
+      const stream = await requestUserMedia();
+      setMediaStream(stream);
+      setHasMediaPermission(true);
 
-        if (videoRef.current && activeStream) {
-          videoRef.current.srcObject = activeStream;
-          const playVideo = async (attempt = 1) => {
-            try {
-              await videoRef.current!.play();
-              console.log("Video playback started successfully");
-            } catch (error) {
-              console.error(`Attempt ${attempt} - Error playing video:`, error);
-              if (attempt < 3) {
-                console.log(`Retrying video playback (attempt ${attempt + 1})`);
-                setTimeout(() => playVideo(attempt + 1), 500);
-              } else {
-                toast({
-                  title: "Video Playback Error",
-                  description: "Failed to play video stream. Please refresh the page.",
-                  variant: "destructive",
-                });
-              }
-            }
-          };
+      // Log stream details for debugging
+      console.log("Media stream acquired:", stream, stream.getTracks());
+      stream.getTracks().forEach((track) => {
+        console.log(`Track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
+      });
 
-          videoRef.current.onloadedmetadata = () => {
-            console.log("Video metadata loaded, attempting to play");
-            playVideo();
-          };
-
-          console.log("Initializing recorder with stream");
-          recorderRef.current.initialize(activeStream);
-          recorderRef.current.start();
-          setIsRecording(true);
+      const assignStreamToVideo = async (attempts = 5, delay = 500) => {
+        if (!videoRef.current) {
+          if (attempts > 0) {
+            console.warn(`Video ref not assigned, retrying... (${attempts} attempts left)`);
+            setTimeout(() => assignStreamToVideo(attempts - 1, delay), delay);
+            return;
+          }
+          console.error("Video ref is not assigned after retries");
           toast({
-            title: "Recording Started",
-            description: "Video recording has started for the interview.",
-            variant: "default",
+            title: "Video Element Error",
+            description: "Video element is not available. Please try again.",
+            variant: "destructive",
           });
+          return;
         }
 
-        if (speechRecognitionRef.current.isSupported()) {
-          speechRecognitionRef.current.onResult(debouncedHandleUserSpeech);
-        } else {
+        videoRef.current.srcObject = stream;
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length > 0 && !videoTracks[0].enabled) {
+          videoTracks[0].enabled = true;
+          console.log("Enabled video track");
+        }
+
+        try {
+          await videoRef.current.play();
+          console.log("Video playback started successfully");
+
+          // Initialize AudioContext and recorder
+          try {
+            audioContextRef.current = new AudioContext();
+            destinationRef.current = audioContextRef.current.createMediaStreamDestination();
+            const combinedStream = new MediaStream([
+              ...stream.getVideoTracks(),
+              ...stream.getAudioTracks(),
+              ...destinationRef.current.stream.getAudioTracks(),
+            ]);
+
+            // Log combined stream details
+            console.log("Combined stream created:", combinedStream, combinedStream.getTracks());
+            combinedStream.getTracks().forEach((track) => {
+              console.log(`Combined track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
+            });
+
+            // Initialize and start recorder
+            try {
+              recorderRef.current.initialize(combinedStream);
+              recorderRef.current.start();
+              setIsRecording(true);
+              console.log("Recorder initialized and started");
+              toast({
+                title: "Recording Started",
+                description: "Video recording has started for the interview.",
+                variant: "default",
+              });
+            } catch (recorderError) {
+              console.error("Error initializing/starting recorder:", recorderError.message, recorderError.stack);
+              toast({
+                title: "Recording Error",
+                description: "Failed to start video recording. Continuing without recording.",
+                variant: "destructive",
+              });
+            }
+          } catch (audioError) {
+            console.error("Error creating AudioContext or combined stream:", audioError.message, audioError.stack);
+            toast({
+              title: "Audio Context Error",
+              description: "Failed to set up audio context. Recording may not work.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Error playing video:", error.message, error.stack);
           toast({
-            title: "Speech Recognition Not Available",
-            description: "Your browser doesn't support speech recognition.",
+            title: "Video Playback Error",
+            description: "Failed to play video stream. Recording may not work.",
             variant: "destructive",
           });
         }
-      } catch (error: any) {
-        console.error("Error setting up media:", error.name, error.message, error.stack);
-        setHasMediaPermission(false);
+      };
+
+      await assignStreamToVideo();
+
+      if (speechRecognitionRef.current.isSupported()) {
+        speechRecognitionRef.current.onResult(debouncedHandleUserSpeech);
+      } else {
         toast({
-          title: "Media Setup Error",
-          description: "Failed to access camera or microphone. Please check permissions.",
+          title: "Speech Recognition Not Available",
+          description: "Your browser doesn't support speech recognition.",
           variant: "destructive",
         });
       }
-    };
-
-    setupMedia();
-    initializeSpeechSynthesis();
-    if (!hasStartedInterview.current) {
-      hasStartedInterview.current = true;
-      startInterview();
+    } catch (error: any) {
+      console.error("Error setting up media:", error.name, error.message, error.stack);
+      setHasMediaPermission(false);
+      toast({
+        title: "Media Setup Error",
+        description: "Failed to access camera or microphone. Please check permissions.",
+        variant: "destructive",
+      });
     }
+  };
 
-    return () => {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        setMediaStream(null);
-      }
-      speechRecognitionRef.current.stop();
-      if (speechSynthesisRef.current) {
-        window.speechSynthesis.cancel();
-      }
-      if (responseTimeoutRef.current) {
-        clearTimeout(responseTimeoutRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      if (session?.recordings) {
-        session.recordings.forEach((url) => URL.revokeObjectURL(url));
-      }
-    };
-  }, [stream]);
+  setupMedia();
+  initializeSpeechSynthesis();
+  if (!hasStartedInterview.current) {
+    hasStartedInterview.current = true;
+    startInterview();
+  }
+
+  return () => {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      setMediaStream(null);
+    }
+    speechRecognitionRef.current.stop();
+    if (speechSynthesisRef.current) {
+      window.speechSynthesis.cancel();
+    }
+    if (responseTimeoutRef.current) {
+      clearTimeout(responseTimeoutRef.current);
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+    if (session?.recordings) {
+      session.recordings.forEach((url) => URL.revokeObjectURL(url));
+    }
+  };
+}, []);
 
   const initializeSpeechSynthesis = () => {
     if ("speechSynthesis" in window) {
@@ -193,6 +237,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(
         (voice) =>
+          // voice.name.includes("Samantha") ||
           voice.name.includes("Google") ||
           voice.name.includes("Female")
       );
@@ -203,6 +248,21 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
       speechSynthesisRef.current.rate = 1.1;
       speechSynthesisRef.current.pitch = 1.05;
+
+      if (audioContextRef.current && destinationRef.current) {
+        const audioElement = new Audio();
+        audioElement.crossOrigin = "anonymous";
+        const source =
+          audioContextRef.current.createMediaElementSource(audioElement);
+        source.connect(destinationRef.current);
+        destinationRef.current.connect(audioContextRef.current.destination);
+
+        speechSynthesisRef.current.onstart = () => {
+          const utterance = speechSynthesisRef.current!.text;
+          audioElement.src = `data:audio/wav;base64,${btoa(utterance)}`;
+          audioElement.play();
+        };
+      }
     }
   };
 
@@ -228,6 +288,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
           }));
           console.log("Initial transcript:", [{ question: initialQuestion, answer: "" }]);
         }
+        // Debounce speakText to ensure it's only called once
         const debouncedSpeak = debounce(() => speakText(initialQuestion), 100);
         debouncedSpeak();
       }
@@ -245,6 +306,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
           }));
           console.log("Initial transcript (fallback):", [{ question: fallbackQuestion, answer: "" }]);
         }
+        // Debounce speakText for fallback
         const debouncedSpeak = debounce(() => speakText(fallbackQuestion), 100);
         debouncedSpeak();
       }
@@ -275,6 +337,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       clearTimeout(responseTimeoutRef.current);
     }
 
+    // Update conversation with user response
     setConversation((prev) => {
       const updatedConversation = [...prev, { role: "user", content: text }];
       console.log("Updated conversation:", updatedConversation);
@@ -324,13 +387,16 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       });
       setCurrentQuestion(aiResponseText);
 
+      // Update transcript: set the answer for the last question and append the new question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
+          // Update the answer for the last question
           if (updatedTranscript.length > 0) {
             updatedTranscript[updatedTranscript.length - 1].answer = text;
           }
+          // Append the new question
           updatedTranscript.push({ question: aiResponseText, answer: "" });
           console.log("Updated transcript after user speech:", updatedTranscript);
           return {
@@ -381,6 +447,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       });
       setCurrentQuestion(fallbackResponse);
 
+      // Update transcript: set the answer for the last question and append the fallback question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
@@ -445,6 +512,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       });
       setCurrentQuestion(aiResponseText);
 
+      // Update transcript: mark the last question as "No response" and append the new question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
@@ -475,6 +543,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       });
       setCurrentQuestion(fallbackResponse);
 
+      // Update transcript: mark the last question as "No response" and append the fallback question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
@@ -505,7 +574,8 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       if (audioTracks.length === 0) {
         toast({
           title: "No Audio Track",
-          description: "No audio track available. Please check your microphone.",
+          description:
+            "No audio track available. Please check your microphone.",
           variant: "destructive",
         });
         return;
@@ -602,7 +672,13 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             recorderRef.current.getStream()?.getTracks() || [];
           currentTracks.forEach((track) => track.stop());
 
-          recorderRef.current.updateStream(newStream);
+          const combinedStream = new MediaStream([
+            ...newStream.getVideoTracks(),
+            ...newStream.getAudioTracks(),
+            ...(destinationRef.current?.stream.getAudioTracks() || []),
+          ]);
+
+          recorderRef.current.updateStream(combinedStream);
 
           if (!isRecording) {
             recorderRef.current.start();
@@ -626,8 +702,8 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
   const calculateScore = (responses: string[]): number => {
     let totalScore = 0;
-    const maxScorePerResponse = 3;
-    const minLength = 20;
+    const maxScorePerResponse = 3; // Increased max score for more granularity
+    const minLength = 20; // Minimum response length for basic score
     const keywords = [
       "react",
       "component",
@@ -639,7 +715,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       "solution",
       "javascript",
       "development",
-    ];
+    ]; // Expanded keyword list
 
     responses.forEach((response) => {
       let responseScore = 0;
@@ -663,6 +739,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     const improvements: string[] = [];
     const responses = transcript.map((item) => item.answer).filter((answer) => answer && answer !== "No response");
 
+    // Analyze responses for strengths
     const hasDetailedResponses = responses.some((response) => response.length > 50);
     const hasRelevantTerms = responses.some((response) =>
       ["react", "component", "state", "javascript"].some((term) =>
@@ -684,6 +761,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       strengths.push("Attempted to engage with the interview process");
     }
 
+    // Analyze responses for improvements
     const hasVagueResponses = responses.some((response) =>
       response.toLowerCase().includes("don't know") ||
       response.toLowerCase().includes("not sure")
@@ -715,150 +793,110 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   };
 
   const handleFinishInterview = async () => {
-    console.log("Finishing interview initiated");
-    speechRecognitionRef.current.stop();
-    if (speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-    }
-    if (responseTimeoutRef.current) {
-      clearTimeout(responseTimeoutRef.current);
-    }
+  console.log("Finishing interview initiated");
+  speechRecognitionRef.current.stop();
+  if (speechSynthesisRef.current) {
+    window.speechSynthesis.cancel();
+  }
+  if (responseTimeoutRef.current) {
+    clearTimeout(responseTimeoutRef.current);
+  }
 
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      setMediaStream(null);
-    }
-
-    let recordedBlob: Blob | null = null;
-    if (isRecording) {
-      try {
-        console.log("Stopping recorder");
-        recordedBlob = await recorderRef.current.stop();
-        if (recordedBlob) {
-          console.log(`Recording blob captured, size: ${recordedBlob.size} bytes`);
-          toast({
-            title: "Recording Captured",
-            description: "The interview video has been captured and is being saved.",
-            variant: "default",
-          });
-        } else {
-          console.warn("No final recording data");
-          toast({
-            title: "No Recording",
-            description: "No video data was recorded, but the interview will be saved.",
-            variant: "default",
-          });
-        }
-      } catch (error: any) {
-        console.error(
-          "Error stopping recorder:",
-          error.name,
-          error.message,
-          error.stack
-        );
+  let recordingUrl: string | null = null;
+  if (isRecording) {
+    try {
+      console.log("Stopping recorder");
+      const recordedBlob = await recorderRef.current.stop();
+      if (recordedBlob) {
+        recordingUrl = URL.createObjectURL(recordedBlob);
+        console.log("Recording URL created:", recordingUrl);
         toast({
-          title: "Recording Error",
-          description: "Failed to capture the recording, but the interview will be saved.",
-          variant: "destructive",
+          title: "Recording Saved",
+          description: "The interview video has been saved.",
+          variant: "default",
+        });
+      } else {
+        console.warn("No final recording data");
+        toast({
+          title: "No Recording",
+          description:
+            "No video data was recorded, but the interview has been saved.",
+          variant: "default",
         });
       }
-      setIsRecording(false);
-    }
-
-    let finalTranscript = session?.transcript || [];
-    if (
-      finalTranscript.length > 0 &&
-      userResponse &&
-      finalTranscript[finalTranscript.length - 1].answer === ""
-    ) {
-      finalTranscript = finalTranscript.map((entry, index) =>
-        index === finalTranscript.length - 1
-          ? { ...entry, answer: userResponse }
-          : entry
-      );
-      console.log("Final transcript after updating last answer:", finalTranscript);
-    }
-
-    const userResponses = conversation
-      .filter((msg) => msg.role === "user")
-      .map((msg) => msg.content);
-
-    const overallScore =
-      userResponses.length > 0 ? calculateScore(userResponses) : 0;
-
-    const { strengths, improvements } = generateFeedback(finalTranscript);
-
-    // Prepare session data for saving
-    const sessionData: Omit<SessionType, 'recording' | 'timestamp' | 'recordingUrl'> = {
-      ...session!,
-      transcript: finalTranscript,
-      feedback: {
-        strengths,
-        improvements,
-        overallScore,
-        transcript: finalTranscript,
-        recording: null, // Will be updated with recordingUrl
-      },
-      isCompleted: true,
-    };
-
-    try {
-      // Save session and recording, get the recordingUrl
-      console.log("Calling saveSessionWithRecording with recordedBlob:", !!recordedBlob);
-      const recordingUrl = await saveSessionWithRecording(
-        sessionData,
-        recordedBlob ? [recordedBlob] : []
-      );
-      console.log(`Recording URL from saveSessionWithRecording: ${recordingUrl || 'none'}`);
-
-      // Update session state with the recording URL
-      const updatedSession: SessionType = {
-        ...sessionData,
-        recording: recordingUrl ? [recordingUrl] : null,
-        recordingUrl: recordingUrl || undefined,
-        feedback: {
-          ...sessionData.feedback,
-          recording: recordingUrl ? [recordingUrl] : null,
-        },
-      };
-
-      console.log("Updated session with recording URL:", JSON.stringify(updatedSession, null, 2));
-      setSession(updatedSession);
-      onComplete(updatedSession.feedback!);
-
-      toast({
-        title: "Interview Completed",
-        description: `Your interview session has been saved. ${
-          recordingUrl ? "Video uploaded." : "No video recorded."
-        }`,
-        variant: "default",
-      });
     } catch (error: any) {
-      console.error("Error saving session with recording:", error.message, error.stack);
+      console.error(
+        "Error stopping recorder:",
+        error.name,
+        error.message,
+        error.stack
+      );
       toast({
-        title: "Save Error",
-        description: `Failed to save session: ${error.message}. Data may be saved locally.`,
+        title: "Recording Error",
+        description:
+          "Failed to save the final recording, but the interview will still end.",
         variant: "destructive",
       });
-
-      // Fallback to local session update
-      const updatedSession: SessionType = {
-        ...sessionData,
-        recording: recordedBlob ? [URL.createObjectURL(recordedBlob)] : null,
-        recordingUrl: undefined,
-        feedback: {
-          ...sessionData.feedback,
-          recording: recordedBlob ? [URL.createObjectURL(recordedBlob)] : null,
-        },
-      };
-
-      console.log("Fallback session:", JSON.stringify(updatedSession, null, 2));
-      setSession(updatedSession);
-      onComplete(updatedSession.feedback!);
     }
+    setIsRecording(false);
+  }
 
-    console.log("Interview finished, feedback sent");
+  // Stop media stream after recording is finalized
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    setMediaStream(null);
+    console.log("Media stream stopped");
+  }
+
+  let finalTranscript = session?.transcript || [];
+  if (
+    finalTranscript.length > 0 &&
+    userResponse &&
+    finalTranscript[finalTranscript.length - 1].answer === ""
+  ) {
+    finalTranscript = finalTranscript.map((entry, index) =>
+      index === finalTranscript.length - 1
+        ? { ...entry, answer: userResponse }
+        : entry
+    );
+    console.log("Final transcript after updating last answer:", finalTranscript);
+  }
+
+  const userResponses = conversation
+    .filter((msg) => msg.role === "user")
+    .map((msg) => msg.content);
+
+  const overallScore =
+    userResponses.length > 0 ? calculateScore(userResponses) : 0;
+
+  // Generate dynamic feedback based on transcript
+  const { strengths, improvements } = generateFeedback(finalTranscript);
+
+  const updatedSession = {
+    ...session!,
+    recordings: recordingUrl ? [recordingUrl] : [], // Use 'recordings' to match SessionType
+    feedback: {
+      strengths,
+      improvements,
+      overallScore,
+      transcript: finalTranscript,
+      recording: recordingUrl ? [recordingUrl] : [], // Ensure feedback.recording is set
+    },
+    isCompleted: true,
   };
+
+  console.log("Updated session:", updatedSession);
+  setSession(updatedSession);
+  onComplete(updatedSession.feedback!);
+
+  toast({
+    title: "Interview Completed",
+    description:
+      "Your interview session has ended. Check the feedback for details.",
+    variant: "default",
+  });
+  console.log("Interview finished, feedback sent");
+};
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
@@ -866,17 +904,17 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
         <div className="absolute -top-20 -left-20 w-64 h-64 bg-[#7000FF] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
         <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-[#FF00C7] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
         
-        {hasMediaPermission && mediaStream ? (
+        {hasMediaPermission ? (
           <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          />
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted
+      className="w-full h-auto"
+    />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-[rgba(255,255,255,0.02)] text-[#ECF1F0] font-raleway border border-[rgba(255,255,255,0.05)]">
-            <p>Camera access required or stream not available</p>
+            <p>Camera access required</p>
           </div>
         )}
 
@@ -976,7 +1014,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             className="w-full bg-[#FF00C7]/80 text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF00C7] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             onClick={handleFinishInterview}
           >
-            Finish Interview
+            End Interview
           </Button>
         </div>
       </div>
