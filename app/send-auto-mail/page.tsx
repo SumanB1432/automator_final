@@ -24,6 +24,7 @@ const Page = () => {
   const hasRun = useRef(false);
   const [gemini_key, setGeminiKey] = useState("");
   const [emailLimitReached, setEmailLimitReached] = useState(false);
+  const [resume, setResume] = useState<string>("")
 
   const db = getDatabase(app);
 
@@ -42,6 +43,23 @@ const Page = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUid(user.uid);
+        // Check Firebase for email authentication
+        const DB_email = email.replace(/\./g, ",");
+        const userRef = ref(db, `users/${DB_email}`);
+        get(userRef)
+          .then((snapshot) => {
+            if (!snapshot.exists()) {
+              toast.info("Please verify your email to continue.");
+              localStorage.setItem("emailPermissionGranted", "false");
+              setTimeout(() => {
+                window.location.href = `/auth/google?email=${encodeURIComponent(email)}`;
+              }, 2000);
+            }
+          })
+          .catch((err) => {
+            console.error("Database Error:", err.message);
+            toast.error("Error verifying authentication. Please try again.");
+          });
       } else {
         toast.error("No user logged-in!");
         window.location.href = "./sign-in";
@@ -50,6 +68,29 @@ const Page = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!userEmail || emailLimitReached) return;
+
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch(`https://jobemailsending-hrjd6kih3q-uc.a.run.app/check-auth?email=${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+        if (!response.ok || !data.authenticated) {
+          toast.info("For security reasons, please verify your email again.");
+          localStorage.setItem("emailPermissionGranted", "false");
+          setTimeout(() => {
+            window.location.href = data.reauthUrl || "/email_auth";
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("Error checking auth status:", err.message);
+        toast.error("Failed to verify authentication. Please try again.");
+      }
+    };
+
+    checkAuthStatus();
+  }, [userEmail]);
 
   useEffect(() => {
     const getEmailCount = async function () {
@@ -91,6 +132,12 @@ const Page = () => {
     const getUserData = async () => {
       if (emailLimitReached) return;
       let URD = localStorage.getItem("URD");
+      const resumeRef = ref(db, `user/${uid}/forms/keyvalues/RD`);
+      const resumeSnapshot = await get(resumeRef);
+      if (resumeSnapshot.exists()) {
+        console.log(resumeSnapshot.val())
+        setResume(resumeSnapshot.val())
+      }
       if (URD) {
         setUrd(URD);
       } else {
@@ -121,8 +168,7 @@ const Page = () => {
           body: JSON.stringify({
             sender_email: userEmail,
             company_email: "suman85bera@gmail.com",
-            resume_link:
-              "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
+            resume_link: resume,
             sender_name: userName,
             text: "hello",
           }),
@@ -135,13 +181,13 @@ const Page = () => {
           toast.info("For security reasons, please verify your email again.");
           localStorage.setItem("emailPermissionGranted", "false");
           setTimeout(() => {
-            window.location.href = "/email_auth";
+            window.location.href = data.reauthUrl || "/email_auth";
           }, 2000);
         }
       }
     };
     checkVerifyEmail(userEmail, userName);
-  }, [userEmail]);
+  }, [userEmail, resume]);
 
   useEffect(() => {
     if (!urd) return;
@@ -150,25 +196,25 @@ const Page = () => {
       if (emailLimitReached) return;
       try {
         const exampleOutput = `[
-          {"jobTitle": "Python Developer", "location": "remote", "experience": "2-5"},
-          {"jobTitle": "Backend Developer", "location": "remote", "experience": "2-5"},
-          {"jobTitle": "Full Stack Developer", "location": "remote", "experience": "2-5"},
-          {"jobTitle": "MERN Stack Developer", "location": "remote", "experience": "2-5"},
-          {"jobTitle": "Software Engineer", "location": "remote", "experience": "2-5"}
-        ]`;
+                    {"jobTitle": "Python Developer", "location": "remote", "experience": "2-5"},
+                    {"jobTitle": "Backend Developer", "location": "remote", "experience": "2-5"},
+                    {"jobTitle": "Full Stack Developer", "location": "remote", "experience": "2-5"},
+                    {"jobTitle": "MERN Stack Developer", "location": "remote", "experience": "2-5"},
+                    {"jobTitle": "Software Engineer", "location": "remote", "experience": "2-5"}
+                ]`;
 
         const userPrompt = `Analyze the following resume and extract job titles, location, and experience range.
-          Response format:
-          \`\`\`json
-          [
-              {"jobTitle": "<Job Title>", "location": "<Preferred Location>", "experience": "<Experience Range>"}
-          ]
-          \`\`\`
-          Resume: ${urd}
-          Example Output:
-          \`\`\`json
-          ${exampleOutput}
-          \`\`\``;
+                    Response format:
+                    \`\`\`json
+                    [
+                        {"jobTitle": "<Job Title>", "location": "<Preferred Location>", "experience": "<Experience Range>"}
+                    ]
+                    \`\`\`
+                    Resume: ${urd}
+                    Example Output:
+                    \`\`\`json
+                    ${exampleOutput}
+                    \`\`\``;
 
         const genAI = new GoogleGenerativeAI(gemini_key);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -292,8 +338,7 @@ const Page = () => {
             body: JSON.stringify({
               sender_email: userEmail,
               company_email: email,
-              resume_link:
-                "https://firebasestorage.googleapis.com/v0/b/jobform-automator-website.appspot.com/o/Resume%2FResume_suman.pdf?alt=media&token=6384e8a7-bdfb-4522-a95d-e1f73099768c",
+              resume_link: resume,
               sender_name: userName,
               text: "hello",
             }),
@@ -312,11 +357,11 @@ const Page = () => {
             const data = await response.json();
             console.error("Error from server:", data.error);
 
-            if (response.status === 401) {
+            if (response.status === 401 && data.reauthUrl) {
               toast.info("For security reasons, please verify your email again.");
               localStorage.setItem("emailPermissionGranted", "false");
               setTimeout(() => {
-                window.location.href = "/email_auth";
+                window.location.href = data.reauthUrl;
               }, 2000);
               break;
             } else {
@@ -334,7 +379,7 @@ const Page = () => {
     };
 
     sendEmails();
-  }, [emailArray]);
+  }, [resume, emailArray]);
 
   const handleUpdatePlan = function () {
     window.location.href = "/payment";
