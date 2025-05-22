@@ -110,3 +110,11 @@ body {
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -67,164 +67,165 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   const lastSpeechRef = useRef<string>("");
   const audioContextRef = useRef<AudioContext | null>(null);
   const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  // --- CHANGE START ---
   const hasStartedInterview = useRef<boolean>(false);
+  const continueListeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // --- CHANGE START ---
+  const accumulatedSpeechRef = useRef<string>(""); // To accumulate speech during the listening window
   // --- CHANGE END ---
   const { toast } = useToast();
 
-useEffect(() => {
-  console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
-  const setupMedia = async () => {
-    if (!window.MediaRecorder) {
-      toast({
-        title: "Browser Not Supported",
-        description: "Your browser does not support video recording. Please use Chrome or Firefox.",
-        variant: "destructive",
-      });
-      setHasMediaPermission(false);
-      return;
-    }
+  useEffect(() => {
+    console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
+    const setupMedia = async () => {
+      if (!window.MediaRecorder) {
+        toast({
+          title: "Browser Not Supported",
+          description: "Your browser does not support video recording. Please use Chrome or Firefox.",
+          variant: "destructive",
+        });
+        setHasMediaPermission(false);
+        return;
+      }
 
-    try {
-      const stream = await requestUserMedia();
-      setMediaStream(stream);
-      setHasMediaPermission(true);
+      try {
+        const stream = await requestUserMedia();
+        setMediaStream(stream);
+        setHasMediaPermission(true);
 
-      // Log stream details for debugging
-      console.log("Media stream acquired:", stream, stream.getTracks());
-      stream.getTracks().forEach((track) => {
-        console.log(`Track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
-      });
+        console.log("Media stream acquired:", stream, stream.getTracks());
+        stream.getTracks().forEach((track) => {
+          console.log(`Track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
+        });
 
-      const assignStreamToVideo = async (attempts = 5, delay = 500) => {
-        if (!videoRef.current) {
-          if (attempts > 0) {
-            console.warn(`Video ref not assigned, retrying... (${attempts} attempts left)`);
-            setTimeout(() => assignStreamToVideo(attempts - 1, delay), delay);
+        const assignStreamToVideo = async (attempts = 5, delay = 500) => {
+          if (!videoRef.current) {
+            if (attempts > 0) {
+              console.warn(`Video ref not assigned, retrying... (${attempts} attempts left)`);
+              setTimeout(() => assignStreamToVideo(attempts - 1, delay), delay);
+              return;
+            }
+            console.error("Video ref is not assigned after retries");
+            toast({
+              title: "Video Element Error",
+              description: "Video element is not available. Please try again.",
+              variant: "destructive",
+            });
             return;
           }
-          console.error("Video ref is not assigned after retries");
-          toast({
-            title: "Video Element Error",
-            description: "Video element is not available. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
 
-        videoRef.current.srcObject = stream;
-        const videoTracks = stream.getVideoTracks();
-        if (videoTracks.length > 0 && !videoTracks[0].enabled) {
-          videoTracks[0].enabled = true;
-          console.log("Enabled video track");
-        }
+          videoRef.current.srcObject = stream;
+          const videoTracks = stream.getVideoTracks();
+          if (videoTracks.length > 0 && !videoTracks[0].enabled) {
+            videoTracks[0].enabled = true;
+            console.log("Enabled video track");
+          }
 
-        try {
-          await videoRef.current.play();
-          console.log("Video playback started successfully");
-
-          // Initialize AudioContext and recorder
           try {
-            audioContextRef.current = new AudioContext();
-            destinationRef.current = audioContextRef.current.createMediaStreamDestination();
-            const combinedStream = new MediaStream([
-              ...stream.getVideoTracks(),
-              ...stream.getAudioTracks(),
-              ...destinationRef.current.stream.getAudioTracks(),
-            ]);
+            await videoRef.current.play();
+            console.log("Video playback started successfully");
 
-            // Log combined stream details
-            console.log("Combined stream created:", combinedStream, combinedStream.getTracks());
-            combinedStream.getTracks().forEach((track) => {
-              console.log(`Combined track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
-            });
-
-            // Initialize and start recorder
             try {
-              recorderRef.current.initialize(combinedStream);
-              recorderRef.current.start();
-              setIsRecording(true);
-              console.log("Recorder initialized and started");
-              toast({
-                title: "Recording Started",
-                description: "Video recording has started for the interview.",
-                variant: "default",
+              audioContextRef.current = new AudioContext();
+              destinationRef.current = audioContextRef.current.createMediaStreamDestination();
+              const combinedStream = new MediaStream([
+                ...stream.getVideoTracks(),
+                ...stream.getAudioTracks(),
+                ...destinationRef.current.stream.getAudioTracks(),
+              ]);
+
+              console.log("Combined stream created:", combinedStream, combinedStream.getTracks());
+              combinedStream.getTracks().forEach((track) => {
+                console.log(`Combined track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
               });
-            } catch (recorderError) {
-              console.error("Error initializing/starting recorder:", recorderError.message, recorderError.stack);
+
+              try {
+                recorderRef.current.initialize(combinedStream);
+                recorderRef.current.start();
+                setIsRecording(true);
+                console.log("Recorder initialized and started");
+                toast({
+                  title: "Recording Started",
+                  description: "Video recording has started for the interview.",
+                  variant: "default",
+                });
+              } catch (recorderError) {
+                console.error("Error initializing/starting recorder:", recorderError.message, recorderError.stack);
+                toast({
+                  title: "Recording Error",
+                  description: "Failed to start video recording. Continuing without recording.",
+                  variant: "destructive",
+                });
+              }
+            } catch (audioError) {
+              console.error("Error creating AudioContext or combined stream:", audioError.message, audioError.stack);
               toast({
-                title: "Recording Error",
-                description: "Failed to start video recording. Continuing without recording.",
+                title: "Audio Context Error",
+                description: "Failed to set up audio context. Recording may not work.",
                 variant: "destructive",
               });
             }
-          } catch (audioError) {
-            console.error("Error creating AudioContext or combined stream:", audioError.message, audioError.stack);
+          } catch (error) {
+            console.error("Error playing video:", error.message, error.stack);
             toast({
-              title: "Audio Context Error",
-              description: "Failed to set up audio context. Recording may not work.",
+              title: "Video Playback Error",
+              description: "Failed to play video stream. Recording may not work.",
               variant: "destructive",
             });
           }
-        } catch (error) {
-          console.error("Error playing video:", error.message, error.stack);
+        };
+
+        await assignStreamToVideo();
+
+        if (speechRecognitionRef.current.isSupported()) {
+          speechRecognitionRef.current.onResult(debouncedHandleUserSpeech);
+        } else {
           toast({
-            title: "Video Playback Error",
-            description: "Failed to play video stream. Recording may not work.",
+            title: "Speech Recognition Not Available",
+            description: "Your browser doesn't support speech recognition.",
             variant: "destructive",
           });
         }
-      };
-
-      await assignStreamToVideo();
-
-      if (speechRecognitionRef.current.isSupported()) {
-        speechRecognitionRef.current.onResult(debouncedHandleUserSpeech);
-      } else {
+      } catch (error: any) {
+        console.error("Error setting up media:", error.name, error.message, error.stack);
+        setHasMediaPermission(false);
         toast({
-          title: "Speech Recognition Not Available",
-          description: "Your browser doesn't support speech recognition.",
+          title: "Media Setup Error",
+          description: "Failed to access camera or microphone. Please check permissions.",
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error("Error setting up media:", error.name, error.message, error.stack);
-      setHasMediaPermission(false);
-      toast({
-        title: "Media Setup Error",
-        description: "Failed to access camera or microphone. Please check permissions.",
-        variant: "destructive",
-      });
-    }
-  };
+    };
 
-  setupMedia();
-  initializeSpeechSynthesis();
-  if (!hasStartedInterview.current) {
-    hasStartedInterview.current = true;
-    startInterview();
-  }
+    setupMedia();
+    initializeSpeechSynthesis();
+    if (!hasStartedInterview.current) {
+      hasStartedInterview.current = true;
+      startInterview();
+    }
 
-  return () => {
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      setMediaStream(null);
-    }
-    speechRecognitionRef.current.stop();
-    if (speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-    }
-    if (responseTimeoutRef.current) {
-      clearTimeout(responseTimeoutRef.current);
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-    }
-    if (session?.recordings) {
-      session.recordings.forEach((url) => URL.revokeObjectURL(url));
-    }
-  };
-}, []);
+    return () => {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        setMediaStream(null);
+      }
+      speechRecognitionRef.current.stop();
+      if (speechSynthesisRef.current) {
+        window.speechSynthesis.cancel();
+      }
+      if (responseTimeoutRef.current) {
+        clearTimeout(responseTimeoutRef.current);
+      }
+      if (continueListeningTimeoutRef.current) {
+        clearTimeout(continueListeningTimeoutRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (session?.recordings) {
+        session.recordings.forEach((url) => URL.revokeObjectURL(url));
+      }
+    };
+  }, []);
 
   const initializeSpeechSynthesis = () => {
     if ("speechSynthesis" in window) {
@@ -237,7 +238,6 @@ useEffect(() => {
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(
         (voice) =>
-          // voice.name.includes("Samantha") ||
           voice.name.includes("Google") ||
           voice.name.includes("Female")
       );
@@ -288,7 +288,6 @@ useEffect(() => {
           }));
           console.log("Initial transcript:", [{ question: initialQuestion, answer: "" }]);
         }
-        // Debounce speakText to ensure it's only called once
         const debouncedSpeak = debounce(() => speakText(initialQuestion), 100);
         debouncedSpeak();
       }
@@ -306,7 +305,6 @@ useEffect(() => {
           }));
           console.log("Initial transcript (fallback):", [{ question: fallbackQuestion, answer: "" }]);
         }
-        // Debounce speakText for fallback
         const debouncedSpeak = debounce(() => speakText(fallbackQuestion), 100);
         debouncedSpeak();
       }
@@ -331,73 +329,56 @@ useEffect(() => {
   }, 500);
 
   const handleUserSpeech = async (text: string) => {
-    setUserResponse(text);
+    // --- CHANGE START ---
+    // Accumulate the speech instead of immediately updating the state
+    if (accumulatedSpeechRef.current) {
+      accumulatedSpeechRef.current += " " + text;
+    } else {
+      accumulatedSpeechRef.current = text;
+    }
+    setUserResponse(accumulatedSpeechRef.current);
+
+    // Stop the current speech recognition to prevent overlapping
     setIsListening(false);
+    speechRecognitionRef.current.stop();
+
     if (responseTimeoutRef.current) {
       clearTimeout(responseTimeoutRef.current);
     }
 
-    // Update conversation with user response
-    setConversation((prev) => {
-      const updatedConversation = [...prev, { role: "user", content: text }];
-      console.log("Updated conversation:", updatedConversation);
-      return updatedConversation;
-    });
-    setWaitingForResponse(false);
-    setIsProcessing(true);
+    // Continue listening for additional user input during the pause
+    speechRecognitionRef.current.start();
+    setIsListening(true);
 
-    try {
-      const lowerText = text.toLowerCase().trim();
-      let aiResponseText = "";
-      if (
-        lowerText.includes("what is software") ||
-        lowerText.includes("what's software")
-      ) {
-        aiResponseText =
-          "Software is a set of computer programs and associated data that provide instructions for computers to perform specific tasks. It includes everything from operating systems like Windows or macOS to applications like web browsers, games, and office tools. Unlike hardware, software is intangible and consists of code written by programmers. Want to dive deeper into any specific type of software?";
-      } else if (
-        lowerText.includes("what is hardware") ||
-        lowerText.includes("what's hardware")
-      ) {
-        aiResponseText =
-          "Hardware refers to the physical components of a computer system, like the monitor, keyboard, mouse, CPU, memory, and storage drives. Unlike software, which is just code, hardware is tangible equipment. Curious about any specific hardware components?";
-      } else if (
-        lowerText.includes("what is coding") ||
-        lowerText.includes("what's coding")
-      ) {
-        aiResponseText =
-          "Coding, or programming, is the process of creating instructions for computers using programming languages. It's like writing a detailed recipe that tells the computer what to do. Programmers use languages like Python, JavaScript, or C++ to create websites, apps, games, and more. Have you tried coding before?";
-      } else {
-        aiResponseText = await generateInterviewQuestion(
-          session?.jobDescription || "",
-          conversation.map((msg) => msg.content).slice(-4),
-          [text],
-          {
-            role: session?.role || "General",
-            skillLevel: session?.skillLevel || "Intermediate",
-          }
-        );
-      }
+    // Wait for a few seconds to allow the user to continue speaking
+    if (continueListeningTimeoutRef.current) {
+      clearTimeout(continueListeningTimeoutRef.current);
+    }
+    continueListeningTimeoutRef.current = setTimeout(async () => {
+      setIsListening(false);
+      speechRecognitionRef.current.stop();
 
-      setAiResponse(aiResponseText);
+      // Use the accumulated speech as the final user response
+      const finalResponse = accumulatedSpeechRef.current;
+      accumulatedSpeechRef.current = ""; // Reset the accumulated speech
+
+      // Update conversation with the final user response
       setConversation((prev) => {
-        const updatedConversation = [...prev, { role: "assistant", content: aiResponseText }];
-        console.log("Conversation after AI response:", updatedConversation);
+        const updatedConversation = [...prev, { role: "user", content: finalResponse }];
+        console.log("Updated conversation:", updatedConversation);
         return updatedConversation;
       });
-      setCurrentQuestion(aiResponseText);
+      setWaitingForResponse(false);
+      setIsProcessing(true);
 
-      // Update transcript: set the answer for the last question and append the new question
+      // Update transcript: set the answer for the last question
       if (session) {
-        setSession((prev) => {
+        setSession((prev : any) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
-          // Update the answer for the last question
           if (updatedTranscript.length > 0) {
-            updatedTranscript[updatedTranscript.length - 1].answer = text;
+            updatedTranscript[updatedTranscript.length - 1].answer = finalResponse;
           }
-          // Append the new question
-          updatedTranscript.push({ question: aiResponseText, answer: "" });
           console.log("Updated transcript after user speech:", updatedTranscript);
           return {
             ...prev!,
@@ -406,70 +387,122 @@ useEffect(() => {
         });
       }
 
-      setTimeout(() => {
-        speakText(aiResponseText);
-      }, 100);
-    } catch (error) {
-      console.error("Error generating AI response:", error);
-      const lowerText = text.toLowerCase().trim();
-      const isQuestion =
-        lowerText.startsWith("what") ||
-        lowerText.startsWith("how") ||
-        lowerText.startsWith("why") ||
-        lowerText.startsWith("when") ||
-        lowerText.startsWith("where") ||
-        lowerText.startsWith("can") ||
-        lowerText.startsWith("could") ||
-        lowerText.endsWith("?");
+      try {
+        const lowerText = finalResponse.toLowerCase().trim();
+        let aiResponseText = "";
+        if (
+          lowerText.includes("what is software") ||
+          lowerText.includes("what's software")
+        ) {
+          aiResponseText =
+            "Software is a set of computer programs and associated data that provide instructions for computers to perform specific tasks. It includes everything from operating systems like Windows or macOS to applications like web browsers, games, and office tools. Unlike hardware, software is intangible and consists of code written by programmers. Want to dive deeper into any specific type of software?";
+        } else if (
+          lowerText.includes("what is hardware") ||
+          lowerText.includes("what's hardware")
+        ) {
+          aiResponseText =
+            "Hardware refers to the physical components of a computer system, like the monitor, keyboard, mouse, CPU, memory, and storage drives. Unlike software, which is just code, hardware is tangible equipment. Curious about any specific hardware components?";
+        } else if (
+          lowerText.includes("what is coding") ||
+          lowerText.includes("what's coding")
+        ) {
+          aiResponseText =
+            "Coding, or programming, is the process of creating instructions for computers using programming languages. It's like writing a detailed recipe that tells the computer what to do. Programmers use languages like Python, JavaScript, or C++ to create websites, apps, games, and more. Have you tried coding before?";
+        } else {
+          aiResponseText = await generateInterviewQuestion(
+            session?.jobDescription || "",
+            conversation.map((msg) => msg.content).slice(-4),
+            [finalResponse],
+            {
+              role: session?.role || "General",
+              skillLevel: session?.skillLevel || "Intermediate",
+            }
+          );
+        }
 
-      let fallbackResponse;
-      if (isQuestion) {
-        fallbackResponse = `That's a great question! ${getInformationResponse(
-          lowerText
-        )} Want to explore this topic more or move to an interview question?`;
-      } else if (
-        lowerText.includes("bye") ||
-        lowerText.includes("goodbye") ||
-        lowerText.includes("done")
-      ) {
-        fallbackResponse =
-          "Thanks for the chat! It was great talking with you. Ready to wrap up or continue with another question?";
-      } else {
-        fallbackResponse =
-          "Got it! Let's keep going. Could you share an experience where you demonstrated relevant skills?";
-      }
-
-      setAiResponse(fallbackResponse);
-      setConversation((prev) => {
-        const updatedConversation = [...prev, { role: "assistant", content: fallbackResponse }];
-        console.log("Conversation after fallback response:", updatedConversation);
-        return updatedConversation;
-      });
-      setCurrentQuestion(fallbackResponse);
-
-      // Update transcript: set the answer for the last question and append the fallback question
-      if (session) {
-        setSession((prev) => {
-          const currentTranscript = prev?.transcript || [];
-          const updatedTranscript = [...currentTranscript];
-          if (updatedTranscript.length > 0) {
-            updatedTranscript[updatedTranscript.length - 1].answer = text;
-          }
-          updatedTranscript.push({ question: fallbackResponse, answer: "" });
-          console.log("Updated transcript after fallback:", updatedTranscript);
-          return {
-            ...prev!,
-            transcript: updatedTranscript,
-          };
+        setAiResponse(aiResponseText);
+        setConversation((prev) => {
+          const updatedConversation = [...prev, { role: "assistant", content: aiResponseText }];
+          console.log("Conversation after AI response:", updatedConversation);
+          return updatedConversation;
         });
-      }
+        setCurrentQuestion(aiResponseText);
 
-      setTimeout(() => {
-        speakText(fallbackResponse);
-      }, 100);
-    } finally {
-      setIsProcessing(false);
-    }
+        // Update transcript: append the new question
+        if (session) {
+          setSession((prev : any) => {
+            const currentTranscript = prev?.transcript || [];
+            const updatedTranscript = [...currentTranscript, { question: aiResponseText, answer: "" }];
+            console.log("Updated transcript after AI response:", updatedTranscript);
+            return {
+              ...prev!,
+              transcript: updatedTranscript,
+            };
+          });
+        }
+
+        setTimeout(() => {
+          speakText(aiResponseText);
+        }, 100);
+      } catch (error) {
+        console.error("Error generating AI response:", error);
+        const lowerText = finalResponse.toLowerCase().trim();
+        const isQuestion =
+          lowerText.startsWith("what") ||
+          lowerText.startsWith("how") ||
+          lowerText.startsWith("why") ||
+          lowerText.startsWith("when") ||
+          lowerText.startsWith("where") ||
+          lowerText.startsWith("can") ||
+          lowerText.startsWith("could") ||
+          lowerText.endsWith("?");
+
+        let fallbackResponse;
+        if (isQuestion) {
+          fallbackResponse = `That's a great question! ${getInformationResponse(
+            lowerText
+          )} Want to explore this topic more or move to an interview question?`;
+        } else if (
+          lowerText.includes("bye") ||
+          lowerText.includes("goodbye") ||
+          lowerText.includes("done")
+        ) {
+          fallbackResponse =
+            "Thanks for the chat! It was great talking with you. Ready to wrap up or continue with another question?";
+        } else {
+          fallbackResponse =
+            "Got it! Let's keep going. Could you share an experience where you demonstrated relevant skills?";
+        }
+
+        setAiResponse(fallbackResponse);
+        setConversation((prev) => {
+          const updatedConversation = [...prev, { role: "assistant", content: fallbackResponse }];
+          console.log("Conversation after fallback response:", updatedConversation);
+          return updatedConversation;
+        });
+        setCurrentQuestion(fallbackResponse);
+
+        // Update transcript: append the fallback question
+        if (session) {
+          setSession((prev : any) => {
+            const currentTranscript = prev?.transcript || [];
+            const updatedTranscript = [...currentTranscript, { question: fallbackResponse, answer: "" }];
+            console.log("Updated transcript after fallback:", updatedTranscript);
+            return {
+              ...prev!,
+              transcript: updatedTranscript,
+            };
+          });
+        }
+
+        setTimeout(() => {
+          speakText(fallbackResponse);
+        }, 100);
+      } finally {
+        setIsProcessing(false);
+      }
+    }, 6000); // Wait 3 seconds to allow user to continue speaking
+    // --- CHANGE END ---
   };
 
   const getInformationResponse = (text: string): string => {
@@ -702,8 +735,8 @@ useEffect(() => {
 
   const calculateScore = (responses: string[]): number => {
     let totalScore = 0;
-    const maxScorePerResponse = 3; // Increased max score for more granularity
-    const minLength = 20; // Minimum response length for basic score
+    const maxScorePerResponse = 3;
+    const minLength = 20;
     const keywords = [
       "react",
       "component",
@@ -715,7 +748,7 @@ useEffect(() => {
       "solution",
       "javascript",
       "development",
-    ]; // Expanded keyword list
+    ];
 
     responses.forEach((response) => {
       let responseScore = 0;
@@ -739,7 +772,6 @@ useEffect(() => {
     const improvements: string[] = [];
     const responses = transcript.map((item) => item.answer).filter((answer) => answer && answer !== "No response");
 
-    // Analyze responses for strengths
     const hasDetailedResponses = responses.some((response) => response.length > 50);
     const hasRelevantTerms = responses.some((response) =>
       ["react", "component", "state", "javascript"].some((term) =>
@@ -761,7 +793,6 @@ useEffect(() => {
       strengths.push("Attempted to engage with the interview process");
     }
 
-    // Analyze responses for improvements
     const hasVagueResponses = responses.some((response) =>
       response.toLowerCase().includes("don't know") ||
       response.toLowerCase().includes("not sure")
@@ -793,110 +824,111 @@ useEffect(() => {
   };
 
   const handleFinishInterview = async () => {
-  console.log("Finishing interview initiated");
-  speechRecognitionRef.current.stop();
-  if (speechSynthesisRef.current) {
-    window.speechSynthesis.cancel();
-  }
-  if (responseTimeoutRef.current) {
-    clearTimeout(responseTimeoutRef.current);
-  }
+    console.log("Finishing interview initiated");
+    speechRecognitionRef.current.stop();
+    if (speechSynthesisRef.current) {
+      window.speechSynthesis.cancel();
+    }
+    if (responseTimeoutRef.current) {
+      clearTimeout(responseTimeoutRef.current);
+    }
+    if (continueListeningTimeoutRef.current) {
+      clearTimeout(continueListeningTimeoutRef.current);
+    }
 
-  let recordingUrl: string | null = null;
-  if (isRecording) {
-    try {
-      console.log("Stopping recorder");
-      const recordedBlob = await recorderRef.current.stop();
-      if (recordedBlob) {
-        recordingUrl = URL.createObjectURL(recordedBlob);
-        console.log("Recording URL created:", recordingUrl);
+    let recordingUrl: string | null = null;
+    if (isRecording) {
+      try {
+        console.log("Stopping recorder");
+        const recordedBlob = await recorderRef.current.stop();
+        if (recordedBlob) {
+          recordingUrl = URL.createObjectURL(recordedBlob);
+          console.log("Recording URL created:", recordingUrl);
+          toast({
+            title: "Recording Saved",
+            description: "The interview video has been saved.",
+            variant: "default",
+          });
+        } else {
+          console.warn("No final recording data");
+          toast({
+            title: "No Recording",
+            description:
+              "No video data was recorded, but the interview has been saved.",
+            variant: "default",
+          });
+        }
+      } catch (error: any) {
+        console.error(
+          "Error stopping recorder:",
+          error.name,
+          error.message,
+          error.stack
+        );
         toast({
-          title: "Recording Saved",
-          description: "The interview video has been saved.",
-          variant: "default",
-        });
-      } else {
-        console.warn("No final recording data");
-        toast({
-          title: "No Recording",
+          title: "Recording Error",
           description:
-            "No video data was recorded, but the interview has been saved.",
-          variant: "default",
+            "Failed to save the final recording, but the interview will still end.",
+          variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error(
-        "Error stopping recorder:",
-        error.name,
-        error.message,
-        error.stack
-      );
-      toast({
-        title: "Recording Error",
-        description:
-          "Failed to save the final recording, but the interview will still end.",
-        variant: "destructive",
-      });
+      setIsRecording(false);
     }
-    setIsRecording(false);
-  }
 
-  // Stop media stream after recording is finalized
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => track.stop());
-    setMediaStream(null);
-    console.log("Media stream stopped");
-  }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      setMediaStream(null);
+      console.log("Media stream stopped");
+    }
 
-  let finalTranscript = session?.transcript || [];
-  if (
-    finalTranscript.length > 0 &&
-    userResponse &&
-    finalTranscript[finalTranscript.length - 1].answer === ""
-  ) {
-    finalTranscript = finalTranscript.map((entry, index) =>
-      index === finalTranscript.length - 1
-        ? { ...entry, answer: userResponse }
-        : entry
-    );
-    console.log("Final transcript after updating last answer:", finalTranscript);
-  }
+    let finalTranscript = session?.transcript || [];
+    if (
+      finalTranscript.length > 0 &&
+      userResponse &&
+      finalTranscript[finalTranscript.length - 1].answer === ""
+    ) {
+      finalTranscript = finalTranscript.map((entry, index) =>
+        index === finalTranscript.length - 1
+          ? { ...entry, answer: userResponse }
+          : entry
+      );
+      console.log("Final transcript after updating last answer:", finalTranscript);
+    }
 
-  const userResponses = conversation
-    .filter((msg) => msg.role === "user")
-    .map((msg) => msg.content);
+    const userResponses = conversation
+      .filter((msg) => msg.role === "user")
+      .map((msg) => msg.content);
 
-  const overallScore =
-    userResponses.length > 0 ? calculateScore(userResponses) : 0;
+    const overallScore =
+      userResponses.length > 0 ? calculateScore(userResponses) : 0;
 
-  // Generate dynamic feedback based on transcript
-  const { strengths, improvements } = generateFeedback(finalTranscript);
+    const { strengths, improvements } = generateFeedback(finalTranscript);
 
-  const updatedSession = {
-    ...session!,
-    recordings: recordingUrl ? [recordingUrl] : [], // Use 'recordings' to match SessionType
-    feedback: {
-      strengths,
-      improvements,
-      overallScore,
-      transcript: finalTranscript,
-      recording: recordingUrl ? [recordingUrl] : [], // Ensure feedback.recording is set
-    },
-    isCompleted: true,
+    const updatedSession = {
+      ...session!,
+      recordings: recordingUrl ? [recordingUrl] : [],
+      feedback: {
+        strengths,
+        improvements,
+        overallScore,
+        transcript: finalTranscript,
+        recording: recordingUrl ? [recordingUrl] : [],
+      },
+      isCompleted: true,
+    };
+
+    console.log("Updated session:", updatedSession);
+    setSession(updatedSession);
+    onComplete(updatedSession.feedback!);
+
+    toast({
+      title: "Interview Completed",
+      description:
+        "Your interview session has ended. Check the feedback for details.",
+      variant: "default",
+    });
+    console.log("Interview finished, feedback sent");
   };
-
-  console.log("Updated session:", updatedSession);
-  setSession(updatedSession);
-  onComplete(updatedSession.feedback!);
-
-  toast({
-    title: "Interview Completed",
-    description:
-      "Your interview session has ended. Check the feedback for details.",
-    variant: "default",
-  });
-  console.log("Interview finished, feedback sent");
-};
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
@@ -906,12 +938,12 @@ useEffect(() => {
         
         {hasMediaPermission ? (
           <video
-      ref={videoRef}
-      autoPlay
-      playsInline
-      muted
-      className="w-full h-auto"
-    />
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-auto"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-[rgba(255,255,255,0.02)] text-[#ECF1F0] font-raleway border border-[rgba(255,255,255,0.05)]">
             <p>Camera access required</p>
@@ -926,7 +958,7 @@ useEffect(() => {
               micEnabled
                 ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
                 : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-            } focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleMic}
           >
             {micEnabled ? (
@@ -944,7 +976,7 @@ useEffect(() => {
               videoEnabled
                 ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
                 : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-            } focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleVideo}
           >
             {videoEnabled ? (
@@ -962,7 +994,7 @@ useEffect(() => {
               voiceEnabled
                 ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
                 : "bg-[rgba(255,255,255,0.1)] border-[rgba(255,255,255,0.1)] text-[#ECF1F0] hover:bg-[rgba(255,255,255,0.2)] hover:scale-105"
-            } focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleVoice}
           >
             {voiceEnabled ? (
@@ -975,8 +1007,8 @@ useEffect(() => {
         </div>
       </div>
 
-      <div className="p-6 bg-[#11011E] border-l border-[rgba(255,255,255,0.05)] flex flex-col h-full">
-        <div className="flex-grow space-y-4 overflow-y-auto">
+      <div className="p-6 bg-[#11011E] border-l border-[rgba(255,255,255,0.05)] flex flex-col h-[calc(64vh-64px)]">
+        <div className="overflow-y-auto flex-1 hide-scrollbar">
           {conversation.map((message, index) => (
             <div
               key={index}
@@ -1004,14 +1036,14 @@ useEffect(() => {
 
         <div className="mt-4 space-y-3">
           <Button
-            className="w-full bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="w-full bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             onClick={startListening}
             disabled={isListening || isProcessing || !waitingForResponse}
           >
             {isListening ? "Listening..." : "Speak"}
           </Button>
           <Button
-            className="w-full bg-[#FF00C7]/80 text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF00C7] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="w-full bg-[#FF00C7]/80 text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF00C7] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             onClick={handleFinishInterview}
           >
             End Interview
