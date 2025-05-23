@@ -59,7 +59,7 @@ const HeroSection = () => {
       {/* CTA Button */}
       <div className="relative z-10 flex justify-center mb-8 px-4">
         <a
-          href="https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa"
+          href="https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full max-w-[220px] sm:max-w-sm md:max-w-md lg:max-w-fit bg-[#0FAE96] hover:bg-[#0FAE96]/90 text-white font-roboto font-semibold text-sm sm:text-base px-3 sm:px-5 py-2 sm:py-3 rounded-md shadow-md transition text-center"
