@@ -105,7 +105,7 @@ function SignInwithGoogle() {
 
 
           }).then(async () => {
-            await axios.post("https://welcomeemail-hrjd6kih3q-uc.a.run.app/send-email", {
+            await axios.post("https://us-central1-jobform-automator-website.cloudfunctions.net/welcomeEmailHR/send-email", {
               email: email,
               name: name || "User",
             }).then(() => {
