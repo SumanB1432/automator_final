@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { generateInterviewQuestion } from "@/lib/gemini-utils";
 import type { SessionType } from "@/pages/Interview";
 import { debounce } from "lodash";
+import { saveSessionWithRecording } from "@/lib/db-service";
 
 export interface SessionTypes {
   jobDescription?: string;
@@ -823,112 +824,177 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     return { strengths, improvements };
   };
 
-  const handleFinishInterview = async () => {
-    console.log("Finishing interview initiated");
-    speechRecognitionRef.current.stop();
-    if (speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-    }
-    if (responseTimeoutRef.current) {
-      clearTimeout(responseTimeoutRef.current);
-    }
-    if (continueListeningTimeoutRef.current) {
-      clearTimeout(continueListeningTimeoutRef.current);
-    }
+const handleFinishInterview = async () => {
+  console.log("Finishing interview initiated");
+  speechRecognitionRef.current.stop();
+  if (speechSynthesisRef.current) {
+    window.speechSynthesis.cancel();
+  }
+  if (responseTimeoutRef.current) {
+    clearTimeout(responseTimeoutRef.current);
+  }
+  if (continueListeningTimeoutRef.current) {
+    clearTimeout(continueListeningTimeoutRef.current);
+  }
 
-    let recordingUrl: string | null = null;
-    if (isRecording) {
-      try {
-        console.log("Stopping recorder");
-        const recordedBlob = await recorderRef.current.stop();
-        if (recordedBlob) {
-          recordingUrl = URL.createObjectURL(recordedBlob);
-          console.log("Recording URL created:", recordingUrl);
-          toast({
-            title: "Recording Saved",
-            description: "The interview video has been saved.",
-            variant: "default",
-          });
-        } else {
-          console.warn("No final recording data");
-          toast({
-            title: "No Recording",
-            description:
-              "No video data was recorded, but the interview has been saved.",
-            variant: "default",
-          });
-        }
-      } catch (error: any) {
-        console.error(
-          "Error stopping recorder:",
-          error.name,
-          error.message,
-          error.stack
-        );
+  let recordingUrl: string | undefined = undefined;
+  let recordedBlobs: Blob[] | null = null;
+  if (isRecording) {
+    try {
+      console.log("Stopping recorder");
+      const recordedBlob = await recorderRef.current.stop();
+      if (recordedBlob) {
+        recordedBlobs = [recordedBlob]; // Wrap in array for saveSessionWithRecording
+        console.log("Recording blob obtained, size:", recordedBlob.size);
+      } else {
+        console.warn("No final recording data");
         toast({
-          title: "Recording Error",
+          title: "No Recording",
           description:
-            "Failed to save the final recording, but the interview will still end.",
-          variant: "destructive",
+            "No video data was recorded, but the interview metadata will be saved.",
+          variant: "default",
         });
       }
-      setIsRecording(false);
-    }
-
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      setMediaStream(null);
-      console.log("Media stream stopped");
-    }
-
-    let finalTranscript = session?.transcript || [];
-    if (
-      finalTranscript.length > 0 &&
-      userResponse &&
-      finalTranscript[finalTranscript.length - 1].answer === ""
-    ) {
-      finalTranscript = finalTranscript.map((entry, index) =>
-        index === finalTranscript.length - 1
-          ? { ...entry, answer: userResponse }
-          : entry
+    } catch (error: any) {
+      console.error(
+        "Error stopping recorder:",
+        error.name,
+        error.message,
+        error.stack
       );
-      console.log("Final transcript after updating last answer:", finalTranscript);
+      toast({
+        title: "Recording Error",
+        description:
+          "Failed to save the final recording, but the interview will still end.",
+        variant: "destructive",
+      }); // Fixed: Added closing brace before parenthesis
     }
+    setIsRecording(false);
+  }
 
-    const userResponses = conversation
-      .filter((msg) => msg.role === "user")
-      .map((msg) => msg.content);
+  // Rest of the function remains unchanged
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    setMediaStream(null);
+    console.log("Media stream stopped");
+  }
 
-    const overallScore =
-      userResponses.length > 0 ? calculateScore(userResponses) : 0;
+  let finalTranscript = session?.transcript || [];
+  if (
+    finalTranscript.length > 0 &&
+    userResponse &&
+    finalTranscript[finalTranscript.length - 1].answer === ""
+  ) {
+    finalTranscript = finalTranscript.map((entry, index) =>
+      index === finalTranscript.length - 1
+        ? { ...entry, answer: userResponse }
+        : entry
+    );
+    console.log("Final transcript after updating last answer:", finalTranscript);
+  }
 
-    const { strengths, improvements } = generateFeedback(finalTranscript);
+  const userResponses = conversation
+    .filter((msg) => msg.role === "user")
+    .map((msg) => msg.content);
 
-    const updatedSession = {
-      ...session!,
-      recordings: recordingUrl ? [recordingUrl] : [],
-      feedback: {
-        strengths,
-        improvements,
-        overallScore,
-        transcript: finalTranscript,
-        recording: recordingUrl ? [recordingUrl] : [],
-      },
-      isCompleted: true,
-    };
+  const overallScore =
+    userResponses.length > 0 ? calculateScore(userResponses) : 0;
 
-    console.log("Updated session:", updatedSession);
-    setSession(updatedSession);
-    onComplete(updatedSession.feedback!);
+  const { strengths, improvements } = generateFeedback(finalTranscript);
 
-    toast({
-      title: "Interview Completed",
-      description:
-        "Your interview session has ended. Check the feedback for details.",
-      variant: "default",
-    });
-    console.log("Interview finished, feedback sent");
+  const updatedSession = {
+    ...session!,
+    recordings: recordedBlobs ? [] : [],
+    feedback: {
+      strengths,
+      improvements,
+      overallScore,
+      transcript: finalTranscript,
+      recording: recordedBlobs ? [] : [],
+    },
+    isCompleted: true,
   };
+
+  if (recordedBlobs && session) {
+    try {
+      recordingUrl = await saveSessionWithRecording(
+        {
+          ...updatedSession,
+          recordings: undefined,
+          feedback: {
+            ...updatedSession.feedback,
+            recording: undefined,
+          },
+        },
+        recordedBlobs
+      );
+      console.log("Recording URL from Firebase:", recordingUrl);
+
+      if (recordingUrl) {
+        updatedSession.recordings = [recordingUrl];
+        updatedSession.feedback.recording = [recordingUrl];
+        toast({
+          title: "Recording Saved",
+          description: recordingUrl.startsWith("blob:")
+            ? "Recording saved locally (Firebase unavailable)."
+            : "Recording uploaded to Firebase Storage.",
+          variant: "default",
+        });
+      } else {
+        console.warn("No recording URL returned from saveSessionWithRecording");
+        toast({
+          title: "Recording Save Failed",
+          description:
+            "Failed to save recording to Firebase, but session metadata saved.",
+          variant: "default",
+        });
+      }
+    } catch (error: any) {
+      console.error(
+        "Error saving session with recording:",
+        error.message,
+        error.stack
+      );
+      toast({
+        title: "Save Error",
+        description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
+        variant: "destructive",
+      });
+    }
+  } else if (session) {
+    try {
+      await saveSessionWithRecording(updatedSession, []);
+      toast({
+        title: "Session Saved",
+        description: "Session metadata saved without recording.",
+        variant: "default",
+      });
+    } catch (error: any) {
+      console.error(
+        "Error saving session without recording:",
+        error.message,
+        error.stack
+      );
+      toast({
+        title: "Save Error",
+        description: "Failed to save session metadata.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  console.log("Updated session:", updatedSession);
+  setSession(updatedSession);
+  onComplete(updatedSession.feedback!);
+
+  toast({
+    title: "Interview Completed",
+    description:
+      "Your interview session has ended. Check the feedback for details.",
+    variant: "default",
+  });
+  console.log("Interview finished, feedback sent");
+};
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-0">

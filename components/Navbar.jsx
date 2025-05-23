@@ -38,15 +38,20 @@ const Navbar = () => {
           let Name = snapshot.val()?.name;
           let fname = snapshot.val()?.fname;
           let lname = snapshot.val()?.lname;
+          let email = snapshot.val()?.email;
           let user = "";
         
           if (Name) {
             user = Name;
             const cleanedName = user.replace(/\s/g, "");
+            localStorage.setItem("name",user);
+            localStorage.setItem("email",email);
             setFullName(user);
           } else {
             user = fname + " " + lname;
             const cleanedName = user.replace(/\s/g, "");
+            localStorage.setItem("name",user);
+            localStorage.setItem("email",email);
             setFullName(user);
           }
         });

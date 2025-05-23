@@ -84,6 +84,8 @@ export interface StoredSession extends Omit<SessionType, 'recording'> {
   recording?: string[] | null;
   recordingUrl?: string;
   jobDescription?: string;
+  email? :string;
+  name?:string;
   timestamp: number;
   feedback?: {
     recording?: string[] | null;
@@ -241,12 +243,16 @@ export const storeRecording = async (sessionId: string, recordingBlobs: Blob[]):
 };
 
 export const saveSession = async (session: Omit<StoredSession, 'timestamp'>): Promise<void> => {
+  const email = localStorage.getItem("email") || "";
+  const name = localStorage.getItem("name") || "";
   const timestamp = Date.now();
   const sessionId = session.sessionId || uuidv4();
   const sessionData: StoredSession = { 
     ...session, 
     sessionId, 
     timestamp,
+    name,
+    email,
     feedback: session.feedback || {
       recording: null,
       overallScore: 0,
