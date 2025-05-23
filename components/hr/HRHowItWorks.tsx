@@ -56,7 +56,7 @@ const HowItWorks = () => {
       description:
         "Our Chrome extension automatically downloads every resume the moment it appears — from LinkedIn, Indeed, Naukri, and more. ",
       buttonText: "Add to Chrome",
-      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
+      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk",
       image: Download,
     },
     {

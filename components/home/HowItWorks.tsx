@@ -56,7 +56,7 @@ const HowItWorks = () => {
       description:
         "Apply to hundreds of jobs daily on LinkedIn and Monster. We also auto-fill long, boring forms on company sites so you don’t have to.",
       buttonText: "Add to Chrome",
-      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
+      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk",
       image: aiImg,
     },
     {
