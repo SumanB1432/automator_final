@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { getDatabase, set, ref as databaseRefUtil, get } from 'firebase/database';
 import app, { auth } from "@/firebase/config";
 import debounce from 'lodash/debounce';
-import { toast } from 'react-toastify'; // Added for toast notifications
+import { toast } from 'react-toastify';
 
 export default function CandidatesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -25,8 +25,9 @@ export default function CandidatesPage() {
   const [emailError, setEmailError] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [emailFooter, setEmailFooter] = useState<string>("");
-  const [isSending, setIsSending] = useState(false); // New state for 
-  const db = getDatabase(app)
+  const [isSending, setIsSending] = useState(false);
+  const [isEmailButtonLoading, setIsEmailButtonLoading] = useState(false); // New state for button loading
+  const db = getDatabase(app);
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
   const areAllSelected = filteredCandidates.length > 0 && selectedCandidates.length === filteredCandidates.length;
@@ -70,7 +71,6 @@ export default function CandidatesPage() {
     return () => unsubscribe();
   }, []);
 
-
   useEffect(() => {
     const getEmail = async () => {
       if (!uid) return;
@@ -93,16 +93,13 @@ export default function CandidatesPage() {
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
-
   useEffect(() => {
     const debouncedSave = debounce(async () => {
-
-
       try {
         const db = getDatabase(app);
         const baseTitle = jobTitle
           .trim()
-          .replace(/\s+/g, "") // Consider using hyphens if desired
+          .replace(/\s+/g, "")
           .replace(/[.#$[\]]/g, "")
           .toLowerCase();
 
@@ -125,14 +122,12 @@ export default function CandidatesPage() {
       } catch (error) {
         console.error("❌ Error saving candidate:", error);
       }
-    }, 500); // 500ms debounce
+    }, 500);
 
     debouncedSave();
 
-    // Cleanup to cancel debounce if inputs change quickly
     return () => debouncedSave.cancel();
   }, [uid, jobTitle]);
-
 
   const handleDownload = () => {
     if (selectedCandidate?.resumeUrl) {
@@ -153,15 +148,12 @@ export default function CandidatesPage() {
     URL.revokeObjectURL(url);
   };
 
-
-  // New function to verify email in hr_token
   const verifyEmailInHrToken = async (userEmail: string): Promise<boolean> => {
     try {
       const hrTokenRef = databaseRefUtil(db, `hr_token`);
       const snapshot = await get(hrTokenRef);
       if (snapshot.exists()) {
         const hrTokenData = snapshot.val();
-        // Check if userEmail exists as a key in hr_token (replace dots with commas for Firebase key)
         return Object.keys(hrTokenData).includes(userEmail.replace(/\./g, ","));
       }
       return false;
@@ -172,19 +164,20 @@ export default function CandidatesPage() {
   };
 
   const handleSendEmail = async () => {
+    setIsEmailButtonLoading(true); // Start button loading
     if (!email) {
       alert("No HR email found. Please ensure your email is set up.");
+      setIsEmailButtonLoading(false); // Stop button loading
       return;
     }
 
-    // Verify email in hr_token
     const isEmailVerified = await verifyEmailInHrToken(email);
     if (!isEmailVerified) {
       window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+      setIsEmailButtonLoading(false); // Stop button loading
       return;
     }
 
-    // Send demo email to your Gmail
     try {
       const demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
         method: "POST",
@@ -194,7 +187,7 @@ export default function CandidatesPage() {
         body: JSON.stringify({
           recipient: {
             name: "Test User",
-            email: "deadpool69cloud@gmail.com", // Replace with your Gmail address
+            email: "deadpool69cloud@gmail.com",
           },
           companyEmail: email,
           subject: "Demo Email: Candidate Management",
@@ -206,18 +199,20 @@ export default function CandidatesPage() {
       if (!demoResponse.ok) {
         console.error("Failed to send demo email");
         window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+        setIsEmailButtonLoading(false); // Stop button loading
         return;
       }
 
-      // If demo email is successful, open the email modal
       setIsEmailModalOpen(true);
       setEmailSubject("");
       setEmailBody("");
       setEmailFooter("");
       setEmailError("");
+      setIsEmailButtonLoading(false); // Stop button loading
     } catch (error) {
       console.error("Error sending demo email:", error);
       window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+      setIsEmailButtonLoading(false); // Stop button loading
     }
   };
 
@@ -256,7 +251,7 @@ export default function CandidatesPage() {
           window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates"
           console.error(`Failed to send email to ${recipient.email}`);
         } else {
-          toast.success(`Email sent successfully to ${candidate.email}`); // Added toast
+          toast.success(`Email sent successfully to ${candidate.email}`);
           console.log(`Email sent to ${recipient.email}`);
           const safeEmail = candidate.email.replace(/\./g, ",").toLowerCase();
           const baseTitle = jobTitle.trim().replace(/\s+/g, "").toLowerCase();
@@ -278,7 +273,7 @@ export default function CandidatesPage() {
         console.error(`Error sending email to ${recipient.email}:`, error);
       }
     }
-    setIsSending(false); // Stop loading
+    setIsSending(false);
     toast.success("All emails have been sent successfully!")
     setIsEmailModalOpen(false);
   };
@@ -330,330 +325,390 @@ export default function CandidatesPage() {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6]">
-      {/* Left Panel */}
-      <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl max-h-[50vh] lg:max-h-screen relative z-10">
-        {/* Sticky Header */}
-        <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
-            <button
-              onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
-              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center gap-2 shadow-md"
-              aria-label={isFilterModalOpen ? "Close filter modal" : "Open filter modal"}
-            >
-              {isFilterModalOpen ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14" />
-                </svg>
-              )}
-              {isFilterModalOpen ? "Close" : "Filter"}
-            </button>
-          </div>
-          <hr className="border-t border-[rgba(255,255,255,0.05)] mt-3" />
-          {isClient && jobTitle && (
-            <div
-              style={{
-                backgroundColor: 'rgba(15, 174, 150, 0.1)',
-                padding: '10px',
-                borderRadius: '8px',
-                color: '#ECF1F0',
-                fontWeight: '500',
-              }}
-            >
-              Job Title: {jobTitle}
-            </div>
-          )}
-          {/* Active Filters Indicator */}
-          {isClient && (
-            <div className="flex flex-wrap items-center gap-4">
-              {hasActiveFilters && (
-                <span className="inline-flex items-center gap-4 px-3 py-1 mt-4 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
+    <>
+      {/* Main Content with Conditional Blur */}
+      <motion.div
+        className={`flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${
+          isSending ? "blur-sm" : ""
+        }`}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Left Panel */}
+        <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl max-h-[50vh] lg:max-h-screen relative z-10">
+          <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
+              <button
+                onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
+                className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center gap-2 shadow-md"
+                aria-label={isFilterModalOpen ? "Close filter modal" : "Open filter modal"}
+              >
+                {isFilterModalOpen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  Active Filters
-                </span>
-              )}
-              <button
-                onClick={handleDownloadDetails}
-                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-              >
-                Download Details
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14" />
+                  </svg>
+                )}
+                {isFilterModalOpen ? "Close" : "Filter"}
               </button>
-              <button
-                onClick={handleSendEmail}
-                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+            </div>
+            <hr className="border-t border-[rgba(255,255,255,0.05)] mt-3" />
+            {isClient && jobTitle && (
+              <div
+                style={{
+                  backgroundColor: 'rgba(15, 174, 150, 0.1)',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  color: '#ECF1F0',
+                  fontWeight: '500',
+                }}
               >
-                Send Auto Email
-              </button>
-              {/* <button
-                onClick={handleSendMessageAll}
-                className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-              >
-                Message All
-              </button> */}
-              <div className="flex items-center gap-2 mt-4">
-                <input
-                  type="checkbox"
-                  checked={areAllSelected}
-                  onChange={handleSelectAll}
-                  className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
-                />
-                <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
+                Job Title: {jobTitle}
               </div>
+            )}
+            {isClient && (
+              <div className="flex flex-wrap items-center gap-4">
+                {hasActiveFilters && (
+                  <span className="inline-flex items-center gap-4 px-3 py-1 mt-4 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
+                    </svg>
+                    Active Filters
+                  </span>
+                )}
+                <button
+                  onClick={handleDownloadDetails}
+                  className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                >
+                  Download Details
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                  disabled={isEmailButtonLoading}
+                >
+                  {isEmailButtonLoading ? (
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Processing...
+                    </div>
+                  ) : (
+                    "Send Auto Email"
+                  )}
+                </button>
+                <div className="flex items-center gap-2 mt-4">
+                  <input
+                    type="checkbox"
+                    checked={areAllSelected}
+                    onChange={handleSelectAll}
+                    className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
+                  />
+                  <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
+                </div>
+              </div>
+            )}
+          </div>
+          <hr className="border-t border-[rgba(255,255,255,0.05)] my-2" />
+          {isClient && (
+            <div className="space-y-4 relative">
+              <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
+              {filteredCandidates.length > 0 ? (
+                filteredCandidates.map((c: Candidate) => (
+                  <motion.div
+                    key={c.id}
+                    onClick={() => setSelectedId(c.id)}
+                    className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="flex justify-between">
+                      <div>
+                        <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
+                        <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedCandidates.includes(c.id)}
+                          onChange={() => handleCandidateSelect(c.id)}
+                          className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
+                        />
+                      </div>
+                    </div>
+                    <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
+                      Score: {c.score}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
+              )}
             </div>
           )}
         </div>
-        <hr className="border-t border-[rgba(255,255,255,0.05)] my-2" />
 
-        {/* Candidate List */}
-        {isClient && (
-          <div className="space-y-4 relative">
-            <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
-            {filteredCandidates.length > 0 ? (
-              filteredCandidates.map((c: Candidate) => (
-                <motion.div
-                  key={c.id}
-                  onClick={() => setSelectedId(c.id)}
-                  className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
-                      <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedCandidates.includes(c.id)}
-                        onChange={() => handleCandidateSelect(c.id)}
-                        className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
-                      />
-                    </div>
+        {/* Right Panel */}
+        <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative">
+          <div className="absolute -z-10 w-96 h-96 rounded-full bg-[#FF00C7] blur-[180px] opacity-25 bottom-10 right-10"></div>
+          {selectedCandidate ? (
+            <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-6 shadow-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">{selectedCandidate.name}</h2>
+                  <p className="text-[#B6B6B6] mt-1">{selectedCandidate.location}</p>
+                  <p className="mt-2 text-sm text-[#B6B6B6]">{selectedCandidate.email}</p>
+                  <p className="mt-1 text-sm text-[#B6B6B6]">{selectedCandidate.phone}</p>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <button
+                      onClick={() => {
+                        const phone = selectedCandidate.phone.replace(/\D/g, "");
+                        const message = `Hi ${selectedCandidate.name}, we've shortlisted you for an interview. Let us know when you're available to proceed.`;
+                        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                        window.open(url, "_blank");
+                      }}
+                      className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
+                    >
+                      Message
+                    </button>
+                    <button
+                      onClick={() => {
+                        const subject = "Interview Shortlisting";
+                        const body = `Hi ${selectedCandidate.name},\n\nYou've been shortlisted for an interview. Please reply with your availability.\n\nBest regards,`;
+                        const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${selectedCandidate.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                        window.open(gmailLink, "_blank");
+                      }}
+                      className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
+                    >
+                      Send Email
+                    </button>
                   </div>
-                  <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
-                    Score: {c.score}
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Right Panel */}
-      <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative">
-        <div className="absolute -z-10 w-96 h-96 rounded-full bg-[#FF00C7] blur-[180px] opacity-25 bottom-10 right-10"></div>
-        {selectedCandidate ? (
-          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-6 shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">{selectedCandidate.name}</h2>
-                <p className="text-[#B6B6B6] mt-1">{selectedCandidate.location}</p>
-                <p className="mt-2 text-sm text-[#B6B6B6]">{selectedCandidate.email}</p>
-                <p className="mt-1 text-sm text-[#B6B6B6]">{selectedCandidate.phone}</p>
-                <div className="flex flex-wrap gap-3 mt-4">
+                </div>
+                <div className="space-x-3 flex items-center">
                   <button
-                    onClick={() => {
-                      const phone = selectedCandidate.phone.replace(/\D/g, "");
-                      const message = `Hi ${selectedCandidate.name}, we've shortlisted you for an interview. Let us know when you're available to proceed.`;
-                      const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-                      window.open(url, "_blank");
-                    }}
-                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
+                    onClick={() => updateApproval(selectedCandidate.id)}
+                    className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${selectedCandidate.approved ? "bg-[#0FAE96] text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-[#0FAE96]/20 hover:text-[#ECF1F0]"}`}
+                    aria-label={selectedCandidate.approved ? "Approved" : "Approve candidate"}
                   >
-                    Message
+                    <FaCheck className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => {
-                      const subject = "Interview Shortlisting";
-                      const body = `Hi ${selectedCandidate.name},\n\nYou've been shortlisted for an interview. Please reply with your availability.\n\nBest regards,`;
-                      const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${selectedCandidate.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                      window.open(gmailLink, "_blank");
-                    }}
-                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] shadow-md h-12"
+                    onClick={() => updateApproval(selectedCandidate.id)}
+                    className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${!selectedCandidate.approved ? "bg-red-500 text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-red-500/20 hover:text-[#ECF1F0]"}`}
+                    aria-label={selectedCandidate.approved ? "Reject candidate" : "Rejected"}
                   >
-                    Send Email
+                    <FaTimes className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-
-              <div className="space-x-3 flex items-center">
+              <hr className="my-6 border-[rgba(255,255,255,0.05)]" />
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-2xl font-semibold font-raleway text-[#ECF1F0]">Resume</p>
                 <button
-                  onClick={() => updateApproval(selectedCandidate.id)}
-                  className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${selectedCandidate.approved ? "bg-[#0FAE96] text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-[#0FAE96]/20 hover:text-[#ECF1F0]"}`}
-                  aria-label={selectedCandidate.approved ? "Approved" : "Approve candidate"}
+                  onClick={handleDownload}
+                  className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] inline-flex items-center gap-2"
+                  aria-label="Download resume"
                 >
-                  <FaCheck className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => updateApproval(selectedCandidate.id)}
-                  className={`p-3 rounded-full shadow-md cursor-pointer h-10 w-10 flex items-center justify-center transition duration-200 ${!selectedCandidate.approved ? "bg-red-500 text-white" : "bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] hover:bg-red-500/20 hover:text-[#ECF1F0]"}`}
-                  aria-label={selectedCandidate.approved ? "Reject candidate" : "Rejected"}
-                >
-                  <FaTimes className="w-5 h-5" />
+                  Download Resume
                 </button>
               </div>
+              <div className="w-full overflow-hidden border border-[rgba(255,255,255,0.05)] rounded-xl shadow-lg bg-[rgba(255,255,255,0.02)] h-[400px] sm:h-[500px] lg:h-[calc(100vh-300px)]">
+                {selectedCandidate.resumeUrl ? (
+                  <iframe
+                    src={`${selectedCandidate.resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    title="Resume Viewer"
+                    className="w-full h-full"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#B6B6B6] bg-[rgba(255,255,255,0.01)]">
+                    Resume not available
+                  </div>
+                )}
+              </div>
             </div>
+          ) : (
+            <div className="h-full flex items-center justify-center text-[#B6B6B6] text-lg">
+              Select a candidate to view details
+            </div>
+          )}
+        </div>
 
-            <hr className="my-6 border-[rgba(255,255,255,0.05)]" />
+        {/* Filter Modal */}
+        <AnimatePresence>
+          {isFilterModalOpen && (
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            >
+              <FilterModalForm onClose={() => setIsFilterModalOpen(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-2xl font-semibold font-raleway text-[#ECF1F0]">Resume</p>
-              <button
-                onClick={handleDownload}
-                className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] inline-flex items-center gap-2"
-                aria-label="Download resume"
+        {/* Email Modal */}
+        <AnimatePresence>
+          {isEmailModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="bg-[#11011E] p-6 rounded-xl w-full max-w-md border border-[rgba(255,255,255,0.05)] shadow-xl"
               >
-                Download Resume
-              </button>
-            </div>
-
-            <div className="w-full overflow-hidden border border-[rgba(255,255,255,0.05)] rounded-xl shadow-lg bg-[rgba(255,255,255,0.02)] h-[400px] sm:h-[500px] lg:h-[calc(100vh-300px)]">
-              {selectedCandidate.resumeUrl ? (
-                <iframe
-                  src={`${selectedCandidate.resumeUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                  title="Resume Viewer"
-                  className="w-full h-full"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#B6B6B6] bg-[rgba(255,255,255,0.01)]">
-                  Resume not available
+                <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Subject</label>
+                    <input
+                      type="text"
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
+                      placeholder="e.g. Application Update: Interview Invitation"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Body</label>
+                    <textarea
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                      placeholder="Write your main message here. For example, details about the next steps in the hiring process."
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Footer</label>
+                    <textarea
+                      value={emailFooter}
+                      onChange={(e) => setEmailFooter(e.target.value)}
+                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                      placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team'"
+                      required
+                    />
+                  </div>
+                  {emailError && (
+                    <p className="text-red-500 text-sm">{emailError}</p>
+                  )}
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setIsEmailModalOpen(false)}
+                      className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
+                      disabled={isSending}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleEmailSubmit}
+                      className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
+                      disabled={isSending}
+                    >
+                      {isSending ? (
+                        <div className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Processing...
+                        </div>
+                      ) : (
+                        "Send"
+                      )}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="h-full flex items-center justify-center text-[#B6B6B6] text-lg">
-            Select a candidate to view details
-          </div>
-        )}
-      </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-      {/* Filter Modal */}
+      {/* Full-Page Loading Screen for Email Sending */}
       <AnimatePresence>
-        {isFilterModalOpen && (
-          <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          >
-            <FilterModalForm onClose={() => setIsFilterModalOpen(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Email Modal */}
-      <AnimatePresence>
-        {isEmailModalOpen && (
+        {isSending && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
           >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-[#11011E] p-6 rounded-xl w-full max-w-md border border-[rgba(255,255,255,0.05)] shadow-xl"
-            >
-              <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Subject</label>
-                  <input
-                    type="text"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
-                    placeholder="e.g. Application Update: Interview Invitation"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Body</label>
-                  <textarea
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                    placeholder="Write your main message here. For example, details about the next steps in the hiring process."
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Footer</label>
-                  <textarea
-                    value={emailFooter}
-                    onChange={(e) => setEmailFooter(e.target.value)}
-                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                    placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team'"
-                    required
-                  />
-                </div>
-                {emailError && (
-                  <p className="text-red-500 text-sm">{emailError}</p>
-                )}
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setIsEmailModalOpen(false)}
-                    className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
-                    disabled={isSending}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleEmailSubmit}
-                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
-                    disabled={isSending}
-                  >
-                    {isSending ? (
-                      <div className="flex items-center gap-2">
-                        <svg
-                          className="animate-spin h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </div>
-                    ) : (
-                      "Send"
-                    )}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+            <div className="flex flex-col items-center gap-4">
+              <svg
+                className="animate-spin h-12 w-12 text-[#0FAE96]"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <p className="text-[#ECF1F0] text-lg font-raleway font-semibold">
+                Sending Emails...
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
