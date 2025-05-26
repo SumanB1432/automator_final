@@ -89,7 +89,7 @@ const CheckInterviews = () => {
               >
                 <div>
                   <span className="block text-lg font-semibold text-[#0FAE96]">
-                    {interview.role || "Untitled Role"}
+                    {interview.name || "Untitled Role"}
                   </span>
                   <p className="text-sm text-gray-300 mt-1">
                     {interview.email || "No email provided"} • {interview.role || "No role specified"}

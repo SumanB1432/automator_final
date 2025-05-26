@@ -33,7 +33,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
     // Calculate total earnings for eligibility check
     const totalEarnings = parseFloat(((indianEarning / 90) + foreignEarning).toFixed(2));
     const isEarningsEligible = totalEarnings >= 50;
-    
+
 
     useEffect(() => {
         const uid = auth.currentUser?.uid;
@@ -78,6 +78,26 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         await set(userRef, null)
     };
 
+    const updatePayment = async (uid:any) => {
+        console.log("Update User Payment Mode to Premium");
+        const today = new Date();
+        const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+        let paymentRef = ref(db, `user/${uid}/Payment`)
+        const updatedPaymentData = {
+            Start_Date: formattedDate, // or use dynamic date
+            Status: "Premium",
+            SubscriptionType: "Premium"
+        };
+        try {
+            await update(paymentRef, updatedPaymentData);
+            console.log("Payment data updated successfully.");
+        } catch (error) {
+            console.error("Error updating payment:", error);
+        }
+
+    }
+
+
     const isValidLinkedInPost = (url) => {
         const pattern = /^https:\/\/(www\.)?linkedin\.com\/posts\/.+/i;
         return pattern.test(url);
@@ -110,6 +130,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         setLoading(true);
         try {
             await deleteReferralsFromDB(userName);
+            await updatePayment(uid)
             alert('Premium claimed and referral data deleted!');
             setShowModal(false);
             window.location.reload();
