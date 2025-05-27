@@ -90,20 +90,20 @@ const HRFooter = () => {
                 {section === "Dashboard" &&
                   [
                     { name: "Overview", path: "/hr" },
-                    { name: "Talent Insights", path: "/hr/talent-insights" },
+                    { name: "Talent Insights", path: "/hr/interview" },
                   ].map((item) => <FooterLink key={item.name} href={item.path} text={item.name} />)}
 
                 {section === "Actions" &&
                   [
-                    { name: "Parse resumes", path: "/hr/post-job" },
-                    { name: "One-Click Download", path: "/hr/analyze-resumes" },
-                    { name: "Automated Outreach", path: "/hr/applicants" },
+                    { name: "Parse resumes", path: "/hr/resumeUpload" },
+                    { name: "One-Click Download", path: "/hr/resumeUpload" },
+                    { name: "Automated Outreach", path: "/hr/resumeUpload" },
                   ].map((item) => <FooterLink key={item.name} href={item.path} text={item.name} />)}
 
                 {section === "Support" &&
                   [
-                    { name: "Contact Us", path: "/contactUs" },
-                    { name: "Settings", path: "/settings" },
+                    { name: "Contact Us", path: "/hr/contactUs" },
+                    { name: "Settings", path: "/hr/settings" },
                   ].map((item) => <FooterLink key={item.name} href={item.path} text={item.name} />)}
               </ul>
             </div>

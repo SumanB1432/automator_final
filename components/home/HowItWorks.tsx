@@ -65,7 +65,7 @@ const HowItWorks = () => {
       description:
         "Send personalized, AI-written emails directly to recruiters. Stand out in crowded inboxes while you focus on what matters.",
       buttonText: "Send Auto Email",  
-      buttonLink: "https://www.jobformautomator.com/send-auto-mail",
+      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
       image: emailImg,
     },
     {
