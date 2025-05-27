@@ -27,6 +27,7 @@ export default function CandidatesPage() {
   const [emailFooter, setEmailFooter] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
   const [isEmailButtonLoading, setIsEmailButtonLoading] = useState(false); // New state for button loading
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // New state for auth loading
   const db = getDatabase(app);
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
@@ -41,55 +42,60 @@ export default function CandidatesPage() {
     }
   };
 
-  useEffect(() => {
-    setIsClient(true);
+useEffect(() => {
+  setIsClient(true);
 
-    // Firebase auth state listener
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      console.log(user?.uid)
-      setUid(user?.uid || null);
-    });
+  // Firebase auth state listener
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    console.log("Auth state changed:", user?.uid);
+    setUid(user?.uid || null);
+    setIsAuthLoading(false); // Auth state is resolved
+  });
 
-    // localStorage access
-    if (typeof window !== "undefined") {
-      try {
-        const storedJobTitle = localStorage.getItem("jobTitle") ?? "";
-        const storedJobDescription = localStorage.getItem("jobDescription") ?? "";
-        const storedRecruiterSuggestion = localStorage.getItem("recruiterSuggestion") ?? "";
-        setJobTitle(storedJobTitle);
-        setJobDescription(storedJobDescription);
-        setRecruiterSuggestion(storedRecruiterSuggestion);
-      } catch (error) {
-        console.error("Error accessing localStorage:", error);
-        setJobTitle("");
-        setJobDescription("");
-        setRecruiterSuggestion("");
-      }
+  // localStorage access
+  if (typeof window !== "undefined") {
+    try {
+      const storedJobTitle = localStorage.getItem("jobTitle") ?? "";
+      const storedJobDescription = localStorage.getItem("jobDescription") ?? "";
+      const storedRecruiterSuggestion = localStorage.getItem("recruiterSuggestion") ?? "";
+      setJobTitle(storedJobTitle);
+      setJobDescription(storedJobDescription);
+      setRecruiterSuggestion(storedRecruiterSuggestion);
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+      setJobTitle("");
+      setJobDescription("");
+      setRecruiterSuggestion("");
     }
+  }
 
-    // Cleanup listener on unmount
-    return () => unsubscribe();
-  }, []);
+  // Cleanup listener on unmount
+  return () => unsubscribe();
+}, []);
 
-  useEffect(() => {
-    const getEmail = async () => {
-      if (!uid) return;
+useEffect(() => {
+  const getEmail = async () => {
+    if (!uid) return;
 
-      try {
-        const emailRef = databaseRefUtil(db, `hr/${uid}/email`);
-        const snapshot = await get(emailRef);
-        if (snapshot.exists()) {
-          setEmail(snapshot.val());
-        } else {
-          console.log("No email found for this HR.");
-        }
-      } catch (error) {
-        console.error("Error fetching email:", error);
+    try {
+      const emailRef = databaseRefUtil(db, `hr/${uid}/email`);
+      const snapshot = await get(emailRef);
+      if (snapshot.exists()) {
+        setEmail(snapshot.val());
+      } else {
+        console.log("No email found for this HR.");
+        toast.error("No email found for this HR. Please set up your email.");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching email:", error);
+      toast.error("Failed to fetch HR email. Please try again.");
+    }
+  };
 
+  if (uid) {
     getEmail();
-  }, [uid])
+  }
+}, [uid, db]);
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
@@ -148,73 +154,84 @@ export default function CandidatesPage() {
     URL.revokeObjectURL(url);
   };
 
-  const verifyEmailInHrToken = async (userEmail: string): Promise<boolean> => {
-    try {
-      const hrTokenRef = databaseRefUtil(db, `hr_token`);
-      const snapshot = await get(hrTokenRef);
-      if (snapshot.exists()) {
-        const hrTokenData = snapshot.val();
-        return Object.keys(hrTokenData).includes(userEmail.replace(/\./g, ","));
-      }
-      return false;
-    } catch (error) {
-      console.error("Error verifying email in hr_token:", error);
-      return false;
+  const verifyEmailInHrToken = useCallback(async (userEmail: string): Promise<boolean> => {
+  try {
+    const hrTokenRef = databaseRefUtil(db, `hr_token`);
+    const snapshot = await get(hrTokenRef);
+    if (snapshot.exists()) {
+      const hrTokenData = snapshot.val();
+      return Object.keys(hrTokenData).includes(userEmail.replace(/\./g, ","));
     }
-  };
+    return false;
+  } catch (error) {
+    console.error("Error verifying email in hr_token:", error);
+    return false;
+  }
+}, [db]);
 
-  const handleSendEmail = async () => {
-    setIsEmailButtonLoading(true); // Start button loading
-    if (!email) {
-      alert("No HR email found. Please ensure your email is set up.");
-      setIsEmailButtonLoading(false); // Stop button loading
-      return;
-    }
+const handleSendEmail = useCallback(async () => {
+  if (isAuthLoading) {
+    toast.error("Authentication is still loading. Please wait a moment.");
+    return;
+  }
 
+  if (!uid) {
+    toast.error("User not authenticated. Please log in again.");
+    return;
+  }
+
+  if (!email) {
+    toast.error("No HR email found. Please ensure your email is set up.");
+    return;
+  }
+
+  setIsEmailButtonLoading(true);
+
+  try {
     const isEmailVerified = await verifyEmailInHrToken(email);
     if (!isEmailVerified) {
+      toast.info("Email not verified. Redirecting to authentication...");
       window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
-      setIsEmailButtonLoading(false); // Stop button loading
       return;
     }
 
-    try {
-      const demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        recipient: {
+          name: "Test User",
+          email: "deadpool69cloud@gmail.com",
         },
-        body: JSON.stringify({
-          recipient: {
-            name: "Test User",
-            email: "deadpool69cloud@gmail.com",
-          },
-          companyEmail: email,
-          subject: "Demo Email: Candidate Management",
-          body: "This is a demo email to verify email functionality.",
-          footer: "Best regards, HR Team",
-        }),
-      });
+        companyEmail: email,
+        subject: "Demo Email: Candidate Management",
+        body: "This is a demo email to verify email functionality.",
+        footer: "Best regards, HR Team",
+      }),
+    });
 
-      if (!demoResponse.ok) {
-        console.error("Failed to send demo email");
-        window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
-        setIsEmailButtonLoading(false); // Stop button loading
-        return;
-      }
-
-      setIsEmailModalOpen(true);
-      setEmailSubject("");
-      setEmailBody("");
-      setEmailFooter("");
-      setEmailError("");
-      setIsEmailButtonLoading(false); // Stop button loading
-    } catch (error) {
-      console.error("Error sending demo email:", error);
+    if (!demoResponse.ok) {
+      console.error("Failed to send demo email");
+      toast.error("Failed to verify email. Redirecting to authentication...");
       window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
-      setIsEmailButtonLoading(false); // Stop button loading
+      return;
     }
-  };
+
+    setIsEmailModalOpen(true);
+    setEmailSubject("");
+    setEmailBody("");
+    setEmailFooter("");
+    setEmailError("");
+  } catch (error) {
+    console.error("Error sending demo email:", error);
+    toast.error("An error occurred while verifying email. Redirecting...");
+    window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+  } finally {
+    setIsEmailButtonLoading(false);
+  }
+}, [email, uid, isAuthLoading, verifyEmailInHrToken]);
 
   const handleEmailSubmit = async () => {
     if (!emailSubject.trim() || !emailBody.trim() || !emailFooter.trim()) {
@@ -605,7 +622,7 @@ export default function CandidatesPage() {
                       value={emailBody}
                       onChange={(e) => setEmailBody(e.target.value)}
                       className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                      placeholder="Write your main message here. For example, details about the next steps in the hiring process."
+                      placeholder="Write the main message body here. 'Hello [Candidate Name],' is already included in the email."
                       required
                     />
                   </div>

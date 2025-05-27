@@ -407,46 +407,46 @@ const Page = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013e] to-[#11011E] py-12 text-white">
-      <div className="max-w-7xl w-full flex flex-col gap-6">
-        {emailLimitReached && (
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF]240 text-center flex flex-col gap-5 scale-[1.2]">
-            <h2 className="text-[32px] font-bold text-[#FFFFFF]">Email Limit Reached</h2>
-            <p className="text-[16px] leading-6 text-[#B6B6B6]">
-              Hit the <span className="font-semibold text-[#FFFFFF]">10000-email</span> free plan limit.
-            </p>
-            <p className="text-[16px] leading-6 text-[#B6B6B6]">
-              Go <span className="underline font-semibold text-[#0FAE96]">Premium</span> to send more.
-            </p>
-            <button
-              className="bg-[#0FAE96] text-[#FFFFFF] font-semibold py-2 px-6 rounded-[10px] hover:bg-[#0C8C79] transition-opacity duration-150 w-full max-w-[200px] mx-auto"
-              onClick={handleUpdatePlan}
-            >
-              Upgrade
-            </button>
-          </div>
-        )}
-
-        {!emailLimitReached && (
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <FaBriefcase className="text-white" />
-              {isSending ? "Searching Jobs..." : "Applications"}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {companies.map((company, index) => (
-                <div
-                  key={index}
-                  className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150"
-                >
-                  <CompanyCard {...company} isSending={isSending} isSent={isSent} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+   <div className="min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013e] to-[#11011E] py-12 text-white">
+  <div className="max-w-7xl w-full mx-auto px-4 flex flex-col gap-6">
+    {emailLimitReached && (
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF]240 text-center flex flex-col gap-5 scale-[1.2]">
+        <h2 className="text-[32px] font-bold text-[#FFFFFF]">Email Limit Reached</h2>
+        <p className="text-[16px] leading-6 text-[#B6B6B6]">
+          Hit the <span className="font-semibold text-[#FFFFFF]">10000-email</span> free plan limit.
+        </p>
+        <p className="text-[16px] leading-6 text-[#B6B6B6]">
+          Go <span className="underline font-semibold text-[#0FAE96]">Premium</span> to send more.
+        </p>
+        <button
+          className="bg-[#0FAE96] text-[#FFFFFF] font-semibold py-2 px-6 rounded-[10px] hover:bg-[#0C8C79] transition-opacity duration-150 w-full max-w-[200px] mx-auto"
+          onClick={handleUpdatePlan}
+        >
+          Upgrade
+        </button>
       </div>
-    </div>
+    )}
+
+    {!emailLimitReached && (
+      <div>
+        <h2 className="text-3xl font-bold flex items-center gap-3">
+          <FaBriefcase className="text-white" />
+          {isSending ? "Searching Jobs..." : "Applications"}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {companies.map((company, index) => (
+            <div
+              key={index}
+              className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150 h-full flex flex-col"
+            >
+              <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</div>
   );
 };
 
