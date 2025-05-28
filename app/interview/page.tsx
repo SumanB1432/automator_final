@@ -20,20 +20,7 @@ const Index = () => {
       <div className="absolute top-0 left-0 w-[675px] h-[314px] bg-[#7000FF] opacity-50 blur-[200px]"></div>
       <div className="absolute bottom-0 right-0 w-[675px] h-[314px] bg-[#FF00C7] opacity-50 blur-[200px]"></div>
 
-      {/* Header */}
-      <header className="w-full py-6 px-4 md:px-8 border-b border-[rgba(255,255,255,0.05)] relative z-10">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <svg className="h-6 w-6 text-[#ECF1F0]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-            <h1 className="text-2xl font-bold text-[#ECF1F0]">InterviewFlow</h1>
-          </div>
-          <nav className="hidden md:flex space-x-6">
-            <a href="#features" className="text-[#B6B6B6] hover:text-[#0FAE96] transition-colors">Features</a>
-            <a href="#how-it-works" className="text-[#B6B6B6] hover:text-[#0FAE96] transition-colors">How it Works</a>
-          </nav>
-          <Button className="g-[#0FAE96] bg-[#077b6a] hover:bg-[#1a9c89] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md shadow-md hover:shadow-lg transition-colors duration-300 ease-in-out active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#0FAE96]/50 focus:ring-offset-2" onClick={() => router.push("/interview/interview_dashboard")}>Start Practice</Button>
-        </div>
-      </header>
+
 
       {/* Suspense Boundary for SearchParamsHandler */}
       <Suspense fallback={<div>Loading...</div>}>
@@ -43,7 +30,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="flex-grow relative z-10">
         <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 mt-16">
             <h2 className="text-4xl md:text-5xl font-bold text-[#ECF1F0] mb-6">
               Ace Your Next Interview with AI Coaching
             </h2>
@@ -130,13 +117,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[rgba(255,255,255,0.02)] py-8 border-t border-[rgba(255,255,255,0.05)] relative z-10">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 text-center text-[#B6B6B6]">
-          <p>© 2023 InterviewFlow AI Coach. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

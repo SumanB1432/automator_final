@@ -6,6 +6,7 @@ import aiImg from "../../public/images/autoapply.jpeg";
 import emailImg from "../../public/images/email.jpeg";
 import resumeImg from "../../public/images/resume.jpeg";
 import skillsImg from "../../public/images/skill.jpeg";
+import InterviewImg from "../../public/images/interview.jpeg";
 
 interface StepProps {
   id: number;
@@ -56,7 +57,7 @@ const HowItWorks = () => {
       description:
         "Apply to hundreds of jobs daily on LinkedIn and Monster. We also auto-fill long, boring forms on company sites so you don’t have to.",
       buttonText: "Add to Chrome",
-      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
+      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk",
       image: aiImg,
     },
     {
@@ -65,7 +66,7 @@ const HowItWorks = () => {
       description:
         "Send personalized, AI-written emails directly to recruiters. Stand out in crowded inboxes while you focus on what matters.",
       buttonText: "Send Auto Email",  
-      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
+      buttonLink: "https://www.jobformautomator.com/send-auto-mail",
       image: emailImg,
     },
     {
@@ -85,6 +86,15 @@ const HowItWorks = () => {
         buttonText:"Skills Suggestion",
         buttonLink:"https://www.jobformautomator.com/atsresume",
       image: skillsImg,
+    },
+    {
+      id: 5,
+      title: "💡Nail every interview with AI",
+      description:
+        "Nail every interview with AI-powered mock sessions, tailored questions, and instant feedback to boost your confidence and performance.",
+        buttonText:"Start Interview",
+        buttonLink:"https://www.jobformautomator.com/interview",
+      image: InterviewImg,
     },
   ];
 
