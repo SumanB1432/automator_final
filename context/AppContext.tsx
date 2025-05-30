@@ -1,7 +1,7 @@
 // src/context/AppContext.tsx
 "use client"
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Resume, 
   JobDescription, 
@@ -83,7 +83,7 @@ type AppAction =
   | { type: 'REMOVE_JOB_DESCRIPTION'; payload: string }
   | { type: 'SET_FORM_STEP'; payload: FormStep }
   | { type: 'START_ANALYSIS' }
-  | { type: 'COMPLETE_ANALYSIS'; payload: { resumeSkills: string[], jobSkills: string[], missingSkills: string[], learningPath: Phase[] } } // **Changed**: Added learningPath to payload
+  | { type: 'COMPLETE_ANALYSIS'; payload: { resumeSkills: string[], jobSkills: string[], missingSkills: string[], learningPath: Phase[] } }
   | { type: 'UPDATE_VIDEO_PROGRESS'; payload: { skillId: string; videoId: string; progress: number } }
   | { type: 'COMPLETE_VIDEO'; payload: { skillId: string; videoId: string } }
   | { type: 'COMPLETE_SKILL'; payload: string }
@@ -180,7 +180,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         resumeSkills,
         jobSkills,
         missingSkills,
-        learningPath, // **Changed**: Use provided learningPath with videos
+        learningPath,
         quizzes,
         userProgress: {
           ...state.userProgress,
@@ -442,7 +442,7 @@ interface AppContextProps {
   addJobDescription: (text: string, title?: string, company?: string) => void;
   removeJobDescription: (id: string) => void;
   setFormStep: (step: FormStep) => void;
-  analyzeData: () => Promise<void>; // **Changed**: Updated to async return type
+  analyzeData: () => Promise<void>;
   updateVideoProgress: (skillId: string, videoId: string, progress: number) => void;
   completeVideo: (skillId: string, videoId: string) => void;
   completeSkill: (skillId: string) => void;
@@ -453,29 +453,40 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Define course-related routes
+    const courseRoutes = [
+      '/course',
+      '/resume',
+      '/resume/job-descriptions',
+      '/resume/job-descriptions/dashboard'
+    ];
+    // Only trigger navigation for course-related routes
+    if (courseRoutes.includes(pathname)) {
+      switch (state.formStep) {
+        case FormStep.WELCOME:
+          router.push('/course');
+          break;
+        case FormStep.RESUME:
+          router.push('/resume');
+          break;
+        case FormStep.JOB_DESCRIPTIONS:
+        case FormStep.ANALYZING:
+          router.push('/resume/job-descriptions');
+          break;
+        case FormStep.RESULTS:
+          console.log('Navigating to /resume/job-descriptions/dashboard');
+          router.push('/resume/job-descriptions/dashboard');
+          break;
+      }
+    }
+  }, [state.formStep, router, pathname]);
 
   const setResume = (text: string) => {
     dispatch({ type: 'SET_RESUME', payload: text });
   };
-
-  useEffect(() => {
-    switch (state.formStep) {
-      case FormStep.WELCOME:
-        router.push('/');
-        break;
-      case FormStep.RESUME:
-        router.push('/resume');
-        break;
-      case FormStep.JOB_DESCRIPTIONS:
-      case FormStep.ANALYZING: // Handle ANALYZING in the same route
-        router.push('/resume/job-descriptions');
-        break;
-      case FormStep.RESULTS:
-        console.log('Navigating to /resume/job-descriptions/dashboard');
-        router.push('/resume/job-descriptions/dashboard');
-        break;
-    }
-  }, [state.formStep, router]);
 
   const addJobDescription = (text: string, title?: string, company?: string) => {
     const id = `job-${Date.now()}`;
@@ -490,34 +501,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const setFormStep = (step: FormStep) => {
-    console.log(`Setting formStep to: ${step}`); // **Changed**: Added debug log
+    console.log(`Setting formStep to: ${step}`);
     dispatch({ type: 'SET_FORM_STEP', payload: step });
-    // switch (step) {
-    //   case FormStep.WELCOME:
-    //     router.push('/');
-    //     break;
-    //   case FormStep.RESUME:
-    //     router.push('/resume');
-    //     break;
-    //   case FormStep.JOB_DESCRIPTIONS:
-    //     router.push('/job-descriptions');
-    //     break;
-    //   case FormStep.ANALYZING:
-    //     router.push('/analyzing');
-    //     break;
-    //   case FormStep.RESULTS:
-    //     console.log('Navigating to /dashboard'); // **Added**: Debug log
-    //     router.push('/dashboard');
-    //     break;
-    // }
   };
 
   const analyzeData = async () => {
-    console.log('Starting analyzeData...'); // **Changed**: Added debug log
+    console.log('Starting analyzeData...');
     dispatch({ type: 'START_ANALYSIS' });
     
     if (!state.resume || state.jobDescriptions.length === 0) {
-      console.error('Missing resume or job descriptions'); // **Changed**: Added validation
+      console.error('Missing resume or job descriptions');
       dispatch({ type: 'SET_FORM_STEP', payload: FormStep.JOB_DESCRIPTIONS });
       return;
     }
@@ -545,16 +538,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         })),
       );
 
-      console.log('Analysis complete:', { ...analysisResult, learningPath }); // **Changed**: Added debug log
+      console.log('Analysis complete:', { ...analysisResult, learningPath });
 
       dispatch({ 
         type: 'COMPLETE_ANALYSIS',
-        payload: { ...analysisResult, learningPath } // **Changed**: Include learningPath in payload
+        payload: { ...analysisResult, learningPath }
       });
 
-      console.log('State updated, formStep set to RESULTS'); // **Changed**: Added debug log
+      console.log('State updated, formStep set to RESULTS');
     } catch (error) {
-      console.error('Error during analysis:', error); // **Changed**: Enhanced error logging
+      console.error('Error during analysis:', error);
       
       const resumeSkills = state.resume ? extractSkillsFromText(state.resume.text) : [];
       const allJobSkills = state.jobDescriptions
