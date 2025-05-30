@@ -461,7 +461,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     switch (state.formStep) {
       case FormStep.WELCOME:
-        router.push('/course');
+        router.push('/');
         break;
       case FormStep.RESUME:
         router.push('/resume');
