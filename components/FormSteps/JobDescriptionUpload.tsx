@@ -1,6 +1,6 @@
 
 "use client"
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +16,7 @@ const JobDescriptionUpload = () => {
   const [jobTitle, setJobTitle] = useState('');
   const [jobCompany, setJobCompany] = useState('');
   const [error, setError] = useState('');
-  const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
+  const [apiKey, setApiKey] = useState<string>('');
   
   const handleAddJob = () => {
     if (!jobText.trim()) {
@@ -30,7 +30,11 @@ const JobDescriptionUpload = () => {
     setJobCompany('');
     setError('');
   };
-  
+  useEffect(()=>{
+ let key = localStorage.getItem("geminiApiKey") || ""
+ setApiKey(key)
+  },[])
+
   const handleSubmit = () => {
     if (state.jobDescriptions.length === 0) {
       setError('Please add at least one job description');
