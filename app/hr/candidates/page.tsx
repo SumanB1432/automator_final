@@ -622,7 +622,7 @@ const handleSendEmail = useCallback(async () => {
                       value={emailBody}
                       onChange={(e) => setEmailBody(e.target.value)}
                       className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                      placeholder="Write the main message body here. 'Hello [Candidate Name],' is already included in the email."
+                      placeholder="Write your message here. The greeting 'Hello [Candidate Name],' is already included. (Press Enter to add a new line)"
                       required
                     />
                   </div>
@@ -632,7 +632,7 @@ const handleSendEmail = useCallback(async () => {
                       value={emailFooter}
                       onChange={(e) => setEmailFooter(e.target.value)}
                       className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                      placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team'"
+                      placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team' (Press Enter to add a new line)"
                       required
                     />
                   </div>

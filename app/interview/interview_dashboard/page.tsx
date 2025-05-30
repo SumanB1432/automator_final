@@ -11,6 +11,10 @@ import { ArrowLeft } from "lucide-react";
 import { createSessionId } from "@/lib/session-utils";
 import { useToast } from "@/components/ui/use-toast";
 import { saveSession, storeRecording } from "@/lib/db-service";
+import { getDatabase, ref, get } from "firebase/database";
+import app, { auth } from "@/firebase/config";
+import { toast } from "react-toastify";
+import { onAuthStateChanged } from "firebase/auth";
 
 export type SessionType = {
   sessionId: string;
@@ -39,11 +43,39 @@ const Interview = () => {
   const [warningCount, setWarningCount] = useState<number>(0);
   const [showWarningBanner, setShowWarningBanner] = useState<boolean>(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [title, setTitle] = useState<string>("");
+  const [actualTitle, setActualTitle] = useState<string>("");
+  const [uid, setUid] = useState<string>("");
+  const [jd, setJD] = useState<string>("")
   const router = useRouter();
-  const { toast } = useToast();
+  const db = getDatabase(app)
 
+  // Listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log(user.uid, "uid", "hello");
+        setUid(user.uid); // Set UID when user is authenticated
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: "No user is signed in. Please log in.",
+          variant: "destructive",
+        });
+        // Optionally redirect to login page
+        router.push("/sign-in");
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
   // Initialize session
   useEffect(() => {
+    let title = localStorage.getItem("title") || "";
+    setActualTitle(title)
+    title = title.replace(/\s/g, '');
+    setTitle(title);
     if (!session) {
       setSession({
         sessionId: createSessionId(),
@@ -52,6 +84,29 @@ const Interview = () => {
       });
     }
   }, []);
+
+  // Get Job Description From Hr through JobTitle
+
+useEffect(() => {
+  let getJob = async function(){
+    console.log("Fetching job for:", title, uid);
+    const jobProfileRef = ref(db, `hr/${uid}/jobProfiles/${title}`);
+    let snapsort = await get(jobProfileRef);
+    if(snapsort.exists()){
+      let jobDescription = snapsort.val().jdText; // Renamed variable to avoid confusion
+      console.log("Fetched JD:", jobDescription);
+      setJD(jobDescription); // This should set the state
+      console.log("JD state should be updated");
+    } else {
+      console.log("No job profile found for:", title);
+    }
+  }
+  
+  // Only run if both title and uid are available
+    getJob();
+    console.log("hiiiii suman")
+  
+}, [title, uid])
 
   // Start video stream when interview begins
   useEffect(() => {
@@ -380,7 +435,12 @@ const Interview = () => {
               </TabsList>
 
               <TabsContent value="setup" className="p-6 sm:p-8">
-                <InterviewSetup onStart={startInterview} session={session} />
+                <InterviewSetup
+                  onStart={startInterview}
+                  session={session}
+                  actualTitle={actualTitle}
+                  jd={jd}
+                />
               </TabsContent>
 
               <TabsContent value="session" className="p-0">

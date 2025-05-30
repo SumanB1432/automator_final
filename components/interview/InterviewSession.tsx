@@ -11,6 +11,10 @@ import { generateInterviewQuestion } from "@/lib/gemini-utils";
 import type { SessionType } from "@/pages/Interview";
 import { debounce } from "lodash";
 import { saveSessionWithRecording } from "@/lib/db-service";
+import { onAuthStateChanged } from "firebase/auth";
+import app, { auth } from "@/firebase/config";
+import { getDatabase, ref, set } from "firebase/database";
+
 
 export interface SessionTypes {
   jobDescription?: string;
@@ -70,10 +74,62 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const hasStartedInterview = useRef<boolean>(false);
   const continueListeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [title, setTitle] = useState<string>("");
+  const [hrCode, setHrCode] = useState<string>("");
+  const [uid, setUid] = useState<string>("");
+  const db = getDatabase(app)
   // --- CHANGE START ---
   const accumulatedSpeechRef = useRef<string>(""); // To accumulate speech during the listening window
   // --- CHANGE END ---
   const { toast } = useToast();
+
+  //Get Uid
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid); // Set UID when user is authenticated
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: "No user is signed in. Please log in.",
+          variant: "destructive",
+        });
+        // Optionally redirect to login page
+        window.location.href = "/sign-in";
+      }
+    });
+
+
+
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+  //Update User Interview Records for Security
+  const updateUserData = async function (uid: any, title: any, hrCode: any) {
+    const key = hrCode + title;
+    const userInterviewRef = ref(db, `user/${uid}/interViewRecords/${key}`);
+
+    try {
+      await set(userInterviewRef, true); // store the actual data here
+      localStorage.removeItem("title");
+      localStorage.removeItem("hr_code")
+      console.log("Interview record updated successfully");
+    } catch (error) {
+      console.error("Error updating interview record:", error);
+    }
+  };
+
+  //Get jobtitle & hr_code from localstorage
+  useEffect(() => {
+    let code = localStorage.getItem("hr_code") || "";
+    let title = localStorage.getItem("title") || "";
+    let actualTitle = title.replace(/\s/g, '');
+    console.log(code, actualTitle)
+    setHrCode(code);
+    setTitle(actualTitle);
+
+  }, [])
 
   useEffect(() => {
     console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
@@ -374,7 +430,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
       // Update transcript: set the answer for the last question
       if (session) {
-        setSession((prev : any) => {
+        setSession((prev: any) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
           if (updatedTranscript.length > 0) {
@@ -431,7 +487,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
         // Update transcript: append the new question
         if (session) {
-          setSession((prev : any) => {
+          setSession((prev: any) => {
             const currentTranscript = prev?.transcript || [];
             const updatedTranscript = [...currentTranscript, { question: aiResponseText, answer: "" }];
             console.log("Updated transcript after AI response:", updatedTranscript);
@@ -485,7 +541,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
         // Update transcript: append the fallback question
         if (session) {
-          setSession((prev : any) => {
+          setSession((prev: any) => {
             const currentTranscript = prev?.transcript || [];
             const updatedTranscript = [...currentTranscript, { question: fallbackResponse, answer: "" }];
             console.log("Updated transcript after fallback:", updatedTranscript);
@@ -824,184 +880,185 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     return { strengths, improvements };
   };
 
-const handleFinishInterview = async () => {
-  console.log("Finishing interview initiated");
-  speechRecognitionRef.current.stop();
-  if (speechSynthesisRef.current) {
-    window.speechSynthesis.cancel();
-  }
-  if (responseTimeoutRef.current) {
-    clearTimeout(responseTimeoutRef.current);
-  }
-  if (continueListeningTimeoutRef.current) {
-    clearTimeout(continueListeningTimeoutRef.current);
-  }
-
-  let recordingUrl: string | undefined = undefined;
-  let recordedBlobs: Blob[] | null = null;
-  if (isRecording) {
-    try {
-      console.log("Stopping recorder");
-      const recordedBlob = await recorderRef.current.stop();
-      if (recordedBlob) {
-        recordedBlobs = [recordedBlob]; // Wrap in array for saveSessionWithRecording
-        console.log("Recording blob obtained, size:", recordedBlob.size);
-      } else {
-        console.warn("No final recording data");
-        toast({
-          title: "No Recording",
-          description:
-            "No video data was recorded, but the interview metadata will be saved.",
-          variant: "default",
-        });
-      }
-    } catch (error: any) {
-      console.error(
-        "Error stopping recorder:",
-        error.name,
-        error.message,
-        error.stack
-      );
-      toast({
-        title: "Recording Error",
-        description:
-          "Failed to save the final recording, but the interview will still end.",
-        variant: "destructive",
-      }); // Fixed: Added closing brace before parenthesis
+  const handleFinishInterview = async () => {
+    console.log("Finishing interview initiated");
+    updateUserData(uid,title,hrCode)
+    speechRecognitionRef.current.stop();
+    if (speechSynthesisRef.current) {
+      window.speechSynthesis.cancel();
     }
-    setIsRecording(false);
-  }
+    if (responseTimeoutRef.current) {
+      clearTimeout(responseTimeoutRef.current);
+    }
+    if (continueListeningTimeoutRef.current) {
+      clearTimeout(continueListeningTimeoutRef.current);
+    }
 
-  // Rest of the function remains unchanged
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => track.stop());
-    setMediaStream(null);
-    console.log("Media stream stopped");
-  }
+    let recordingUrl: string | undefined = undefined;
+    let recordedBlobs: Blob[] | null = null;
+    if (isRecording) {
+      try {
+        console.log("Stopping recorder");
+        const recordedBlob = await recorderRef.current.stop();
+        if (recordedBlob) {
+          recordedBlobs = [recordedBlob]; // Wrap in array for saveSessionWithRecording
+          console.log("Recording blob obtained, size:", recordedBlob.size);
+        } else {
+          console.warn("No final recording data");
+          toast({
+            title: "No Recording",
+            description:
+              "No video data was recorded, but the interview metadata will be saved.",
+            variant: "default",
+          });
+        }
+      } catch (error: any) {
+        console.error(
+          "Error stopping recorder:",
+          error.name,
+          error.message,
+          error.stack
+        );
+        toast({
+          title: "Recording Error",
+          description:
+            "Failed to save the final recording, but the interview will still end.",
+          variant: "destructive",
+        }); // Fixed: Added closing brace before parenthesis
+      }
+      setIsRecording(false);
+    }
 
-  let finalTranscript = session?.transcript || [];
-  if (
-    finalTranscript.length > 0 &&
-    userResponse &&
-    finalTranscript[finalTranscript.length - 1].answer === ""
-  ) {
-    finalTranscript = finalTranscript.map((entry, index) =>
-      index === finalTranscript.length - 1
-        ? { ...entry, answer: userResponse }
-        : entry
-    );
-    console.log("Final transcript after updating last answer:", finalTranscript);
-  }
+    // Rest of the function remains unchanged
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      setMediaStream(null);
+      console.log("Media stream stopped");
+    }
 
-  const userResponses = conversation
-    .filter((msg) => msg.role === "user")
-    .map((msg) => msg.content);
+    let finalTranscript = session?.transcript || [];
+    if (
+      finalTranscript.length > 0 &&
+      userResponse &&
+      finalTranscript[finalTranscript.length - 1].answer === ""
+    ) {
+      finalTranscript = finalTranscript.map((entry, index) =>
+        index === finalTranscript.length - 1
+          ? { ...entry, answer: userResponse }
+          : entry
+      );
+      console.log("Final transcript after updating last answer:", finalTranscript);
+    }
 
-  const overallScore =
-    userResponses.length > 0 ? calculateScore(userResponses) : 0;
+    const userResponses = conversation
+      .filter((msg) => msg.role === "user")
+      .map((msg) => msg.content);
 
-  const { strengths, improvements } = generateFeedback(finalTranscript);
+    const overallScore =
+      userResponses.length > 0 ? calculateScore(userResponses) : 0;
 
-  const updatedSession = {
-    ...session!,
-    recordings: recordedBlobs ? [] : [],
-    feedback: {
-      strengths,
-      improvements,
-      overallScore,
-      transcript: finalTranscript,
-      recording: recordedBlobs ? [] : [],
-    },
-    isCompleted: true,
-  };
+    const { strengths, improvements } = generateFeedback(finalTranscript);
 
-  if (recordedBlobs && session) {
-    try {
-      recordingUrl = await saveSessionWithRecording(
-        {
-          ...updatedSession,
-          recordings: undefined,
-          feedback: {
-            ...updatedSession.feedback,
-            recording: undefined,
+    const updatedSession = {
+      ...session!,
+      recordings: recordedBlobs ? [] : [],
+      feedback: {
+        strengths,
+        improvements,
+        overallScore,
+        transcript: finalTranscript,
+        recording: recordedBlobs ? [] : [],
+      },
+      isCompleted: true,
+    };
+
+    if (recordedBlobs && session) {
+      try {
+        recordingUrl = await saveSessionWithRecording(
+          {
+            ...updatedSession,
+            recordings: undefined,
+            feedback: {
+              ...updatedSession.feedback,
+              recording: undefined,
+            },
           },
-        },
-        recordedBlobs
-      );
-      console.log("Recording URL from Firebase:", recordingUrl);
+          recordedBlobs
+        );
+        console.log("Recording URL from Firebase:", recordingUrl);
 
-      if (recordingUrl) {
-        updatedSession.recordings = [recordingUrl];
-        updatedSession.feedback.recording = [recordingUrl];
+        if (recordingUrl) {
+          updatedSession.recordings = [recordingUrl];
+          updatedSession.feedback.recording = [recordingUrl];
+          toast({
+            title: "Recording Saved",
+            description: recordingUrl.startsWith("blob:")
+              ? "Recording saved locally (Firebase unavailable)."
+              : "Recording uploaded to Firebase Storage.",
+            variant: "default",
+          });
+        } else {
+          console.warn("No recording URL returned from saveSessionWithRecording");
+          toast({
+            title: "Recording Save Failed",
+            description:
+              "Failed to save recording to Firebase, but session metadata saved.",
+            variant: "default",
+          });
+        }
+      } catch (error: any) {
+        console.error(
+          "Error saving session with recording:",
+          error.message,
+          error.stack
+        );
         toast({
-          title: "Recording Saved",
-          description: recordingUrl.startsWith("blob:")
-            ? "Recording saved locally (Firebase unavailable)."
-            : "Recording uploaded to Firebase Storage.",
-          variant: "default",
-        });
-      } else {
-        console.warn("No recording URL returned from saveSessionWithRecording");
-        toast({
-          title: "Recording Save Failed",
-          description:
-            "Failed to save recording to Firebase, but session metadata saved.",
-          variant: "default",
+          title: "Save Error",
+          description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
+          variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error(
-        "Error saving session with recording:",
-        error.message,
-        error.stack
-      );
-      toast({
-        title: "Save Error",
-        description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
-        variant: "destructive",
-      });
+    } else if (session) {
+      try {
+        await saveSessionWithRecording(updatedSession, []);
+        toast({
+          title: "Session Saved",
+          description: "Session metadata saved without recording.",
+          variant: "default",
+        });
+      } catch (error: any) {
+        console.error(
+          "Error saving session without recording:",
+          error.message,
+          error.stack
+        );
+        toast({
+          title: "Save Error",
+          description: "Failed to save session metadata.",
+          variant: "destructive",
+        });
+      }
     }
-  } else if (session) {
-    try {
-      await saveSessionWithRecording(updatedSession, []);
-      toast({
-        title: "Session Saved",
-        description: "Session metadata saved without recording.",
-        variant: "default",
-      });
-    } catch (error: any) {
-      console.error(
-        "Error saving session without recording:",
-        error.message,
-        error.stack
-      );
-      toast({
-        title: "Save Error",
-        description: "Failed to save session metadata.",
-        variant: "destructive",
-      });
-    }
-  }
 
-  console.log("Updated session:", updatedSession);
-  setSession(updatedSession);
-  onComplete(updatedSession.feedback!);
+    console.log("Updated session:", updatedSession);
+    setSession(updatedSession);
+    onComplete(updatedSession.feedback!);
 
-  toast({
-    title: "Interview Completed",
-    description:
-      "Your interview session has ended. Check the feedback for details.",
-    variant: "default",
-  });
-  console.log("Interview finished, feedback sent");
-};
+    toast({
+      title: "Interview Completed",
+      description:
+        "Your interview session has ended. Check the feedback for details.",
+      variant: "default",
+    });
+    console.log("Interview finished, feedback sent");
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
       <div className="md:col-span-2 bg-[#11011E] aspect-video relative overflow-hidden">
         <div className="absolute -top-20 -left-20 w-64 h-64 bg-[#7000FF] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
         <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-[#FF00C7] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
-        
+
         {hasMediaPermission ? (
           <video
             ref={videoRef}
@@ -1020,11 +1077,10 @@ const handleFinishInterview = async () => {
           <Button
             variant="outline"
             size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${
-              micEnabled
-                ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-                : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${micEnabled
+              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
+              : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
+              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleMic}
           >
             {micEnabled ? (
@@ -1038,11 +1094,10 @@ const handleFinishInterview = async () => {
           <Button
             variant="outline"
             size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${
-              videoEnabled
-                ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-                : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${videoEnabled
+              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
+              : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
+              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleVideo}
           >
             {videoEnabled ? (
@@ -1056,11 +1111,10 @@ const handleFinishInterview = async () => {
           <Button
             variant="outline"
             size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${
-              voiceEnabled
-                ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-                : "bg-[rgba(255,255,255,0.1)] border-[rgba(255,255,255,0.1)] text-[#ECF1F0] hover:bg-[rgba(255,255,255,0.2)] hover:scale-105"
-            } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
+            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${voiceEnabled
+              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
+              : "bg-[rgba(255,255,255,0.1)] border-[rgba(255,255,255,0.1)] text-[#ECF1F0] hover:bg-[rgba(255,255,255,0.2)] hover:scale-105"
+              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
             onClick={toggleVoice}
           >
             {voiceEnabled ? (
@@ -1078,11 +1132,10 @@ const handleFinishInterview = async () => {
           {conversation.map((message, index) => (
             <div
               key={index}
-              className={`p-3 rounded-lg ${
-                message.role === "assistant"
-                  ? "bg-[rgba(15,174,150,0.1)] border border-[rgba(15,174,150,0.2)]"
-                  : "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]"
-              }`}
+              className={`p-3 rounded-lg ${message.role === "assistant"
+                ? "bg-[rgba(15,174,150,0.1)] border border-[rgba(15,174,150,0.2)]"
+                : "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]"
+                }`}
             >
               <p className="text-sm font-inter text-[#B6B6B6]">
                 <span className={message.role === "assistant" ? "text-[#0FAE96] font-medium" : "text-[#ECF1F0] font-medium"}>

@@ -13,17 +13,62 @@ import type { SessionType } from "@/app/interview/interview_dashboard/page";
 interface InterviewSetupProps {
   onStart: (role: string, skillLevel: string, jobDescription: string) => void;
   session: SessionType | null;
+  actualTitle?: string; // Add actualTitle prop
+  jd?: string; // Add jd prop
 }
 
-const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session }) => {
-  const [selectedRole, setSelectedRole] = useState<string>(session?.role || "Software Engineer");
+const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session, actualTitle, jd }) => {
+  const [selectedRole, setSelectedRole] = useState<string>("Software Engineer");
   const [customRole, setCustomRole] = useState<string>("");
-  const [skillLevel, setSkillLevel] = useState<string>(session?.skillLevel || "Intermediate");
+  const [skillLevel, setSkillLevel] = useState<string>("Intermediate"); // Default to Intermediate
   const [jobDescription, setJobDescription] = useState<string>("");
   const [geminiApiKey, setGeminiApiKeyState] = useState<string>("");
   const [needsApiKey, setNeedsApiKey] = useState<boolean>(!hasGeminiApiKey());
   const [isValidating, setIsValidating] = useState<boolean>(false);
+
   const { toast } = useToast();
+
+
+
+  // Initialize form values based on props and session
+  useEffect(() => {
+    // Set role from actualTitle if available, otherwise use session role or default
+    if (actualTitle) {
+      // Check if actualTitle matches any predefined roles
+      const predefinedRoles = ["Software Engineer", "Product Manager", "Data Scientist", "Designer"];
+      const matchedRole = predefinedRoles.find(role => 
+        role.toLowerCase().includes(actualTitle.toLowerCase()) || 
+        actualTitle.toLowerCase().includes(role.toLowerCase())
+      );
+      
+      if (matchedRole) {
+        setSelectedRole(matchedRole);
+        setCustomRole("");
+      } else {
+        // If no match, set as "Other" and use actualTitle as custom role
+        setSelectedRole("Other");
+        setCustomRole(actualTitle);
+      }
+    } else if (session?.role) {
+      setSelectedRole(session.role);
+    }
+
+    // Set skill level from session or keep default "Intermediate"
+    if (session?.skillLevel) {
+      setSkillLevel(session.skillLevel);
+    }
+  }, [actualTitle, session]);
+
+  // Separate useEffect for job description to handle async loading
+  useEffect(() => {
+    console.log("JD prop changed:", jd); // Debug log
+    if (jd && jd.trim()) {
+      console.log("Setting job description to:", jd); // Debug log
+      setJobDescription(jd);
+    } else if (session?.jobDescription && !jd) {
+      setJobDescription(session.jobDescription);
+    }
+  }, [jd, session?.jobDescription]);
 
   useEffect(() => {
     setNeedsApiKey(!hasGeminiApiKey());
@@ -87,6 +132,11 @@ const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session }) => 
         <div className="space-y-8 relative bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg p-6">
           <div>
             <Label className="text-lg font-medium font-raleway text-[#ECF1F0] mb-3 block">Select your target role</Label>
+            {actualTitle && (
+              <div className="mb-2 p-2 bg-[rgba(15,174,150,0.1)] border border-[rgba(15,174,150,0.2)] rounded text-sm text-[#0FAE96]">
+                Auto-detected role: {actualTitle}
+              </div>
+            )}
             <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger className="w-full h-12 bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter focus:ring-[#0FAE96] focus:border-[#0FAE96]">
                 <SelectValue placeholder="Select a role" />
@@ -141,6 +191,11 @@ const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session }) => 
             <Label htmlFor="job-description" className="text-lg font-medium font-raleway text-[#ECF1F0] mb-3 block">
               Job Description (for tailored questions)
             </Label>
+            {jd && (
+              <div className="mb-2 p-2 bg-[rgba(15,174,150,0.1)] border border-[rgba(15,174,150,0.2)] rounded text-sm text-[#0FAE96]">
+                Job description auto-loaded from HR profile
+              </div>
+            )}
             <Textarea
               id="job-description"
               value={jobDescription}
@@ -172,18 +227,14 @@ const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session }) => 
           )}
 
           <div className="pt-4 text-right">
-            <div className="pt-4 text-right">
-              <Button
-                onClick={handleStart}
-                disabled={(selectedRole === "Other" && !customRole.trim()) || isValidating}
-                className="inline-flex items-center whitespace-nowrap bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {isValidating ? "Validating API Key..." : "Start Interview"}
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-
-
+            <Button
+              onClick={handleStart}
+              disabled={(selectedRole === "Other" && !customRole.trim()) || isValidating}
+              className="inline-flex items-center whitespace-nowrap bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {isValidating ? "Validating API Key..." : "Start Interview"}
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

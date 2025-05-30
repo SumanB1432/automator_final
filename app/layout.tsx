@@ -8,6 +8,12 @@ import HRNavbar from "@/components/hr/HRNavbar";
 import HRFooter from "@/components/hr/HRFooter";
 import { ToastContainer } from "react-toastify";
 import { usePathname } from "next/navigation";
+import { AppProvider } from "@/context/AppContext";
+import { Sonner } from "@/components/ui/sonnerCourse";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { TanstackProvider } from "@/components/providers/TanstackProvider";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,10 +38,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ToastContainer />
-        {!hideNavAndFooter && (isHRPage ? <HRNavbar /> : <Navbar />)}
-        <main className={paddingClass}>{children}</main>
-        {!hideNavAndFooter && (isHRPage ? <HRFooter /> : <Footer />)}
+        <TanstackProvider>
+          <TooltipProvider>
+            <AppProvider>
+              <ToastContainer />
+              <Sonner />
+              {!hideNavAndFooter && (isHRPage ? <HRNavbar /> : <Navbar />)}
+              <main className={paddingClass}>{children}</main>
+              {!hideNavAndFooter && (isHRPage ? <HRFooter /> : <Footer />)}
+            </AppProvider>
+          </TooltipProvider>
+        </TanstackProvider>
       </body>
     </html>
   );
