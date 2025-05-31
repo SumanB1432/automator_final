@@ -287,22 +287,69 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
       fillResumeData(resumeData);
     }
   }, [resumeData]);
-
-  const handlePrint = useReactToPrint({
+const handlePrint = useReactToPrint({
     contentRef,
     pageStyle: `
-        @page {
-          size: 210mm 297mm; /* A4 size */
-          margin: 10px;
+      @page {
+        size: 210mm 297mm;
+        margin: 2mm 10mm 10mm 10mm !important;
+      }
+
+      @media print {
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
         }
+
+        .resume-content {
+          padding: 10mm !important;
+          box-sizing: border-box !important;
+          page-break-after: always;
+        }
+
+        .resume-content:first-of-type {
+          padding-top: 2mm !important;
+          margin-top: 0mm !important;
+        }
+
+        .resume-content:not(:first-of-type) {
+          padding-top: 14mm !important;
+          margin-top: 10mm !important;
+        }
+
+        .resume-content > *:first-child {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+
+        .section {
+          margin-bottom: 15mm !important;
+          break-inside: avoid !important;
+        }
+
+        .section-content {
+          padding: 10mm !important;
+          line-height: 1.2 !important;
+        }
+
+        .section-content ul {
+          padding-left: 15mm !important;
+        }
+
+        .section-content li {
+          margin-bottom: 5mm !important;
+        }
+
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
+
         header, footer {
           display: none !important;
         }
-      `,
+      }
+    `
   });
 
   const toggleSidebar = (sidebar: "left" | "right") => {
