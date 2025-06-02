@@ -21,29 +21,33 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="animate-slide-in">
-      <div className="mb-8">
-        <div className="flex items-center gap-2">
-          <h2 className="text-3xl font-bold">Your AI Learning Roadmap</h2>
-          <Sparkles className="h-6 w-6 text-amber-400" />
-        </div>
-        <p className="text-muted-foreground mt-1">
-          Based on AI-powered analysis of your resume and job requirements
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-16">
-        <div className="lg:col-span-2">
-          <div className="space-y-8">
-            {learningPath.map((phase) => (
-              <PhaseCard key={phase.id} phase={phase} />
-            ))}
+    <div className="min-h-screen flex flex-col bg-[#11011E]">
+      <div className="animate-slide-in px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl sm:text-3xl font-raleway font-bold text-[#ECF1F0]">
+              Your AI Learning Roadmap
+            </h2>
+            <Sparkles className="h-6 w-6 text-amber-400" />
           </div>
+          <p className="text-[#B6B6B6] font-inter text-sm sm:text-base mt-2">
+            Based on AI-powered analysis of your resume and job requirements
+          </p>
         </div>
-        
-        <div className="space-y-6">
-          <SkillGapSummary />
-          <Milestones />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 pb-16">
+          <div className="lg:col-span-2">
+            <div className="space-y-6">
+              {learningPath.map((phase) => (
+                <PhaseCard key={phase.id} phase={phase} />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <SkillGapSummary />
+            <Milestones />
+          </div>
         </div>
       </div>
     </div>

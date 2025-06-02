@@ -15,68 +15,93 @@ const SkillGapSummary = () => {
     .filter((skill, index, self) => self.indexOf(skill) === index); // Remove duplicates
   
 return (
-      <Card className="bg-white shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Skill Gap Analysis</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-start">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-              <FileText className="h-4 w-4 text-primary" />
+       <div className="flex flex-col bg-[#11011E]">
+      <Card className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl font-raleway font-bold text-[#ECF1F0]">
+            Skill Gap Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-start">
+              <div className="h-8 w-8 rounded-full bg-[rgba(15,174,150,0.1)] flex items-center justify-center mr-3 flex-shrink-0">
+                <FileText className="h-4 w-4 text-[#0FAE96]" />
+                <span className="sr-only">Resume Skills Icon</span>
+              </div>
+              <div>
+                <h3 className="font-raleway font-semibold text-base text-[#ECF1F0] mb-1">
+                  Your Resume Skills
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {resumeSkills.length > 0 ? (
+                    resumeSkills.map((skill, idx) => (
+                      <Badge key={idx} className="border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter text-xs">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[#B6B6B6] font-inter">
+                      No skills detected
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="font-medium mb-1">Your Resume Skills</h3>
-              <div className="flex flex-wrap gap-1">
-                {resumeSkills.length > 0 ? (
-                  resumeSkills.map((skill, idx) => (
-                    <Badge key={idx} variant="outline">{skill}</Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">No skills detected</span>
-                )}
+
+            <div className="flex items-start">
+              <div className="h-8 w-8 rounded-full bg-[rgba(15,174,150,0.1)] flex items-center justify-center mr-3 flex-shrink-0">
+                <Briefcase className="h-4 w-4 text-[#0FAE96]" />
+                <span className="sr-only">Job Skills Icon</span>
+              </div>
+              <div>
+                <h3 className="font-raleway font-semibold text-base text-[#ECF1F0] mb-1">
+                  Required Job Skills
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {jobSkills.length > 0 ? (
+                    jobSkills.map((skill, idx) => (
+                      <Badge key={idx} className="border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter text-xs">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[#B6B6B6] font-inter">
+                      No skills detected
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              <div className="h-8 w-8 rounded-full bg-[rgba(15,174,150,0.1)] flex items-center justify-center mr-3 flex-shrink-0">
+                <GraduationCap className="h-4 w-4 text-[#0FAE96]" />
+                <span className="sr-only">Skills to Learn Icon</span>
+              </div>
+              <div>
+                <h3 className="font-raleway font-semibold text-base text-[#ECF1F0] mb-1">
+                  Skills to Learn
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {missingSkills.length > 0 ? (
+                    missingSkills.map((skill, idx) => (
+                      <Badge key={idx} className="bg-[#0FAE96] text-white font-inter text-xs">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[#B6B6B6] font-inter">
+                      No skill gaps detected
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="flex items-start">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-              <Briefcase className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium mb-1">Required Job Skills</h3>
-              <div className="flex flex-wrap gap-1">
-                {jobSkills.length > 0 ? (
-                  jobSkills.map((skill, idx) => (
-                    <Badge key={idx} variant="outline">{skill}</Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">No skills detected</span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-start">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-              <GraduationCap className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium mb-1">Skills to Learn</h3>
-              <div className="flex flex-wrap gap-1">
-                {missingSkills.length > 0 ? (
-                  missingSkills.map((skill, idx) => (
-                    <Badge key={idx}>{skill}</Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">No skill gaps detected</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 export default SkillGapSummary;

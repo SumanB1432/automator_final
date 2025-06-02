@@ -1,7 +1,7 @@
-// src/context/AppContext.tsx
-"use client"
+"use client";
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+
 import { 
   Resume, 
   JobDescription, 
@@ -36,7 +36,7 @@ interface AppState {
 }
 
 const initialState: AppState = {
-  resume: null,
+  resume: null, // Initialize as null to avoid server-side localStorage access
   jobDescriptions: [],
   formStep: FormStep.WELCOME,
   resumeSkills: [],
@@ -96,6 +96,9 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'SET_RESUME': {
       const skills = extractSkillsFromText(action.payload);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('resume', action.payload); // Persist only on client
+      }
       return {
         ...state,
         resume: {
@@ -281,7 +284,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                 progress: 100
               }))
             };
-          }),
+          })
         })),
         userProgress: {
           ...state.userProgress,
@@ -305,21 +308,15 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
           const phaseIndex = updatedPath.findIndex(p => p.id === phase.id);
           return {
             ...newState,
-            learningPath: updatedPath.map((p, index) => {
-              if (p.id === phase.id) {
-                return { ...p, isCompleted: true };
-              }
-              if (index === phaseIndex + 1) {
-                return { ...p, isUnlocked: true };
-              }
-              return p;
-            }),
-            quizzes: newState.quizzes.map(quiz => {
-              if (quiz.phaseId === phase.id) {
-                return { ...quiz, isUnlocked: true };
-              }
-              return quiz;
-            }),
+            learningPath: updatedPath.map((p, index) => ({
+              ...p,
+              isCompleted: p.id === phase.id ? true : p.isCompleted,
+              isUnlocked: index === phaseIndex + 1 ? true : p.isUnlocked
+            })),
+            quizzes: newState.quizzes.map(quiz => ({
+              ...quiz,
+              isUnlocked: quiz.phaseId === phase.id ? true : quiz.isUnlocked
+            })),
             milestones: newState.milestones.map(milestone => {
               if (
                 milestone.id === 'milestone-2' && 
@@ -349,18 +346,14 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       
       return {
         ...state,
-        learningPath: state.learningPath.map(phase => {
-          if (phase.id === phaseId) {
-            return { ...phase, isUnlocked: true };
-          }
-          return phase;
-        }),
-        quizzes: state.quizzes.map(quiz => {
-          if (quiz.phaseId === phaseId) {
-            return { ...quiz, isUnlocked: true };
-          }
-          return quiz;
-        })
+        learningPath: state.learningPath.map(phase => ({
+          ...phase,
+          isUnlocked: phase.id === phaseId ? true : phase.isUnlocked
+        })),
+        quizzes: state.quizzes.map(quiz => ({
+          ...quiz,
+          isUnlocked: quiz.phaseId === phaseId ? true : quiz.isUnlocked
+        }))
       };
     }
     
@@ -372,15 +365,11 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       
       return {
         ...state,
-        learningPath: state.learningPath.map((phase, index) => {
-          if (phase.id === phaseId) {
-            return { ...phase, isCompleted: true };
-          }
-          if (index === nextPhaseIndex) {
-            return { ...phase, isUnlocked: true };
-          }
-          return phase;
-        }),
+        learningPath: state.learningPath.map((phase, index) => ({
+          ...phase,
+          isCompleted: phase.id === phaseId ? true : phase.isCompleted,
+          isUnlocked: index === nextPhaseIndex ? true : phase.isUnlocked
+        })),
         userProgress: {
           ...state.userProgress,
           currentPhaseId: 
@@ -396,12 +385,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       
       return {
         ...state,
-        milestones: state.milestones.map(milestone => {
-          if (milestone.id === milestoneId) {
-            return { ...milestone, isAchieved: true };
-          }
-          return milestone;
-        }),
+        milestones: state.milestones.map(milestone => ({
+          ...milestone,
+          isAchieved: milestone.id === milestoneId ? true : milestone.isAchieved
+        })),
         userProgress: {
           ...state.userProgress,
           achievedMilestones: [...state.userProgress.achievedMilestones, milestoneId]
@@ -415,12 +402,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         learningPath: state.learningPath.map(phase => ({
           ...phase,
-          skills: phase.skills.map(skill => {
-            if (skill.id === skillId) {
-              return { ...skill, videos };
-            }
-            return skill;
-          })
+          skills: phase.skills.map(skill => ({
+            ...skill,
+            videos: skill.id === skillId ? videos : skill.videos
+          }))
         }))
       };
     }
@@ -455,36 +440,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const router = useRouter();
   const pathname = usePathname();
 
+  // Load resume from localStorage on client mount
   useEffect(() => {
-    // Define course-related routes
-    const courseRoutes = [
-      '/course',
-      '/resume',
-      '/resume/job-descriptions',
-      '/resume/job-descriptions/dashboard'
-    ];
-    // Only trigger navigation for course-related routes
-    if (courseRoutes.includes(pathname)) {
-      switch (state.formStep) {
-        case FormStep.WELCOME:
-          router.push('/course');
-          break;
-        case FormStep.RESUME:
-          router.push('/resume');
-          break;
-        case FormStep.JOB_DESCRIPTIONS:
-        case FormStep.ANALYZING:
-          router.push('/resume/job-descriptions');
-          break;
-        case FormStep.RESULTS:
-          console.log('Navigating to /resume/job-descriptions/dashboard');
-          router.push('/resume/job-descriptions/dashboard');
-          break;
+    if (typeof window !== 'undefined') {
+      const savedResume = localStorage.getItem('resume');
+      if (savedResume && !state.resume) {
+        console.log('Loading resume from localStorage:', savedResume); // Debug log
+        dispatch({ type: 'SET_RESUME', payload: savedResume });
       }
     }
-  }, [state.formStep, router, pathname]);
+  }, []); // Empty dependency array to run once on mount
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('AppContext state:', state);
+  }, [state]);
 
   const setResume = (text: string) => {
+    console.log('setResume called with:', text); // Debug log
     dispatch({ type: 'SET_RESUME', payload: text });
   };
 
@@ -501,17 +474,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const setFormStep = (step: FormStep) => {
-    console.log(`Setting formStep to: ${step}`);
+    console.log('Setting formStep to:', step); // Debug log
     dispatch({ type: 'SET_FORM_STEP', payload: step });
   };
 
   const analyzeData = async () => {
-    console.log('Starting analyzeData...');
+    console.log('Starting analyzeData, resume:', state.resume); // Debug log
     dispatch({ type: 'START_ANALYSIS' });
-    
-    if (!state.resume || state.jobDescriptions.length === 0) {
-      console.error('Missing resume or job descriptions');
+
+    if (!state.resume) {
+      console.error('Missing resume');
+      dispatch({ type: 'SET_FORM_STEP', payload: FormStep.RESUME });
+      router.push('/course/resumeUpload');
+      return;
+    }
+    if (state.jobDescriptions.length === 0) {
+      console.error('Missing job descriptions');
       dispatch({ type: 'SET_FORM_STEP', payload: FormStep.JOB_DESCRIPTIONS });
+      router.push('/course/jobdescription');
       return;
     }
     
@@ -522,10 +502,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         jobDescriptionTexts
       );
 
-      // Create learning path
       let learningPath = createLearningPath(analysisResult.missingSkills);
-
-      // Fetch videos for each skill
       learningPath = await Promise.all(
         learningPath.map(async (phase) => ({
           ...phase,
@@ -535,27 +512,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               videos: await fetchEducationalVideos(skill.name),
             })),
           ),
-        })),
+        }))
       );
 
-      console.log('Analysis complete:', { ...analysisResult, learningPath });
-
+      console.log('Analysis complete:', { ...analysisResult, learningPath }); // Debug log
       dispatch({ 
         type: 'COMPLETE_ANALYSIS',
         payload: { ...analysisResult, learningPath }
       });
-
-      console.log('State updated, formStep set to RESULTS');
+      router.push('/course/dashboard');
     } catch (error) {
       console.error('Error during analysis:', error);
-      
       const resumeSkills = state.resume ? extractSkillsFromText(state.resume.text) : [];
       const allJobSkills = state.jobDescriptions
         .flatMap(job => job.skills)
         .filter((skill, index, self) => self.indexOf(skill) === index);
       const missingSkills = findSkillGaps(resumeSkills, allJobSkills);
       
-      // Create fallback learning path
       let learningPath = createLearningPath(missingSkills);
       learningPath = await Promise.all(
         learningPath.map(async (phase) => ({
@@ -566,7 +539,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               videos: await fetchEducationalVideos(skill.name),
             })),
           ),
-        })),
+        }))
       );
 
       dispatch({
@@ -578,6 +551,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           learningPath
         }
       });
+      router.push('/course/dashboard');
     }
   };
 

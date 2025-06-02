@@ -15,67 +15,79 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phase }) => {
   const totalSkills = phase.skills.length;
   
   return (
-     <Card className={`phase-card ${phase.isCompleted ? 'border-success' : ''}`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {phase.isCompleted ? (
-              <CheckCircle className="h-5 w-5 text-success" />
-            ) : phase.isUnlocked ? (
-              <BookOpen className="h-5 w-5 text-primary" />
-            ) : (
-              <Lock className="h-5 w-5 text-muted-foreground" />
-            )}
-            <CardTitle className="text-xl">{phase.name}</CardTitle>
-          </div>
-          <Badge variant={phase.isCompleted ? "outline" : "default"}>
-            {completedSkills}/{totalSkills} Skills
-          </Badge>
-        </div>
-        <CardDescription>{phase.description}</CardDescription>
-        
-        <div className="w-full mt-4">
-          <div className="flex items-center justify-between mb-1 text-sm">
-            <span>Progress</span>
-            <span className="font-medium">{phase.progress}%</span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-value" 
-              style={{ width: `${phase.progress}%` }}
-            />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4 space-y-4">
-        {phase.skills.map(skill => (
-          <SkillCard 
-            key={skill.id} 
-            skill={skill} 
-            isLocked={!phase.isUnlocked}
-          />
-        ))}
-      </CardContent>
-      {phase.isCompleted && (
-        <CardFooter className="bg-success/5 border-t border-success/20">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center text-success">
-              <CheckCircle className="h-5 w-5 mr-2" />
-              <span className="font-medium">Phase Completed</span>
+     <div className="flex flex-col bg-[#11011E]">
+      <Card className={`phase-card bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] ${phase.isCompleted ? 'border-[#0FAE96]' : ''}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              {phase.isCompleted ? (
+                <CheckCircle className="h-5 w-5 text-[#0FAE96]" />
+              ) : phase.isUnlocked ? (
+                <BookOpen className="h-5 w-5 text-[#ECF1F0]" />
+              ) : (
+                <Lock className="h-5 w-5 text-[#B6B6B6]" />
+              )}
+              <CardTitle className="text-lg sm:text-xl font-raleway font-bold text-[#ECF1F0]">
+                {phase.name}
+              </CardTitle>
             </div>
-            <Button variant="outline">Take Quiz</Button>
+            <Badge className={`text-xs font-inter ${phase.isCompleted ? 'border-[rgba(255,255,255,0.05)] text-[#B6B6B6]' : 'bg-[#0FAE96] text-white'}`}>
+              {completedSkills}/{totalSkills} Skills
+            </Badge>
           </div>
-        </CardFooter>
-      )}
-      {!phase.isUnlocked && !phase.isCompleted && (
-        <CardFooter className="bg-muted/30">
-          <div className="flex items-center text-muted-foreground">
-            <Lock className="h-5 w-5 mr-2" />
-            <span>Complete previous phase to unlock</span>
+          <CardDescription className="text-[#B6B6B6] font-inter text-sm mt-2">
+            {phase.description}
+          </CardDescription>
+
+          <div className="w-full mt-4">
+            <div className="flex items-center justify-between mb-1 text-sm text-[#ECF1F0] font-inter">
+              <span>Progress</span>
+              <span className="font-semibold">{phase.progress}%</span>
+            </div>
+            <div className="progress-bar h-2 bg-[rgba(255,255,255,0.05)] rounded-full">
+              <div
+                className="progress-value h-2 bg-[#0FAE96] rounded-full transition-all duration-300"
+                style={{ width: `${phase.progress}%` }}
+              />
+            </div>
           </div>
-        </CardFooter>
-      )}
-    </Card>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {phase.skills.map(skill => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              isLocked={!phase.isUnlocked}
+            />
+          ))}
+        </CardContent>
+        {phase.isCompleted && (
+          <CardFooter className="bg-[rgba(15,174,150,0.05)] border-t border-[rgba(15,174,150,0.2)]">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center text-[#0FAE96]">
+                <CheckCircle className="h-5 w-5 mr-2" />
+                <span className="font-raleway font-semibold text-[#ECF1F0] text-sm">
+                  Phase Completed
+                </span>
+              </div>
+              <Button
+                className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] h-10"
+              >
+                Take Quiz
+              </Button>
+            </div>
+          </CardFooter>
+        )}
+        {!phase.isUnlocked && !phase.isCompleted && (
+          <CardFooter className="bg-[rgba(255,255,255,0.02)] border-t border-[rgba(255,255,255,0.05)]">
+            <div className="flex items-center text-[#B6B6B6] font-inter text-sm">
+              <Lock className="h-5 w-5 mr-2 text-[#ECF1F0]" />
+              <span>Complete previous phase to unlock</span>
+            </div>
+          </CardFooter>
+        )}
+      </Card>
+    </div>
   );
 };
 
