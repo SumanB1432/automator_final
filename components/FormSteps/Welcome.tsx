@@ -38,7 +38,7 @@ useEffect(() => {
     // Fetch data and wait for it to resolve
     fetchSkillsDataFromFirebase(uid).then((skillsData) => {
       // Check if skillsData exists and is valid
-      if (skillsData && Object.keys(skillsData).length > 0) {
+      if (skillsData && Object.keys(skillsData).length > 0 && skillsData.learningPath[0]?.skills[0]?.videos?.length>0) {
         setTimeout(() => {
           window.location.href = "/course/dashboard";
         }, 1000);
