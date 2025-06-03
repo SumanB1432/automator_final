@@ -57,7 +57,7 @@ export const fetchEducationalVideos = async (skill: string): Promise<{
     // Process 'data' to extract video information and return in the specified format.
 
     // Replace with your actual video search API key (e.g., YouTube Data API)
-    const apiKey = process.env.YOUTUBE_API_KEY; // Or get it from a secure source
+    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY; // Or get it from a secure source
     // console.log('VITE_REACT_APP_YOUTUBE_API_KEY:', apiKey);
     // console.log('import.meta.env:', import.meta.env);
     if (!apiKey) {
