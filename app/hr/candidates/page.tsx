@@ -32,13 +32,16 @@ export default function CandidatesPage() {
   const db = getDatabase(app);
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
-  const areAllSelected = filteredCandidates.length > 0 && selectedCandidates.length === filteredCandidates.length;
+
+
+  const visibleCandidates = filteredCandidates.filter((c: Candidate) => c.name !== 'Processing Error');
+  const areAllSelected = visibleCandidates.length > 0 && selectedCandidates.length === visibleCandidates.length;
 
   const handleSelectAll = () => {
     if (areAllSelected) {
       setSelectedCandidates([]);
     } else {
-      const allIds = filteredCandidates.map((c) => c.id);
+      const allIds = visibleCandidates.map((c) => c.id);
       setSelectedCandidates(allIds);
     }
   };
@@ -374,9 +377,8 @@ export default function CandidatesPage() {
     <>
       {/* Main Content with Conditional Blur */}
       <motion.div
-        className={`flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${
-          isSending ? "blur-sm" : ""
-        }`}
+        className={`flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${isSending ? "blur-sm" : ""
+          }`}
         transition={{ duration: 0.3 }}
       >
         {/* Left Panel */}
@@ -416,63 +418,41 @@ export default function CandidatesPage() {
               </div>
             )}
             {isClient && (
-              <div className="flex flex-wrap items-center gap-4">
-                {hasActiveFilters && (
-                  <span className="inline-flex items-center gap-4 px-3 py-1 mt-4 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
-                    </svg>
-                    Active Filters
-                  </span>
-                )}
-                <button
-                  onClick={handleDownloadDetails}
-                  className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-                >
-                  Download Details
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  className="inline-flex items-center px-4 py-2 mt-4 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-                  disabled={isEmailButtonLoading}
-                >
-                  {isEmailButtonLoading ? (
-                    <div className="flex items-center gap-2">
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
+              <div className="space-y-4 relative">
+                <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
+                {filteredCandidates.length > 0 ? (
+                  filteredCandidates
+                    .filter((c: Candidate) => c.name !== 'Processing Error') // Exclude error candidates
+                    .map((c: Candidate) => (
+                      <motion.div
+                        key={c.id}
+                        onClick={() => setSelectedId(c.id)}
+                        className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Processing...
-                    </div>
-                  ) : (
-                    "Send Auto Email"
-                  )}
-                </button>
-                <div className="flex items-center gap-2 mt-4">
-                  <input
-                    type="checkbox"
-                    checked={areAllSelected}
-                    onChange={handleSelectAll}
-                    className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
-                  />
-                  <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
-                </div>
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
+                            <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedCandidates.includes(c.id)}
+                              onChange={() => handleCandidateSelect(c.id)}
+                              className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
+                            />
+                          </div>
+                        </div>
+                        <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
+                          Score: {c.score}
+                        </div>
+                      </motion.div>
+                    ))
+                ) : (
+                  <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
+                )}
               </div>
             )}
           </div>

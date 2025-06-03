@@ -102,12 +102,13 @@ const handleParseResumes = async () => {
 
         const { candidate }: { candidate: Candidate } = await res.json();
 
-        // Skip candidates with name "Unknown" or parsing errors
+        // Skip candidates with name "Unknown" or any parsing issues
         if (candidate.name === 'Unknown') {
           toast.warn(`Skipped ${file.name}: Candidate name is 'Unknown'`);
           continue;
         }
 
+        // Only add valid candidates to the list
         allCandidates.push(candidate);
         toast.success(`Processed ${file.name} successfully!`);
       } catch (err: unknown) {
