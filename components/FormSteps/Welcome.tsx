@@ -6,14 +6,50 @@ import { useAppContext } from '@/context/AppContext';
 import { FormStep } from '@/types/index';
 import { FileText, Briefcase, BookOpen, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/firebase/config';
+import { fetchSkillsDataFromFirebase } from '@/services/firebaseService';
 
 const Welcome = () => {
   const { setFormStep } = useAppContext();
+  const [uid, setUid] = useState<string>("")
   const router = useRouter();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUid(currentUser?.uid)
+        console.log("User signed in:", currentUser);
+      } else {
+        toast.error("You need to be signed in to access this page!");
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 2000)
+
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+  useEffect(() => {
+    if (uid) {
+      let fetchSkills = fetchSkillsDataFromFirebase(uid);
+      if (fetchSkills) {
+        setTimeout(() => {
+          window.location.href = "/course/dashboard"
+        }, 1000)
+      }
+    }
+
+  }, [uid])
   const handleOnclick = () => {
     setFormStep(FormStep.RESUME);
-    router.push('/course/resumeUpload');
+    setTimeout(() => {
+      router.push('/course/resumeUpload');
+    }, 2000)
+
   };
 
   return (
@@ -51,7 +87,7 @@ const Welcome = () => {
             </div>
           </div>
           <div className="bg-[rgba(255,255,255,0.02)] p-6 flex justify-center">
-            <button 
+            <button
               className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={handleOnclick}
             >

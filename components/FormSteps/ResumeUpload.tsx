@@ -1,4 +1,3 @@
-// ResumeUpload.tsx
 "use client";
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,33 +5,107 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Textarea } from '@/components/ui/textarea';
 import { useAppContext } from '@/context/AppContext';
 import { FormStep } from '@/types/index';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
+import { getAuth } from 'firebase/auth';
+import { fetchGeminiApiKey, fetchUserResumeData } from '@/services/firebaseService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { toast } from 'react-toastify';
 const ResumeUpload = () => {
   const { state, setResume, setFormStep } = useAppContext();
   const [resumeText, setResumeText] = useState(state.resume?.text || '');
   const [error, setError] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false); // Track submission
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoadingResume, setIsLoadingResume] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const router = useRouter();
+  const auth = getAuth();
+
+  // Fetch Gemini API key on mount
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        console.log("User signed in:", currentUser);
+      } else {
+        toast.error("You need to be signed in to access this page!");
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 2000)
+
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const key = await fetchGeminiApiKey(user.uid);
+          setApiKey(key);
+          console.log('Gemini API key fetched:', key ? 'Present' : 'Not found');
+        } catch (error) {
+          console.error('Error fetching Gemini API key:', error);
+          setError('Failed to fetch API key. Manual resume input is still available.');
+        }
+      }
+    };
+    fetchApiKey();
+  }, [auth.currentUser]);
+
+  // Load resume from URD
+  const handleLoadResume = async () => {
+    setIsLoadingResume(true);
+    setError('');
+    const user = auth.currentUser;
+    if (!user) {
+      setError('Please sign in to load your resume.');
+      setIsLoadingResume(false);
+      return;
+    }
+    try {
+      const urd = await fetchUserResumeData(user.uid);
+      if (urd) {
+        console.log('URD fetched:', urd);
+        setResumeText(urd);
+        setResume(urd);
+        setIsSubmitted(true);
+      } else {
+        setError('No resume data found in your profile.');
+      }
+    } catch (error) {
+      console.error('Error fetching URD:', error);
+      setError('Failed to load resume. Please try again or paste manually.');
+      setTimeout(() => {
+        window.location.href = "/resume2"
+      }, 2000)
+    } finally {
+      setIsLoadingResume(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (!resumeText.trim()) {
-      setError('Please paste your resume text');
+      setError('Please paste your resume text or load from profile.');
       return;
     }
-    console.log('Submitting resume:', resumeText); // Debug log
+    console.log('Submitting resume:', resumeText);
     setResume(resumeText);
-    setIsSubmitted(true); // Mark as submitted
+    setIsSubmitted(true);
   };
 
   // Navigate after resume is set
   useEffect(() => {
     if (isSubmitted && state.resume?.text === resumeText && resumeText.trim()) {
-      console.log('Resume set, navigating to job descriptions'); // Debug log
+      console.log('Resume set, navigating to job descriptions');
       setFormStep(FormStep.JOB_DESCRIPTIONS);
-      router.push('/course/jobdescription');
-      setIsSubmitted(false); // Reset submission flag
+      setTimeout(()=>{
+       router.push('/course/jobdescription');
+      },2000)
+     
+      setIsSubmitted(false);
     }
   }, [isSubmitted, state.resume, resumeText, setFormStep, router]);
 
@@ -48,12 +121,12 @@ const ResumeUpload = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-[#7000FF]/25 to-[#FF00C7]/25 blur-[180px] opacity-25 pointer-events-none"></div>
           <div className="px-6 py-8 relative">
             <h2 className="text-2xl font-raleway font-bold text-[#ECF1F0]">Upload Your Resume</h2>
-            <p className="text-[#B6B6B6] font-inter mt-2">Copy and paste the text from your resume in the field below</p>
+            <p className="text-[#B6B6B6] font-inter mt-2">Copy and paste the text from your resume or load from your profile</p>
           </div>
           <div className="px-6 sm:px-8 pb-8">
             <div className="space-y-6">
               <div className="space-y-3">
-                <textarea
+                <Textarea
                   placeholder="Paste your resume text here..."
                   className="min-h-[300px] w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                   value={resumeText}
@@ -62,6 +135,20 @@ const ResumeUpload = () => {
                     setError('');
                   }}
                 />
+                <Button
+                  className="bg-[#7000FF] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#7000FF]"
+                  onClick={handleLoadResume}
+                  disabled={isLoadingResume}
+                >
+                  {isLoadingResume ? (
+                    <span>Loading...</span>
+                  ) : (
+                    <>
+                      <User className="mr-2 h-4 w-4 inline" />
+                      Load Resume from Profile
+                    </>
+                  )}
+                </Button>
                 {error && <p className="text-[#FF6B6B] text-sm font-inter">{error}</p>}
               </div>
               <div className="bg-[#11011E] p-4 rounded-md">
@@ -75,18 +162,19 @@ const ResumeUpload = () => {
             </div>
           </div>
           <div className="bg-[#11011E] px-6 py-6 flex justify-between">
-            <button
+            <Button
               className="bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={() => setFormStep(FormStep.WELCOME)}
             >
               <ArrowLeft className="mr-2 h-4 w-4 inline" /> Back
-            </button>
-            <button
-              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+            </Button>
+            <Button
+              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={handleSubmit}
+              disabled={isLoadingResume}
             >
               Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

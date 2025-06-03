@@ -40,18 +40,18 @@ const Navbar = () => {
           let lname = snapshot.val()?.lname;
           let email = snapshot.val()?.email;
           let user = "";
-        
+
           if (Name) {
             user = Name;
             const cleanedName = user.replace(/\s/g, "");
-            localStorage.setItem("name",user);
-            localStorage.setItem("email",email);
+            localStorage.setItem("name", user);
+            localStorage.setItem("email", email);
             setFullName(user);
           } else {
             user = fname + " " + lname;
             const cleanedName = user.replace(/\s/g, "");
-            localStorage.setItem("name",user);
-            localStorage.setItem("email",email);
+            localStorage.setItem("name", user);
+            localStorage.setItem("email", email);
             setFullName(user);
           }
         });
@@ -95,10 +95,10 @@ const Navbar = () => {
         {[
           { label: "Home", path: "/" },
           { label: "Referral", path: "/referral" },
-          { label: "About", path: "/about" },
+          { label: "Skill Advisor", path: "/course" },
           { label: "ATS Resume", path: "/atsresume" },
           { label: "For Recruiters", path: "/hr" },
-          
+
         ].map((item) => (
           <li
             key={item.path}
@@ -149,7 +149,7 @@ const Navbar = () => {
           {[
             { label: "Home", path: "/" },
             { label: "Referral", path: "/referral" },
-            { label: "About", path: "/about" },
+            { label: "Skill Advisor", path: "/course" },
             { label: "ATS Resume", path: "/atsresume" },
             { label: "For Recruiters", path: "/hr" },
           ].map((item) => (

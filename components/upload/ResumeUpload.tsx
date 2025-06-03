@@ -61,97 +61,89 @@ export default function ResumeUpload({
     setSelectedFiles(fileList);
   };
 
-  const handleParseResumes = async () => {
-    if (!jobDescription.trim()) {
-      setError('Job description is required.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
+const handleParseResumes = async () => {
+  if (!jobDescription.trim()) {
+    setError('Job description is required.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
 
-    if (selectedFiles.length === 0) {
-      setError('Please select at least one resume file.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
+  if (selectedFiles.length === 0) {
+    setError('Please select at least one resume file.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
 
-    setLoading(true);
-    setError('');
-    const allCandidates: Candidate[] = [];
+  setLoading(true);
+  setError('');
+  const allCandidates: Candidate[] = [];
 
-    try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        toast.info(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`);
+  try {
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      toast.info(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('jd', jobDescription);
-        formData.append('rs', recruiterSuggestion);
-        formData.append('jt', jobTitle);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('jd', jobDescription);
+      formData.append('rs', recruiterSuggestion);
+      formData.append('jt', jobTitle);
 
-        try {
-          const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
-            method: 'POST',
-            body: formData,
-          });
+      try {
+        const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
+          method: 'POST',
+          body: formData,
+        });
 
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || `Failed to parse ${file.name}`);
-          }
-
-          const { candidate }: { candidate: Candidate } = await res.json();
-          
-          // Skip candidates with name "Unknown"
-          if (candidate.name === 'Unknown') {
-            toast.warn(`Skipped ${file.name}: Candidate name is 'Unknown'`);
-            continue;
-          }
-
-          allCandidates.push(candidate);
-          toast.success(`Processed ${file.name} successfully!`);
-        } catch (err: unknown) {
-          const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
-          toast.error(`Error processing ${file.name}: ${errorMessage}`);
-          const errorCandidate: Candidate = {
-            id: `error-${file.name}-${i}`,
-            name: 'Processing Error',
-            email: `error_${i}@example.com`,
-            phone: 'N/A',
-            location: 'N/A',
-            score: 0,
-            parsedText: `Error processing ${file.name}: ${errorMessage}`,
-            skills: [],
-            experience: 0,
-            jobTitle: 'Error',
-            education: 'N/A',
-            approved: false,
-            resumeUrl: `File: ${file.name}`,
-          };
-          allCandidates.push(errorCandidate);
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || `Failed to parse ${file.name}`);
         }
-      }
 
-      setCandidates(allCandidates);
-      console.log(allCandidates, "candidate");
-      setSelectedFiles([]);
-      toast.success('Resumes parsed successfully!');
+        const { candidate }: { candidate: Candidate } = await res.json();
 
-      setTimeout(() => {
-        window.location.href = "/hr/candidates";
-      }, 3000);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || 'Unexpected error occurred.');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        setError('Unexpected error occurred.');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Skip candidates with name "Unknown" or parsing errors
+        if (candidate.name === 'Unknown') {
+          toast.warn(`Skipped ${file.name}: Candidate name is 'Unknown'`);
+          continue;
+        }
+
+        allCandidates.push(candidate);
+        toast.success(`Processed ${file.name} successfully!`);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+        toast.error(`Error processing ${file.name}: ${errorMessage}`);
+        // Do not add error candidates to allCandidates
       }
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (allCandidates.length === 0) {
+      setError('No valid resumes were processed successfully.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setLoading(false);
+      return;
+    }
+
+    setCandidates(allCandidates);
+    console.log(allCandidates, "candidate");
+    setSelectedFiles([]);
+    toast.success('Resumes parsed successfully!');
+
+    setTimeout(() => {
+      window.location.href = "/hr/candidates";
+    }, 3000);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      setError(err.message || 'Unexpected error occurred.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setError('Unexpected error occurred.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#11011E] py-12 px-6 relative overflow-hidden">

@@ -12,7 +12,7 @@ const Milestones = () => {
   const totalCount = milestones.length;
 
   return (
-  <div className="min-h-screen flex flex-col bg-[#11011E]">
+  <div className="flex flex-col bg-[#11011E]">
       <Card className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

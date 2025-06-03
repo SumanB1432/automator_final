@@ -86,3 +86,18 @@ export enum FormStep {
   ANALYZING = 'analyzing',
   RESULTS = 'results'
 }
+export interface Quiz {
+  id: string;
+  phaseId: string;
+  questions: Question[];
+  isUnlocked: boolean;
+  isCompleted: boolean;
+  passingScore: number;
+}
+
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswerIndex: number;
+}

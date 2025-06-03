@@ -1,7 +1,9 @@
 "use client";
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { saveSkillsDataToFirebase, fetchSkillsDataFromFirebase } from '@/services/firebaseService';
+import { AppState } from '@/types/AppContext';
 import { 
   Resume, 
   JobDescription, 
@@ -16,27 +18,12 @@ import {
   extractSkillsFromText, 
   findSkillGaps, 
   createLearningPath,
-  getMockVideosForSkill,
   analyzeWithGeminiAI,
   fetchEducationalVideos
 } from '@/services/analysisService';
 
-interface AppState {
-  resume: Resume | null;
-  jobDescriptions: JobDescription[];
-  formStep: FormStep;
-  resumeSkills: string[];
-  jobSkills: string[];
-  missingSkills: string[];
-  learningPath: Phase[];
-  userProgress: UserProgress;
-  milestones: Milestone[];
-  quizzes: Quiz[];
-  isAnalyzing: boolean;
-}
-
 const initialState: AppState = {
-  resume: null, // Initialize as null to avoid server-side localStorage access
+  resume: null,
   jobDescriptions: [],
   formStep: FormStep.WELCOME,
   resumeSkills: [],
@@ -46,7 +33,7 @@ const initialState: AppState = {
   userProgress: {
     currentPhaseId: '',
     completedSkills: [],
-    completedVideos: [],
+    completedVideos: [], // Ensure initialized as array
     completedQuizzes: [],
     achievedMilestones: []
   },
@@ -74,7 +61,8 @@ const initialState: AppState = {
     }
   ],
   quizzes: [],
-  isAnalyzing: false
+  isAnalyzing: false,
+  isLoading: true
 };
 
 type AppAction =
@@ -90,14 +78,16 @@ type AppAction =
   | { type: 'UNLOCK_PHASE'; payload: string }
   | { type: 'COMPLETE_PHASE'; payload: string }
   | { type: 'ACHIEVE_MILESTONE'; payload: string }
-  | { type: 'SET_SKILL_VIDEOS'; payload: { skillId: string; videos: Video[] } };
+  | { type: 'SET_SKILL_VIDEOS'; payload: { skillId: string; videos: Video[] } }
+  | { type: 'SET_STATE_FROM_FIREBASE'; payload: AppState }
+  | { type: 'SET_LOADING'; payload: boolean };
 
 const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'SET_RESUME': {
       const skills = extractSkillsFromText(action.payload);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('resume', action.payload); // Persist only on client
+        localStorage.setItem('resume', action.payload);
       }
       return {
         ...state,
@@ -195,7 +185,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
           milestone.id === 'milestone-1' 
             ? { ...milestone, isAchieved: true } 
             : milestone
-        )
+        ),
+        isLoading: false
       };
     }
     
@@ -228,6 +219,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'COMPLETE_VIDEO': {
       const { skillId, videoId } = action.payload;
+      console.log('COMPLETE_VIDEO:', { skillId, videoId, completedVideos: state.userProgress.completedVideos });
       
       const newState = {
         ...state,
@@ -252,7 +244,9 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         })),
         userProgress: {
           ...state.userProgress,
-          completedVideos: [...state.userProgress.completedVideos, videoId]
+          completedVideos: Array.isArray(state.userProgress.completedVideos)
+            ? [...state.userProgress.completedVideos, videoId]
+            : [videoId] // Fallback if not an array
         }
       };
       
@@ -288,9 +282,11 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         })),
         userProgress: {
           ...state.userProgress,
-          completedSkills: [...state.userProgress.completedSkills, skillId],
+          completedSkills: Array.isArray(state.userProgress.completedSkills)
+            ? [...state.userProgress.completedSkills, skillId]
+            : [skillId],
           completedVideos: [
-            ...state.userProgress.completedVideos,
+            ...(Array.isArray(state.userProgress.completedVideos) ? state.userProgress.completedVideos : []),
             ...state.learningPath
               .flatMap(phase => phase.skills)
               .find(skill => skill.id === skillId)
@@ -391,7 +387,9 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         })),
         userProgress: {
           ...state.userProgress,
-          achievedMilestones: [...state.userProgress.achievedMilestones, milestoneId]
+          achievedMilestones: Array.isArray(state.userProgress.achievedMilestones)
+            ? [...state.userProgress.achievedMilestones, milestoneId]
+            : [milestoneId]
         }
       };
     }
@@ -407,6 +405,23 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             videos: skill.id === skillId ? videos : skill.videos
           }))
         }))
+      };
+    }
+    
+    case 'SET_STATE_FROM_FIREBASE': {
+      console.log('Setting state from Firebase:', JSON.stringify(action.payload, null, 2));
+      return {
+        ...state,
+        ...action.payload,
+        formStep: FormStep.RESULTS,
+        isLoading: false
+      };
+    }
+    
+    case 'SET_LOADING': {
+      return {
+        ...state,
+        isLoading: action.payload
       };
     }
     
@@ -433,31 +448,69 @@ interface AppContextProps {
   completeSkill: (skillId: string) => void;
 }
 
-const AppContext = createContext<AppContextProps | undefined>(undefined);
+export const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const router = useRouter();
   const pathname = usePathname();
+  const auth = getAuth();
 
-  // Load resume from localStorage on client mount
+  // Load resume and skills data from localStorage and Firebase on client mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedResume = localStorage.getItem('resume');
-      if (savedResume && !state.resume) {
-        console.log('Loading resume from localStorage:', savedResume); // Debug log
-        dispatch({ type: 'SET_RESUME', payload: savedResume });
-      }
+    if (typeof window === 'undefined') return;
+
+    const savedResume = localStorage.getItem('resume');
+    if (savedResume && !state.resume) {
+      console.log('Loading resume from localStorage:', savedResume);
+      dispatch({ type: 'SET_RESUME', payload: savedResume });
     }
-  }, []); // Empty dependency array to run once on mount
+
+    // Wait for auth state to resolve
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      dispatch({ type: 'SET_LOADING', payload: true });
+      
+      if (user) {
+        try {
+          const skillsData = await fetchSkillsDataFromFirebase(user.uid);
+          if (skillsData) {
+            dispatch({ type: 'SET_STATE_FROM_FIREBASE', payload: skillsData });
+          } else {
+            console.warn('No valid skills data found for user:', user.uid);
+            dispatch({ type: 'SET_LOADING', payload: false });
+          }
+        } catch (error) {
+          console.error('Failed to fetch skills data:', error);
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      } else {
+        console.log('No authenticated user, skipping Firebase fetch');
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Save state to Firebase when it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const user = auth.currentUser;
+    if (user && state.formStep === FormStep.RESULTS && !state.isLoading) {
+      saveSkillsDataToFirebase(user.uid, state).catch(error => {
+        console.error('Failed to save skills data to Firebase:', error);
+      });
+    }
+  }, [state]);
 
   // Debug state changes
   useEffect(() => {
-    console.log('AppContext state:', state);
+    console.log('AppContext state:', JSON.stringify(state, null, 2));
   }, [state]);
 
   const setResume = (text: string) => {
-    console.log('setResume called with:', text); // Debug log
     dispatch({ type: 'SET_RESUME', payload: text });
   };
 
@@ -474,12 +527,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const setFormStep = (step: FormStep) => {
-    console.log('Setting formStep to:', step); // Debug log
     dispatch({ type: 'SET_FORM_STEP', payload: step });
   };
 
   const analyzeData = async () => {
-    console.log('Starting analyzeData, resume:', state.resume); // Debug log
     dispatch({ type: 'START_ANALYSIS' });
 
     if (!state.resume) {
@@ -515,7 +566,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }))
       );
 
-      console.log('Analysis complete:', { ...analysisResult, learningPath }); // Debug log
       dispatch({ 
         type: 'COMPLETE_ANALYSIS',
         payload: { ...analysisResult, learningPath }

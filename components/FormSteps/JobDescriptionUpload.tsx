@@ -1,4 +1,3 @@
-// JobDescriptionUpload.tsx
 "use client";
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,10 @@ import { useAppContext } from '@/context/AppContext';
 import { FormStep } from '@/types/index';
 import { ArrowLeft, PlusCircle, X, ArrowRight, Sparkles } from 'lucide-react';
 import Analyzing from '@/components/FormSteps/Analyzing';
+import { getAuth } from 'firebase/auth';
+import { fetchGeminiApiKey } from '@/services/firebaseService';
+import { toast } from 'react-toastify';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const JobDescriptionUpload = () => {
   const { state, addJobDescription, removeJobDescription, setFormStep, analyzeData } = useAppContext();
@@ -17,12 +20,56 @@ const JobDescriptionUpload = () => {
   const [jobCompany, setJobCompany] = useState('');
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState<string>('');
+  const auth = getAuth();
+
+    useEffect(() => {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (currentUser) {
+          console.log("User signed in:", currentUser);
+        } else {
+          toast.error("You need to be signed in to access this page!");
+          setTimeout(() => {
+            window.location.href = "/sign-in";
+          }, 2000)
+  
+        }
+      });
+  
+      return () => unsubscribe();
+    }, []);
 
   useEffect(() => {
-    console.log('JobDescriptionUpload mounted, state.resume:', state.resume); // Debug log
-    let key = localStorage.getItem("geminiApiKey") || "";
-    setApiKey(key);
-  }, [state.resume]);
+    console.log('JobDescriptionUpload mounted, state.resume:', state.resume);
+    
+    const fetchApiKey = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const key = await fetchGeminiApiKey(user.uid);
+          if (key) {
+            setApiKey(key);
+            console.log('Gemini API key fetched from Firebase:', key);
+          } else {
+            toast.error("Please Provide Your API key");
+            setTimeout(()=>{
+           window.location.href = "/gemini"
+            },2000)
+          }
+        } catch (error) {
+          console.error('Error fetching Gemini API key:', error);
+          setError('Failed to fetch API key. You can still enter it manually.');
+          const localKey = localStorage.getItem("geminiApiKey") || "";
+          setApiKey(localKey);
+        }
+      } else {
+        console.warn('No authenticated user, using localStorage for API key');
+        const localKey = localStorage.getItem("geminiApiKey") || "";
+        setApiKey(localKey);
+      }
+    };
+
+    fetchApiKey();
+  }, [auth.currentUser, state.resume]);
 
   const handleAddJob = () => {
     if (!jobText.trim()) {
@@ -43,9 +90,10 @@ const JobDescriptionUpload = () => {
       return;
     }
     
-    console.log('handleSubmit, state.resume:', state.resume); // Debug log
+    console.log('handleSubmit, state.resume:', state.resume);
     if (apiKey.trim()) {
       localStorage.setItem('geminiApiKey', apiKey.trim());
+      console.log('API key saved to localStorage:', apiKey.trim());
     }
     
     setFormStep(FormStep.ANALYZING);
@@ -73,7 +121,7 @@ const JobDescriptionUpload = () => {
                     <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
                       Job Title (Optional)
                     </label>
-                    <input
+                    <Input
                       placeholder="e.g. Frontend Developer"
                       className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                       value={jobTitle}
@@ -84,7 +132,7 @@ const JobDescriptionUpload = () => {
                     <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
                       Company (Optional)
                     </label>
-                    <input
+                    <Input
                       placeholder="e.g. Acme Inc."
                       className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                       value={jobCompany}
@@ -97,7 +145,7 @@ const JobDescriptionUpload = () => {
                   <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
                     Job Description*
                   </label>
-                  <textarea
+                  <Textarea
                     placeholder="Paste the job description here..."
                     className="min-h-[200px] w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                     value={jobText}
@@ -108,13 +156,13 @@ const JobDescriptionUpload = () => {
                   />
                 </div>
                 
-                <button 
+                <Button 
                   onClick={handleAddJob}
                   className="w-full bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
                 >
                   <PlusCircle className="mr-2 h-4 w-4 inline" />
                   Add Job Description ({state.jobDescriptions.length}/5)
-                </button>
+                </Button>
                 
                 {error && <p className="text-[#FF6B6B] text-sm font-inter">{error}</p>}
               </div>
@@ -137,12 +185,12 @@ const JobDescriptionUpload = () => {
                             {job.text}
                           </p>
                         </div>
-                        <button 
+                        <Button 
                           className="text-[#0FAE96] font-inter text-sm h-10 px-2 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
                           onClick={() => removeJobDescription(job.id)}
                         >
                           <X className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -157,7 +205,7 @@ const JobDescriptionUpload = () => {
                 <p className="text-sm text-[#B6B6B6] font-inter mb-3">
                   For more accurate skill extraction and analysis, enter your Gemini API key (optional):
                 </p>
-                <input
+                <Input
                   type="password"
                   placeholder="Your Gemini API key"
                   className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
@@ -171,19 +219,19 @@ const JobDescriptionUpload = () => {
             </div>
           </div>
           <div className="bg-[#11011E] px-6 py-6 flex justify-between">
-            <button 
+            <Button 
               className="bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={() => setFormStep(FormStep.RESUME)}
             >
               <ArrowLeft className="mr-2 h-4 w-4 inline" /> Back
-            </button>
-            <button 
+            </Button>
+            <Button 
               className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSubmit}
               disabled={state.jobDescriptions.length === 0 || state.isAnalyzing}
             >
               Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -84,7 +84,7 @@ const HowItWorks = () => {
       description:
         "Discover which skills you're missing—based on real-time job market data. Learn them for free. Improve your chances instantly. Plus: Our ATS checker tells you exactly why your resume may be getting rejected.",
         buttonText:"Skills Suggestion",
-        buttonLink:"https://www.jobformautomator.com/atsresume",
+        buttonLink:"https://www.jobformautomator.com/course",
       image: skillsImg,
     },
     {

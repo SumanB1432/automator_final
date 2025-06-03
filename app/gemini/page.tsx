@@ -16,7 +16,7 @@ const GeminiPage: React.FC = () => {
   const db = getDatabase(app);
   const router = useRouter();
 
-  useEffect(() => {
+ useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         console.log("User signed in:", currentUser);
@@ -38,7 +38,7 @@ const GeminiPage: React.FC = () => {
       setLoading(false);
       return;
     }
-
+ 
     const userId = auth.currentUser.uid;
     const userRef = ref(db, `user/${userId}`);
     const paymentRef = ref(db, `user/${userId}/Payment`);
