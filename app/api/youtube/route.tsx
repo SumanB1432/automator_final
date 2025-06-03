@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
-const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY as string;
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY as string;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
