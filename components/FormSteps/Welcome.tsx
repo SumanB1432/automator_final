@@ -33,24 +33,29 @@ const Welcome = () => {
 
     return () => unsubscribe();
   }, []);
-  useEffect(() => {
-    if (uid) {
-      let fetchSkills = fetchSkillsDataFromFirebase(uid);
-      if (fetchSkills) {
+useEffect(() => {
+  if (uid) {
+    // Fetch data and wait for it to resolve
+    fetchSkillsDataFromFirebase(uid).then((skillsData) => {
+      // Check if skillsData exists and is valid
+      if (skillsData && Object.keys(skillsData).length > 0) {
         setTimeout(() => {
-          window.location.href = "/course/dashboard"
-        }, 1000)
+          window.location.href = "/course/dashboard";
+        }, 1000);
       }
-    }
+    }).catch((error) => {
+      console.error("Error fetching skills data:", error);
+      // Optionally handle the error (e.g., stay on the current page or show a message)
+    });
+  }
+}, [uid]);
 
-  }, [uid])
-  const handleOnclick = () => {
-    setFormStep(FormStep.RESUME);
-    setTimeout(() => {
-      router.push('/course/resumeUpload');
-    }, 2000)
-
-  };
+const handleOnclick = () => {
+  setFormStep(FormStep.RESUME);
+  setTimeout(() => {
+    router.push('/course/resumeUpload');
+  }, 2000);
+};
 
   return (
     <div className="flex flex-col bg-[#11011E]">
