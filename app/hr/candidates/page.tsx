@@ -14,9 +14,9 @@ export default function CandidatesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
-  const [jobTitle, setJobTitle] = useState<string>(" ");
-  const [jobDescription, setJobDescription] = useState<string>(" ");
-  const [recruiterSuggestion, setRecruiterSuggestion] = useState<string>(" ");
+  const [jobTitle, setJobTitle] = useState<string>("");
+  const [jobDescription, setJobDescription] = useState<string>("");
+  const [recruiterSuggestion, setRecruiterSuggestion] = useState<string>("");
   const [uid, setUid] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -28,11 +28,10 @@ export default function CandidatesPage() {
   const [isSending, setIsSending] = useState(false);
   const [isEmailButtonLoading, setIsEmailButtonLoading] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false); // New state to prevent multiple redirects
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const db = getDatabase(app);
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
-
 
   const visibleCandidates = filteredCandidates.filter((c: Candidate) => c.name !== 'Processing Error');
   const areAllSelected = visibleCandidates.length > 0 && selectedCandidates.length === visibleCandidates.length;
@@ -53,7 +52,7 @@ export default function CandidatesPage() {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       console.log("Auth state changed:", user?.uid);
       setUid(user?.uid || "");
-      setIsAuthLoading(false); // Auth state is resolved
+      setIsAuthLoading(false);
     });
 
     // localStorage access
@@ -85,7 +84,7 @@ export default function CandidatesPage() {
         const emailRef = databaseRefUtil(db, `hr/${uid}/email`);
         const snapshot = await get(emailRef);
         if (snapshot.exists()) {
-          console.log("Email fetched:", snapshot.val()); // Debug log
+          console.log("Email fetched:", snapshot.val());
           setEmail(snapshot.val());
         } else {
           console.log("No email found for this HR.");
@@ -103,6 +102,14 @@ export default function CandidatesPage() {
   }, [uid, db]);
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
+
+  const updateApproval = (id: string) => {
+    const candidate = filteredCandidates.find((c: Candidate) => c.id === id);
+    if (candidate) {
+      candidate.approved = !candidate.approved;
+      useCandidateStore.getState().setCandidates([...filteredCandidates]);
+    }
+  };
 
   useEffect(() => {
     const debouncedSave = debounce(async () => {
@@ -165,9 +172,9 @@ export default function CandidatesPage() {
       const snapshot = await get(hrTokenRef);
       if (snapshot.exists()) {
         const hrTokenData = snapshot.val();
-        console.log("hr_token data:", hrTokenData); // Debug log
+        console.log("hr_token data:", hrTokenData);
         const safeEmail = userEmail.replace(/\./g, ",");
-        console.log("Checking for email:", safeEmail); // Debug log
+        console.log("Checking for email:", safeEmail);
         return Object.keys(hrTokenData).includes(safeEmail);
       }
       console.log("No hr_token data found");
@@ -179,7 +186,7 @@ export default function CandidatesPage() {
   }, [db]);
 
   const handleSendEmail = useCallback(async () => {
-    console.log("handleSendEmail called"); // Debug log
+    console.log("handleSendEmail called");
     if (isAuthLoading) {
       toast.error("Authentication is still loading. Please wait a moment.");
       return;
@@ -209,9 +216,8 @@ export default function CandidatesPage() {
         setIsRedirecting(true);
         window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
         return;
-      }
+    }
 
-      // Retry logic for demo email
       let attempts = 3;
       let demoResponse;
       while (attempts > 0) {
@@ -238,11 +244,11 @@ export default function CandidatesPage() {
         attempts--;
         if (attempts > 0) {
           console.log(`Retrying demo email... (${attempts} attempts left)`);
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
 
-      if (!demoResponse.ok) {
+      if (!demoResponse?.ok) {
         console.error("Failed to send demo email after retries");
         toast.error("Failed to verify email. Redirecting to authentication...");
         setIsRedirecting(true);
@@ -267,7 +273,7 @@ export default function CandidatesPage() {
 
   const handleEmailSubmit = async () => {
     if (!emailSubject.trim() || !emailBody.trim() || !emailFooter.trim()) {
-      setEmailError(" subject , body and footer all are required.");
+      setEmailError("Subject, body, and footer are all required.");
       return;
     }
     setIsSending(true);
@@ -297,7 +303,7 @@ export default function CandidatesPage() {
         });
 
         if (!response.ok) {
-          window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates"
+          window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
           console.error(`Failed to send email to ${recipient.email}`);
         } else {
           toast.success(`Email sent successfully to ${candidate.email}`);
@@ -323,7 +329,7 @@ export default function CandidatesPage() {
       }
     }
     setIsSending(false);
-    toast.success("All emails have been sent successfully!")
+    toast.success("All emails have been sent successfully!");
     setIsEmailModalOpen(false);
   };
 
@@ -363,7 +369,7 @@ export default function CandidatesPage() {
     }
   };
 
-  const handleCandidateSelect = (id: String) => {
+  const handleCandidateSelect = (id: string) => {
     setSelectedCandidates((prev) =>
       prev.includes(id) ? prev.filter((candidateId) => candidateId !== id) : [...prev, id]
     );
@@ -377,12 +383,13 @@ export default function CandidatesPage() {
     <>
       {/* Main Content with Conditional Blur */}
       <motion.div
-        className={`flex flex-col lg:flex-row h-auto min-h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${isSending ? "blur-sm" : ""
-          }`}
+        className={`flex flex-col lg:flex-row h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${
+          isSending ? "blur-sm" : ""
+        }`}
         transition={{ duration: 0.3 }}
       >
         {/* Left Panel */}
-        <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl max-h-[50vh] lg:max-h-screen relative z-10">
+        <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl h-full relative z-10">
           <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
@@ -418,41 +425,63 @@ export default function CandidatesPage() {
               </div>
             )}
             {isClient && (
-              <div className="space-y-4 relative">
-                <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
-                {filteredCandidates.length > 0 ? (
-                  filteredCandidates
-                    .filter((c: Candidate) => c.name !== 'Processing Error') // Exclude error candidates
-                    .map((c: Candidate) => (
-                      <motion.div
-                        key={c.id}
-                        onClick={() => setSelectedId(c.id)}
-                        className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
-                            <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={selectedCandidates.includes(c.id)}
-                              onChange={() => handleCandidateSelect(c.id)}
-                              className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
-                            />
-                          </div>
-                        </div>
-                        <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
-                          Score: {c.score}
-                        </div>
-                      </motion.div>
-                    ))
-                ) : (
-                  <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
+              <div className="flex flex-wrap items-center gap-4 mt-4">
+                {hasActiveFilters && (
+                  <span className="inline-flex items-center gap-4 px-3 py-1 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
+                    </svg>
+                    Active Filters
+                  </span>
                 )}
+                <button
+                  onClick={handleDownloadDetails}
+                  className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                >
+                  Download Details
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                  disabled={isEmailButtonLoading}
+                >
+                  {isEmailButtonLoading ? (
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Processing...
+                    </div>
+                  ) : (
+                    "Send Auto Email"
+                  )}
+                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={areAllSelected}
+                    onChange={handleSelectAll}
+                    className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
+                  />
+                  <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
+                </div>
               </div>
             )}
           </div>
@@ -461,33 +490,35 @@ export default function CandidatesPage() {
             <div className="space-y-4 relative">
               <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
               {filteredCandidates.length > 0 ? (
-                filteredCandidates.map((c: Candidate) => (
-                  <motion.div
-                    key={c.id}
-                    onClick={() => setSelectedId(c.id)}
-                    className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
-                        <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
+                filteredCandidates
+                  .filter((c: Candidate) => c.name !== 'Processing Error')
+                  .map((c: Candidate) => (
+                    <motion.div
+                      key={c.id}
+                      onClick={() => setSelectedId(c.id)}
+                      className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
+                          <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedCandidates.includes(c.id)}
+                            onChange={() => handleCandidateSelect(c.id)}
+                            className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedCandidates.includes(c.id)}
-                          onChange={() => handleCandidateSelect(c.id)}
-                          className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
-                        />
+                      <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
+                        Score: {c.score}
                       </div>
-                    </div>
-                    <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
-                      Score: {c.score}
-                    </div>
-                  </motion.div>
-                ))
+                    </motion.div>
+                  ))
               ) : (
                 <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
               )}
@@ -496,7 +527,7 @@ export default function CandidatesPage() {
         </div>
 
         {/* Right Panel */}
-        <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative">
+        <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative overflow-y-auto h-full">
           <div className="absolute -z-10 w-96 h-96 rounded-full bg-[#FF00C7] blur-[180px] opacity-25 bottom-10 right-10"></div>
           {selectedCandidate ? (
             <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-6 shadow-lg">
@@ -579,123 +610,123 @@ export default function CandidatesPage() {
             </div>
           )}
         </div>
-
-        {/* Filter Modal */}
-        <AnimatePresence>
-          {isFilterModalOpen && (
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            >
-              <FilterModalForm onClose={() => setIsFilterModalOpen(false)} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Email Modal */}
-        <AnimatePresence>
-          {isEmailModalOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
-            >
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="bg-[#11011E] p-6 rounded-xl w-full max-w-md border border-[rgba(255,255,255,0.05)] shadow-xl"
-              >
-                <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Subject</label>
-                    <input
-                      type="text"
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
-                      placeholder="e.g. Application Update: Interview Invitation"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Body</label>
-                    <textarea
-                      value={emailBody}
-                      onChange={(e) => setEmailBody(e.target.value)}
-                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                      placeholder="Write your message here. The greeting 'Hello [Candidate Name],' is already included. (Press Enter to add a new line)"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Footer</label>
-                    <textarea
-                      value={emailFooter}
-                      onChange={(e) => setEmailFooter(e.target.value)}
-                      className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
-                      placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team' (Press Enter to add a new line)"
-                      required
-                    />
-                  </div>
-                  {emailError && (
-                    <p className="text-red-500 text-sm">{emailError}</p>
-                  )}
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => setIsEmailModalOpen(false)}
-                      className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
-                      disabled={isSending}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleEmailSubmit}
-                      className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
-                      disabled={isSending}
-                    >
-                      {isSending ? (
-                        <div className="flex items-center gap-2">
-                          <svg
-                            className="animate-spin h-5 w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Processing...
-                        </div>
-                      ) : (
-                        "Send"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
+
+      {/* Filter Modal */}
+      <AnimatePresence>
+        {isFilterModalOpen && (
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          >
+            <FilterModalForm onClose={() => setIsFilterModalOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Modal */}
+      <AnimatePresence>
+        {isEmailModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="bg-[#11011E] p-6 rounded-xl w-full max-w-md border border-[rgba(255,255,255,0.05)] shadow-xl"
+            >
+              <h2 className="text-2xl font-bold font-raleway text-[#ECF1F0] mb-4">Send Email</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Subject</label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96]"
+                    placeholder="e.g. Application Update: Interview Invitation"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Body</label>
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                    placeholder="Write your message here. The greeting 'Hello [Candidate Name],' is already included. (Press Enter to add a new line)"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#ECF1F0] mb-1">Footer</label>
+                  <textarea
+                    value={emailFooter}
+                    onChange={(e) => setEmailFooter(e.target.value)}
+                    className="w-full bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-md px-3 py-2 text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] min-h-[150px]"
+                    placeholder="Add a closing remark or signature. For example, 'Best regards, HR Team' (Press Enter to add a new line)"
+                    required
+                  />
+                </div>
+                {emailError && (
+                  <p className="text-red-500 text-sm">{emailError}</p>
+                )}
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsEmailModalOpen(false)}
+                    className="bg-[rgba(255,255,255,0.02)] text-[#B6B6B6] font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none"
+                    disabled={isSending}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEmailSubmit}
+                    className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
+                    disabled={isSending}
+                  >
+                    {isSending ? (
+                      <div className="flex items-center gap-2">
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Processing...
+                      </div>
+                    ) : (
+                      "Send"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Full-Page Loading Screen for Email Sending */}
       <AnimatePresence>
