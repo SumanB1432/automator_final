@@ -46,7 +46,7 @@ const Dashboard = () => {
     if (user) {
       try {
         await deleteSkillsDataFromFirebase(user.uid);
-        router.push('/course');
+        router.push('/course/jobdescription');
       } catch (error) {
         console.error('Error resetting skills data:', error);
       }
