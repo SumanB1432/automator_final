@@ -11,12 +11,14 @@ import { getAuth } from 'firebase/auth';
 import { fetchGeminiApiKey, fetchUserResumeData } from '@/services/firebaseService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'react-toastify';
+
 const ResumeUpload = () => {
   const { state, setResume, setFormStep } = useAppContext();
   const [resumeText, setResumeText] = useState(state.resume?.text || '');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoadingResume, setIsLoadingResume] = useState(false);
+  const [isLoadingContinue, setIsLoadingContinue] = useState(false); // New state for Continue button
   const [apiKey, setApiKey] = useState<string | null>(null);
   const router = useRouter();
   const auth = getAuth();
@@ -30,8 +32,7 @@ const ResumeUpload = () => {
         toast.error("You need to be signed in to access this page!");
         setTimeout(() => {
           window.location.href = "/sign-in";
-        }, 2000)
-
+        }, 2000);
       }
     });
 
@@ -79,8 +80,8 @@ const ResumeUpload = () => {
       console.error('Error fetching URD:', error);
       setError('Failed to load resume. Please try again or paste manually.');
       setTimeout(() => {
-        window.location.href = "/resume2"
-      }, 2000)
+        window.location.href = "/resume2";
+      }, 2000);
     } finally {
       setIsLoadingResume(false);
     }
@@ -93,6 +94,7 @@ const ResumeUpload = () => {
     }
     console.log('Submitting resume:', resumeText);
     setResume(resumeText);
+    setIsLoadingContinue(true); // Set loading state for Continue button
     setIsSubmitted(true);
   };
 
@@ -101,10 +103,10 @@ const ResumeUpload = () => {
     if (isSubmitted && state.resume?.text === resumeText && resumeText.trim()) {
       console.log('Resume set, navigating to job descriptions');
       setFormStep(FormStep.JOB_DESCRIPTIONS);
-      setTimeout(()=>{
-       router.push('/course/jobdescription');
-      },2000)
-     
+      setTimeout(() => {
+        router.push('/course/jobdescription');
+        setIsLoadingContinue(false); // Reset loading state after navigation
+      }, 2000);
       setIsSubmitted(false);
     }
   }, [isSubmitted, state.resume, resumeText, setFormStep, router]);
@@ -141,7 +143,13 @@ const ResumeUpload = () => {
                   disabled={isLoadingResume}
                 >
                   {isLoadingResume ? (
-                    <span>Loading...</span>
+                    <span className="flex items-center">
+                      <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading...
+                    </span>
                   ) : (
                     <>
                       <User className="mr-2 h-4 w-4 inline" />
@@ -171,9 +179,21 @@ const ResumeUpload = () => {
             <Button
               className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={handleSubmit}
-              disabled={isLoadingResume}
+              disabled={isLoadingResume || isLoadingContinue}
             >
-              Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
+              {isLoadingContinue ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                <>
+                  Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
+                </>
+              )}
             </Button>
           </div>
         </div>

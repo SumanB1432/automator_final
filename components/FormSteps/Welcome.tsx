@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/buttoncourse';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/cardforCourse';
 import { useAppContext } from '@/context/AppContext';
 import { FormStep } from '@/types/index';
-import { FileText, Briefcase, BookOpen, ChevronRight } from 'lucide-react';
+import { FileText, Briefcase, BookOpen, ChevronRight, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -14,48 +14,53 @@ import { fetchSkillsDataFromFirebase } from '@/services/firebaseService';
 
 const Welcome = () => {
   const { setFormStep } = useAppContext();
-  const [uid, setUid] = useState<string>("")
+  const [uid, setUid] = useState<string>("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUid(currentUser?.uid)
+        setUid(currentUser?.uid);
         console.log("User signed in:", currentUser);
       } else {
         toast.error("You need to be signed in to access this page!");
         setTimeout(() => {
           window.location.href = "/sign-in";
-        }, 2000)
-
+        }, 2000);
       }
     });
 
     return () => unsubscribe();
   }, []);
-useEffect(() => {
-  if (uid) {
-    // Fetch data and wait for it to resolve
-    fetchSkillsDataFromFirebase(uid).then((skillsData) => {
-      // Check if skillsData exists and is valid
-      if (skillsData && Object.keys(skillsData).length > 0 && skillsData.learningPath[0]?.skills[0]?.videos?.length>0) {
-        setTimeout(() => {
-          window.location.href = "/course/dashboard";
-        }, 1000);
-      }
-    }).catch((error) => {
-      console.error("Error fetching skills data:", error);
-      // Optionally handle the error (e.g., stay on the current page or show a message)
-    });
-  }
-}, [uid]);
 
-const handleOnclick = () => {
-  setFormStep(FormStep.RESUME);
-  setTimeout(() => {
-    router.push('/course/resumeUpload');
-  }, 2000);
-};
+  useEffect(() => {
+    if (uid) {
+      fetchSkillsDataFromFirebase(uid)
+        .then((skillsData) => {
+          if (
+            skillsData &&
+            Object.keys(skillsData).length > 0 &&
+            skillsData.learningPath?.[0]?.skills?.[0]?.videos?.length > 0
+          ) {
+            setTimeout(() => {
+              window.location.href = "/course/dashboard";
+            }, 1000);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching skills data:", error);
+        });
+    }
+  }, [uid]);
+
+  const handleOnclick = () => {
+    setLoading(true);
+    setFormStep(FormStep.RESUME);
+    setTimeout(() => {
+      router.push('/course/resumeUpload');
+    }, 2000);
+  };
 
   return (
     <div className="flex flex-col bg-[#11011E]">
@@ -93,10 +98,22 @@ const handleOnclick = () => {
           </div>
           <div className="bg-[rgba(255,255,255,0.02)] p-6 flex justify-center">
             <button
-              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+              className={`bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 ${
+                loading ? "opacity-70 cursor-not-allowed" : "hover:scale-105"
+              } focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center`}
               onClick={handleOnclick}
+              disabled={loading}
             >
-              Get Started <ChevronRight className="ml-2 h-5 w-5 inline" />
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Get Started <ChevronRight className="ml-2 h-5 w-5 inline" />
+                </>
+              )}
             </button>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/cardforCourse';
 import { useAppContext } from '@/context/AppContext';
 import { FormStep } from '@/types/index';
-import { ArrowLeft, PlusCircle, X, ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, PlusCircle, X, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import Analyzing from '@/components/FormSteps/Analyzing';
 import { getAuth } from 'firebase/auth';
 import { fetchGeminiApiKey } from '@/services/firebaseService';
@@ -20,23 +20,23 @@ const JobDescriptionUpload = () => {
   const [jobCompany, setJobCompany] = useState('');
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false); // New loading state
   const auth = getAuth();
 
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        if (currentUser) {
-          console.log("User signed in:", currentUser);
-        } else {
-          toast.error("You need to be signed in to access this page!");
-          setTimeout(() => {
-            window.location.href = "/sign-in";
-          }, 2000)
-  
-        }
-      });
-  
-      return () => unsubscribe();
-    }, []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        console.log("User signed in:", currentUser);
+      } else {
+        toast.error("You need to be signed in to access this page!");
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 2000);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     console.log('JobDescriptionUpload mounted, state.resume:', state.resume);
@@ -51,9 +51,9 @@ const JobDescriptionUpload = () => {
             console.log('Gemini API key fetched from Firebase:', key);
           } else {
             toast.error("Please Provide Your API key");
-            setTimeout(()=>{
-           window.location.href = "/gemini"
-            },2000)
+            setTimeout(() => {
+              window.location.href = "/gemini";
+            }, 2000);
           }
         } catch (error) {
           console.error('Error fetching Gemini API key:', error);
@@ -96,8 +96,17 @@ const JobDescriptionUpload = () => {
       console.log('API key saved to localStorage:', apiKey.trim());
     }
     
-    setFormStep(FormStep.ANALYZING);
-    await analyzeData();
+    setIsLoading(true); // Start loading
+    try {
+      setFormStep(FormStep.ANALYZING);
+      await analyzeData();
+    } catch (error) {
+      console.error('Error during analysis:', error);
+      setError('Failed to analyze job descriptions. Please try again.');
+      setFormStep(FormStep.JOB_DESCRIPTION); // Revert to current step on error
+    } finally {
+      setIsLoading(false); // Stop loading
+    }
   };
 
   if (state.formStep === FormStep.ANALYZING) {
@@ -200,7 +209,7 @@ const JobDescriptionUpload = () => {
               <div className="border border-dashed border-[rgba(255,255,255,0.05)] p-4 rounded-md bg-[rgba(255,255,255,0.02)]">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-5 w-5 text-[#0FAE96]" />
-                  <h4 className="font-raleway font-medium text-sm text-[#ECF1F0]">Enable AI-Powered Analysis</h4>
+                  <h4 className="弈-raleway font-medium text-sm text-[#ECF1F0]">Enable AI-Powered Analysis</h4>
                 </div>
                 <p className="text-sm text-[#B6B6B6] font-inter mb-3">
                   For more accurate skill extraction and analysis, enter your Gemini API key (optional):
@@ -226,11 +235,20 @@ const JobDescriptionUpload = () => {
               <ArrowLeft className="mr-2 h-4 w-4 inline" /> Back
             </Button>
             <Button 
-              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               onClick={handleSubmit}
-              disabled={state.jobDescriptions.length === 0 || state.isAnalyzing}
+              disabled={state.jobDescriptions.length === 0 || state.isAnalyzing || isLoading}
             >
-              Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  Continue <ArrowRight className="ml-2 h-4 w-4 inline" />
+                </>
+              )}
             </Button>
           </div>
         </div>
