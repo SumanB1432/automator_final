@@ -95,7 +95,7 @@ const Navbar = () => {
         {[
           { label: "Home", path: "/" },
           { label: "Referral", path: "/referral" },
-          { label: "Skill Advisor", path: "/course" },
+           { label: "Skills", path: "/course/jobdescription" },
           { label: "ATS Resume", path: "/atsresume" },
           { label: "For Recruiters", path: "/hr" },
 
@@ -149,7 +149,7 @@ const Navbar = () => {
           {[
             { label: "Home", path: "/" },
             { label: "Referral", path: "/referral" },
-            { label: "Skill Advisor", path: "/course" },
+            { label: "Skills", path: "/course/jobdescription" },
             { label: "ATS Resume", path: "/atsresume" },
             { label: "For Recruiters", path: "/hr" },
           ].map((item) => (

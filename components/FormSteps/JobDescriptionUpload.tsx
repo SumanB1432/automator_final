@@ -9,24 +9,29 @@ import { FormStep } from '@/types/index';
 import { ArrowLeft, PlusCircle, X, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import Analyzing from '@/components/FormSteps/Analyzing';
 import { getAuth } from 'firebase/auth';
-import { fetchGeminiApiKey } from '@/services/firebaseService';
+import { fetchGeminiApiKey, fetchSkillsDataFromFirebase, fetchUserResumeData } from '@/services/firebaseService';
 import { toast } from 'react-toastify';
 import { onAuthStateChanged } from 'firebase/auth';
 
+
 const JobDescriptionUpload = () => {
-  const { state, addJobDescription, removeJobDescription, setFormStep, analyzeData } = useAppContext();
+  const { state, addJobDescription, removeJobDescription, setFormStep, analyzeData, setResume } = useAppContext();
   const [jobText, setJobText] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [jobCompany, setJobCompany] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState<string[]>([])
   const [apiKey, setApiKey] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false); // New loading state
+  const [uid, setUid] = useState<string>("");
+  const [resumeText, setResumeText] = useState(state.resume?.text || '');
   const auth = getAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         console.log("User signed in:", currentUser);
+        setUid(currentUser?.uid)
       } else {
         toast.error("You need to be signed in to access this page!");
         setTimeout(() => {
@@ -37,46 +42,98 @@ const JobDescriptionUpload = () => {
 
     return () => unsubscribe();
   }, []);
+  //Fetch Data From Firebase Data Base
+  useEffect(() => {
+    if (uid) {
+      fetchSkillsDataFromFirebase(uid)
+        .then((skillsData) => {
+          if (
+            skillsData &&
+            Object.keys(skillsData).length > 0 &&
+            skillsData.learningPath?.[0]?.skills?.[0]?.videos?.length > 0
+          ) {
+            setTimeout(() => {
+              window.location.href = "/course/dashboard";
+            }, 1000);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching skills data:", error);
+        });
+    }
+  }, [uid]);
 
+  // Load resume from URD
+  useEffect(() => {
+    const getURD = async function (uid: string) {
+      setError('');
+      try {
+        const urd = await fetchUserResumeData(uid);
+        if (urd) {
+          console.log('URD fetched:', urd);
+          toast.success("RESUME DATA FETCH SUCCESSFULLY");
+          setSuccess((prevSuccess) => [...prevSuccess, "Resume data loaded successfully!"]);
+          setResumeText(urd);
+          setResume(urd);
+
+        } else {
+          setError('No resume data found in your profile.');
+        }
+      } catch (error) {
+        console.error('Error fetching URD:', error);
+        setError('Failed to load resume. Please try again or paste manually.');
+        setTimeout(() => {
+          window.location.href = "/resume2";
+        }, 2000);
+      } finally {
+
+      }
+    }
+    if (uid) {
+      getURD(uid)
+    }
+  }, [uid]);
+  //Feth Gemini Key
   useEffect(() => {
     console.log('JobDescriptionUpload mounted, state.resume:', state.resume);
-    
-    const fetchApiKey = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const key = await fetchGeminiApiKey(user.uid);
-          if (key) {
-            setApiKey(key);
-            console.log('Gemini API key fetched from Firebase:', key);
-          } else {
-            toast.error("Please Provide Your API key");
-            setTimeout(() => {
-              window.location.href = "/gemini";
-            }, 2000);
-          }
-        } catch (error) {
-          console.error('Error fetching Gemini API key:', error);
-          setError('Failed to fetch API key. You can still enter it manually.');
-          const localKey = localStorage.getItem("geminiApiKey") || "";
-          setApiKey(localKey);
+
+    const fetchApiKey = async (uid: string) => {
+
+
+      try {
+        const key = await fetchGeminiApiKey(uid);
+        if (key) {
+          setApiKey(key);
+          toast.success("GEMINI KEY FETCH SUCCESSFULLY");
+          setSuccess((prevSuccess) => [...prevSuccess, "API key loaded successfully!"]);
+          console.log('Gemini API key fetched from Firebase:', key);
+        } else {
+          toast.error("Please Provide Your API key");
+          setError('No resume data found in your profile.');
+          setTimeout(() => {
+            window.location.href = "/gemini";
+          }, 2000);
         }
-      } else {
-        console.warn('No authenticated user, using localStorage for API key');
+      } catch (error) {
+        console.error('Error fetching Gemini API key:', error);
+        setError('Failed to fetch API key. You can still enter it manually.');
         const localKey = localStorage.getItem("geminiApiKey") || "";
         setApiKey(localKey);
       }
-    };
 
-    fetchApiKey();
-  }, [auth.currentUser, state.resume]);
+    };
+    if (uid) {
+      console.log(uid, "gemini")
+      fetchApiKey(uid);
+    }
+  }, [uid]);
 
   const handleAddJob = () => {
     if (!jobText.trim()) {
       setError('Please paste a job description');
       return;
     }
-    
+
     addJobDescription(jobText, jobTitle, jobCompany);
     setJobText('');
     setJobTitle('');
@@ -89,13 +146,13 @@ const JobDescriptionUpload = () => {
       setError('Please add at least one job description');
       return;
     }
-    
+
     console.log('handleSubmit, state.resume:', state.resume);
     if (apiKey.trim()) {
       localStorage.setItem('geminiApiKey', apiKey.trim());
       console.log('API key saved to localStorage:', apiKey.trim());
     }
-    
+
     setIsLoading(true); // Start loading
     try {
       setFormStep(FormStep.ANALYZING);
@@ -149,7 +206,7 @@ const JobDescriptionUpload = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
                     Job Description*
@@ -164,25 +221,45 @@ const JobDescriptionUpload = () => {
                     }}
                   />
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={handleAddJob}
                   className="w-full bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
                 >
                   <PlusCircle className="mr-2 h-4 w-4 inline" />
                   Add Job Description ({state.jobDescriptions.length}/5)
                 </Button>
-                
+
                 {error && <p className="text-[#FF6B6B] text-sm font-inter">{error}</p>}
+                {success && success.length > 0 && (
+                  <div className="space-y-2">
+                    {success.map((message, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-[rgba(255,255,255,0.02)] border border-green-500/20 rounded-md p-3 text-green-500 text-sm font-inter"
+                      >
+                        <span>{message}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSuccess((prev) => prev.filter((_, i) => i !== index))}
+                          className="text-green-500 hover:text-green-400"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              
+
               {state.jobDescriptions.length > 0 && (
                 <div>
                   <h3 className="text-lg font-raleway font-medium text-[#ECF1F0] mb-4">Added Job Descriptions:</h3>
                   <div className="space-y-3">
                     {state.jobDescriptions.map((job) => (
-                      <div 
-                        key={job.id} 
+                      <div
+                        key={job.id}
                         className="bg-[rgba(255,255,255,0.02)]/40 rounded-lg p-4 flex justify-between items-start"
                       >
                         <div>
@@ -194,7 +271,7 @@ const JobDescriptionUpload = () => {
                             {job.text}
                           </p>
                         </div>
-                        <Button 
+                        <Button
                           className="text-[#0FAE96] font-inter text-sm h-10 px-2 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
                           onClick={() => removeJobDescription(job.id)}
                         >
@@ -205,8 +282,8 @@ const JobDescriptionUpload = () => {
                   </div>
                 </div>
               )}
-              
-              <div className="border border-dashed border-[rgba(255,255,255,0.05)] p-4 rounded-md bg-[rgba(255,255,255,0.02)]">
+
+              {/* <div className="border border-dashed border-[rgba(255,255,255,0.05)] p-4 rounded-md bg-[rgba(255,255,255,0.02)]">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-5 w-5 text-[#0FAE96]" />
                   <h4 className="弈-raleway font-medium text-sm text-[#ECF1F0]">Enable AI-Powered Analysis</h4>
@@ -224,18 +301,18 @@ const JobDescriptionUpload = () => {
                 <p className="text-xs text-[#B6B6B6] font-inter mt-2">
                   If no API key is provided, we'll use our standard analysis method.
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="bg-[#11011E] px-6 py-6 flex justify-between">
-            <Button 
+            <Button
               className="bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={() => setFormStep(FormStep.RESUME)}
             >
-              <ArrowLeft className="mr-2 h-4 w-4 inline" /> Back
+              
             </Button>
-            <Button 
-              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            <Button
+              className=" bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center "
               onClick={handleSubmit}
               disabled={state.jobDescriptions.length === 0 || state.isAnalyzing || isLoading}
             >
