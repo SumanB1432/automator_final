@@ -78,7 +78,7 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         await set(userRef, null)
     };
 
-    const updatePayment = async (uid:any) => {
+    const updatePayment = async (uid: any) => {
         console.log("Update User Payment Mode to Premium");
         const today = new Date();
         const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -126,9 +126,18 @@ const RewardsDashboard = ({ totalRef, userName }) => {
         }
     };
 
+    const notifyExtensionOnPayment = (uid: any) => {
+        const event = new CustomEvent("paymentSuccessfull", { detail: { uid } });
+        document.dispatchEvent(event);
+    };
+
+
+
     const handleClaim = async () => {
         setLoading(true);
         try {
+            const currentUser = auth?.currentUser?.uid;
+            notifyExtensionOnPayment(currentUser);
             await deleteReferralsFromDB(userName);
             await updatePayment(uid)
             alert('Premium claimed and referral data deleted!');
