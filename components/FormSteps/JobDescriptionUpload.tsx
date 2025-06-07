@@ -30,7 +30,7 @@ const JobDescriptionUpload = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        console.log("User signed in:", currentUser);
+        // console.log("User signed in:", currentUser);
         setUid(currentUser?.uid)
       } else {
         toast.error("You need to be signed in to access this page!");
@@ -70,7 +70,7 @@ const JobDescriptionUpload = () => {
       try {
         const urd = await fetchUserResumeData(uid);
         if (urd) {
-          console.log('URD fetched:', urd);
+          // console.log('URD fetched:', urd);
           toast.success("RESUME DATA FETCH SUCCESSFULLY");
           setSuccess((prevSuccess) => [...prevSuccess, "Resume data loaded successfully!"]);
           setResumeText(urd);
@@ -95,7 +95,7 @@ const JobDescriptionUpload = () => {
   }, [uid]);
   //Feth Gemini Key
   useEffect(() => {
-    console.log('JobDescriptionUpload mounted, state.resume:', state.resume);
+    // console.log('JobDescriptionUpload mounted, state.resume:', state.resume);
 
     const fetchApiKey = async (uid: string) => {
 
@@ -106,7 +106,7 @@ const JobDescriptionUpload = () => {
           setApiKey(key);
           toast.success("GEMINI KEY FETCH SUCCESSFULLY");
           setSuccess((prevSuccess) => [...prevSuccess, "API key loaded successfully!"]);
-          console.log('Gemini API key fetched from Firebase:', key);
+          // console.log('Gemini API key fetched from Firebase:', key);
         } else {
           toast.error("Please Provide Your API key");
           setError('No resume data found in your profile.');
@@ -123,7 +123,7 @@ const JobDescriptionUpload = () => {
 
     };
     if (uid) {
-      console.log(uid, "gemini")
+      // console.log(uid, "gemini")
       fetchApiKey(uid);
     }
   }, [uid]);
@@ -147,10 +147,10 @@ const JobDescriptionUpload = () => {
       return;
     }
 
-    console.log('handleSubmit, state.resume:', state.resume);
+    // console.log('handleSubmit, state.resume:', state.resume);
     if (apiKey.trim()) {
       localStorage.setItem('geminiApiKey', apiKey.trim());
-      console.log('API key saved to localStorage:', apiKey.trim());
+      // console.log('API key saved to localStorage:', apiKey.trim());
     }
 
     setIsLoading(true); // Start loading

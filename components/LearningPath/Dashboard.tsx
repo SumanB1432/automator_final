@@ -21,7 +21,7 @@ const Dashboard = () => {
     useEffect(() => {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         if (currentUser) {
-          console.log("User signed in:", currentUser);
+          // console.log("User signed in:", currentUser);
         } else {
           toast.error("You need to be signed in to access this page!");
           setTimeout(() => {
@@ -35,10 +35,10 @@ const Dashboard = () => {
     }, []);
 
   useEffect(() => {
-    console.log('Dashboard mounted, learningPath:', JSON.stringify(learningPath, null, 2));
-    console.log('Dashboard formStep:', state.formStep);
-    console.log('Dashboard isLoading:', isLoading);
-    console.log('Current user:', auth.currentUser?.uid || 'None');
+    // console.log('Dashboard mounted, learningPath:', JSON.stringify(learningPath, null, 2));
+    // console.log('Dashboard formStep:', state.formStep);
+    // console.log('Dashboard isLoading:', isLoading);
+    // console.log('Current user:', auth.currentUser?.uid || 'None');
   }, [learningPath, state.formStep, isLoading]);
 
   const handleResetData = async () => {

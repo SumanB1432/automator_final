@@ -9,7 +9,7 @@ export const saveSkillsDataToFirebase = async (uid: string, skillsData: AppState
   const skillsDataRef = ref(db, `user/${uid}/skillsData`);
   try {
     await set(skillsDataRef, skillsData);
-    console.log('Skills data saved to Firebase:', JSON.stringify(skillsData, null, 2));
+    // console.log('Skills data saved to Firebase:', JSON.stringify(skillsData, null, 2));
   } catch (error) {
     console.error('Error saving skills data to Firebase:', error);
     throw error;
@@ -23,7 +23,7 @@ export const fetchSkillsDataFromFirebase = async (uid: string): Promise<AppState
     const snapshot = await get(skillsDataRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
-      console.log('Skills data fetched from Firebase for user:', uid, JSON.stringify(data, null, 2));
+      // console.log('Skills data fetched from Firebase for user:', uid, JSON.stringify(data, null, 2));
 
       if (!data || typeof data !== 'object') {
         console.error('Invalid Firebase data: Data is not an object');
@@ -90,10 +90,10 @@ export const fetchSkillsDataFromFirebase = async (uid: string): Promise<AppState
         isLoading: false
       };
 
-      console.log('Validated Firebase data:', JSON.stringify(validatedData, null, 2));
+      // console.log('Validated Firebase data:', JSON.stringify(validatedData, null, 2));
       return validatedData;
     } else {
-      console.log('No skills data found in Firebase for user:', uid);
+      // console.log('No skills data found in Firebase for user:', uid);
       return null;
     }
   } catch (error) {
@@ -107,7 +107,7 @@ export const deleteSkillsDataFromFirebase = async (uid: string) => {
   const skillsDataRef = ref(db, `user/${uid}/skillsData`);
   try {
     await remove(skillsDataRef);
-    console.log('Skills data deleted from Firebase for user:', uid);
+    // console.log('Skills data deleted from Firebase for user:', uid);
   } catch (error) {
     console.error('Error deleting skills data from Firebase:', error);
     throw error;
@@ -123,13 +123,13 @@ export const fetchGeminiApiKey = async (uid: string): Promise<string | null> => 
       const data = snapshot.val();
       const apiKey = data.apiKey || data.apikey;
       if (typeof apiKey === 'string') {
-        console.log('Gemini API key found for user:', uid);
+        // console.log('Gemini API key found for user:', uid);
         return apiKey;
       }
       console.warn('No valid API key found at user/${uid}/API');
       return null;
     }
-    console.log('No API data found for user:', uid);
+    // console.log('No API data found for user:', uid);
     return null;
   } catch (error) {
     console.error('Error fetching Gemini API key:', error);
@@ -145,13 +145,13 @@ export const fetchUserResumeData = async (uid: string): Promise<string | null> =
     if (snapshot.exists()) {
       const urd = snapshot.val();
       if (typeof urd === 'string') {
-        console.log('URD fetched for user:', uid, urd);
+        // console.log('URD fetched for user:', uid, urd);
         return urd;
       }
       console.warn('Invalid URD data type:', typeof urd);
       return null;
     }
-    console.log('No URD found for user:', uid);
+    // console.log('No URD found for user:', uid);
     return null;
   } catch (error) {
     console.error('Error fetching URD:', error);

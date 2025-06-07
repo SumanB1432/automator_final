@@ -22,7 +22,7 @@ const Welcome = () => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUid(currentUser?.uid);
-        console.log("User signed in:", currentUser);
+        // console.log("User signed in:", currentUser);
       } else {
         toast.error("You need to be signed in to access this page!");
         setTimeout(() => {

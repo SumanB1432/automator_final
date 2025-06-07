@@ -27,7 +27,7 @@ const ResumeUpload = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        console.log("User signed in:", currentUser);
+        // console.log("User signed in:", currentUser);
       } else {
         toast.error("You need to be signed in to access this page!");
         setTimeout(() => {
@@ -46,7 +46,7 @@ const ResumeUpload = () => {
         try {
           const key = await fetchGeminiApiKey(user.uid);
           setApiKey(key);
-          console.log('Gemini API key fetched:', key ? 'Present' : 'Not found');
+          // console.log('Gemini API key fetched:', key ? 'Present' : 'Not found');
         } catch (error) {
           console.error('Error fetching Gemini API key:', error);
           setError('Failed to fetch API key. Manual resume input is still available.');
@@ -69,7 +69,7 @@ const ResumeUpload = () => {
     try {
       const urd = await fetchUserResumeData(user.uid);
       if (urd) {
-        console.log('URD fetched:', urd);
+        // console.log('URD fetched:', urd);
         setResumeText(urd);
         setResume(urd);
         setIsSubmitted(true);
@@ -92,7 +92,7 @@ const ResumeUpload = () => {
       setError('Please paste your resume text or load from profile.');
       return;
     }
-    console.log('Submitting resume:', resumeText);
+    // console.log('Submitting resume:', resumeText);
     setResume(resumeText);
     setIsLoadingContinue(true); // Set loading state for Continue button
     setIsSubmitted(true);
@@ -113,7 +113,7 @@ const ResumeUpload = () => {
 
   // Debug state changes
   useEffect(() => {
-    console.log('ResumeUpload state.resume:', state.resume);
+    // console.log('ResumeUpload state.resume:', state.resume);
   }, [state.resume]);
 
   return (

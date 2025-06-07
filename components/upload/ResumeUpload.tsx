@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCandidateStore } from '@/store/useCandidateStore';
 import { Candidate } from '@/types/candidate';
 import { toast } from 'react-toastify';
+import app, { auth } from '@/firebase/config';
+import { getDatabase, get, ref } from 'firebase/database';
+import { onAuthStateChanged } from 'firebase/auth';
 
 type Props = {
   jobDescription: string;
@@ -28,13 +31,53 @@ export default function ResumeUpload({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uid, setUid] = useState<string>("")
   const router = useRouter();
+  const [premium, setPremium] = useState<boolean>(false);
+  const db = getDatabase(app)
+  //GET UID
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      } else {
+        setUid("");
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, []);
+
+
+  //Get User Payment Status From Firebase
+  useEffect(() => {
+    const getPaymentStatus = async function(){
+
+      let paymentRef = ref(db,`hr/${uid}/Payment/Status`)
+      let snapsort = await get(paymentRef);
+      if(snapsort.exists()){
+        let val = snapsort.val();
+        console.log(val,"payment status")
+        if(val=="Premium"){
+          setPremium(true)
+        }
+      }
+
+    }
+    if(uid){
+      console.log(uid)
+      getPaymentStatus()
+    }
+
+  }, [uid])
 
   // Load from localStorage
   useEffect(() => {
     const storedJobDescription = localStorage.getItem('jobDescription');
     const storedRecruiterSuggestion = localStorage.getItem('recruiterSuggestion');
     const storedJobTitle = localStorage.getItem('jobTitle');
+    localStorage.removeItem('failedResumeFiles');
 
     if (storedJobDescription) setJobDescription(storedJobDescription);
     if (storedRecruiterSuggestion) setRecruiterSuggestion(storedRecruiterSuggestion);
@@ -44,6 +87,7 @@ export default function ResumeUpload({
   // Save to localStorage
   useEffect(() => {
     if (jobDescription) localStorage.setItem('jobDescription', jobDescription);
+    localStorage.removeItem('failedResumeFiles');
   }, [jobDescription]);
 
   useEffect(() => {
@@ -61,6 +105,7 @@ export default function ResumeUpload({
     setSelectedFiles(fileList);
   };
 
+
 const handleParseResumes = async () => {
   if (!jobDescription.trim()) {
     setError('Job description is required.');
@@ -77,6 +122,7 @@ const handleParseResumes = async () => {
   setLoading(true);
   setError('');
   const allCandidates: Candidate[] = [];
+  const allFailedFiles: string[] = [];
 
   try {
     for (let i = 0; i < selectedFiles.length; i++) {
@@ -88,6 +134,7 @@ const handleParseResumes = async () => {
       formData.append('jd', jobDescription);
       formData.append('rs', recruiterSuggestion);
       formData.append('jt', jobTitle);
+      formData.append('status', premium.toString());
 
       try {
         const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
@@ -100,21 +147,37 @@ const handleParseResumes = async () => {
           throw new Error(errorData.error || `Failed to parse ${file.name}`);
         }
 
-        const { candidate }: { candidate: Candidate } = await res.json();
+        const { candidate, pdfParseFailedFiles: failed }: { candidate: Candidate | null; pdfParseFailedFiles: string[] } = await res.json();
 
-        // Skip candidates with name "Unknown" or any parsing issues
-        if (candidate.name === 'Unknown') {
-          toast.warn(`Skipped ${file.name}: Candidate name is 'Unknown'`);
+        // Add failed PDFs to the list
+        if (failed && failed.length > 0) {
+          allFailedFiles.push(...failed);
+          toast.warn(
+            `PDF parsing failed for: ${failed.join(', ')}. ${
+              premium
+                ? 'Adobe fallback used for premium parsing.'
+                : 'Check download details for failed files. Upgrade to premium for better parsing accuracy.'
+            }`
+          );
+          console.log(`PDF parsing with pdf-parse failed for: ${failed.join(', ')}`);
+        }
+
+        // Skip if no candidate or candidate has invalid data
+        if (!candidate || candidate.name === 'Unknown' || candidate.name === 'Processing Error' || candidate.name === 'Insufficient Text') {
+          if (!failed.includes(file.name)) {
+            allFailedFiles.push(file.name);
+          }
+          toast.warn(`Skipped ${file.name}: Invalid or no candidate data returned`);
           continue;
         }
 
-        // Only add valid candidates to the list
+        // Add valid candidates to the list
         allCandidates.push(candidate);
         toast.success(`Processed ${file.name} successfully!`);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
         toast.error(`Error processing ${file.name}: ${errorMessage}`);
-        // Do not add error candidates to allCandidates
+        allFailedFiles.push(file.name);
       }
     }
 
@@ -126,21 +189,21 @@ const handleParseResumes = async () => {
     }
 
     setCandidates(allCandidates);
-    console.log(allCandidates, "candidate");
+    localStorage.setItem('failedResumeFiles', JSON.stringify(allFailedFiles));
+    console.log('Candidates:', allCandidates);
+    console.log('Failed Files:', allFailedFiles);
     setSelectedFiles([]);
-    toast.success('Resumes parsed successfully!');
+    toast.success(
+      `Resumes parsed successfully! ${allFailedFiles.length > 0 ? `${allFailedFiles.length} file(s) failed and are listed in download details.` : ''}`
+    );
 
     setTimeout(() => {
-      window.location.href = "/hr/candidates";
+      window.location.href = '/hr/candidates';
     }, 3000);
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      setError(err.message || 'Unexpected error occurred.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      setError('Unexpected error occurred.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+    setError(`Unexpected error occurred: ${errorMessage}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   } finally {
     setLoading(false);
   }

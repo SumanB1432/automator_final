@@ -29,6 +29,8 @@ export default function CandidatesPage() {
   const [isEmailButtonLoading, setIsEmailButtonLoading] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [failedFiles, setFailedFiles] = useState<string[]>([]);
+  const [premium,setPremium] = useState(false)
   const db = getDatabase(app);
 
   const filteredCandidates = useCandidateStore((state) => state.filteredCandidates);
@@ -76,6 +78,30 @@ export default function CandidatesPage() {
     return () => unsubscribe();
   }, []);
 
+
+
+  //Get User Payment Status From Firebase
+  useEffect(() => {
+    const getPaymentStatus = async function(){
+
+      let paymentRef = databaseRefUtil(db,`hr/${uid}/Payment/Status`)
+      let snapsort = await get(paymentRef);
+      if(snapsort.exists()){
+        let val = snapsort.val();
+        console.log(val,"payment status")
+        if(val=="Premium"){
+          setPremium(true)
+        }
+      }
+
+    }
+    if(uid){
+      console.log(uid)
+      getPaymentStatus()
+    }
+
+  }, [uid])
+
   useEffect(() => {
     const getEmail = async () => {
       if (!uid) return;
@@ -100,6 +126,24 @@ export default function CandidatesPage() {
       getEmail();
     }
   }, [uid, db]);
+
+//Get Failed Resume Parsing Name
+useEffect(() => {
+  const storedFailedFiles = localStorage.getItem('failedResumeFiles');
+  if (storedFailedFiles) {
+    try {
+      const parsedFiles = JSON.parse(storedFailedFiles);
+      if (Array.isArray(parsedFiles)) {
+        setFailedFiles(parsedFiles);
+        console.log(`Loaded failedResumeFiles from localStorage: ${parsedFiles}`);
+      } else {
+        console.warn('Invalid failedResumeFiles format in localStorage');
+      }
+    } catch (error) {
+      console.error('Error parsing failedResumeFiles from localStorage:', error);
+    }
+  }
+}, []);
 
   const selectedCandidate = filteredCandidates.find((c: Candidate) => c.id === selectedId);
 
@@ -152,19 +196,31 @@ export default function CandidatesPage() {
       window.open(selectedCandidate.resumeUrl, "_blank", "noopener,noreferrer");
     }
   };
-
-  const handleDownloadDetails = () => {
-    const lines = filteredCandidates.map((c) => {
-      return `Name: ${c.name}, Email: ${c.email}, Phone: ${c.phone}, Score: ${c.score}`;
-    });
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "candidate_details.txt";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+const handleDownloadDetails = () => {
+  const candidateLines = filteredCandidates.map((c) => {
+    return `Name: ${c.name}, Email: ${c.email}, Phone: ${c.phone}, Score: ${c.score}`;
+  });
+  const failedLines = failedFiles.length > 0
+    ? ['\nFailed PDF Resumes (Not Parsed by pdf-parse):', ...failedFiles.map((file) => `- ${file}`)]
+    : [];
+    console.log(premium,typeof(premium))
+  const promoLines = !premium ? [
+    '\n👉 Upgrade to Premium now and unlock 98% resume parsing accuracy.',
+    '✅ Parse complex PDFs',
+    '✅ Get full data extraction',
+    '✅ Save time. Hire faster.',
+  ] : [];
+  const allLines = [...candidateLines, ...failedLines, ...promoLines];
+  const blob = new Blob([allLines.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'candidate_details.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  localStorage.removeItem('failedResumeFiles');
+  setFailedFiles([]);
+};
 
   const verifyEmailInHrToken = useCallback(async (userEmail: string): Promise<boolean> => {
     try {
@@ -216,7 +272,7 @@ export default function CandidatesPage() {
         setIsRedirecting(true);
         window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
         return;
-    }
+      }
 
       let attempts = 3;
       let demoResponse;
@@ -383,9 +439,8 @@ export default function CandidatesPage() {
     <>
       {/* Main Content with Conditional Blur */}
       <motion.div
-        className={`flex flex-col lg:flex-row h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${
-          isSending ? "blur-sm" : ""
-        }`}
+        className={`flex flex-col lg:flex-row h-screen w-full bg-[#11011E] font-inter text-[#B6B6B6] ${isSending ? "blur-sm" : ""
+          }`}
         transition={{ duration: 0.3 }}
       >
         {/* Left Panel */}
@@ -490,8 +545,9 @@ export default function CandidatesPage() {
             <div className="space-y-4 relative">
               <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
               {filteredCandidates.length > 0 ? (
-                filteredCandidates
+                [...filteredCandidates]
                   .filter((c: Candidate) => c.name !== 'Processing Error')
+                  .sort((a: Candidate, b: Candidate) => b.score - a.score)
                   .map((c: Candidate) => (
                     <motion.div
                       key={c.id}

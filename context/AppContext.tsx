@@ -219,7 +219,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'COMPLETE_VIDEO': {
       const { skillId, videoId } = action.payload;
-      console.log('COMPLETE_VIDEO:', { skillId, videoId, completedVideos: state.userProgress.completedVideos });
+      // console.log('COMPLETE_VIDEO:', { skillId, videoId, completedVideos: state.userProgress.completedVideos });
       
       const newState = {
         ...state,
@@ -409,7 +409,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     }
     
     case 'SET_STATE_FROM_FIREBASE': {
-      console.log('Setting state from Firebase:', JSON.stringify(action.payload, null, 2));
+      // console.log('Setting state from Firebase:', JSON.stringify(action.payload, null, 2));
       return {
         ...state,
         ...action.payload,
@@ -462,13 +462,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const savedResume = localStorage.getItem('resume');
     if (savedResume && !state.resume) {
-      console.log('Loading resume from localStorage:', savedResume);
+      // console.log('Loading resume from localStorage:', savedResume);
       dispatch({ type: 'SET_RESUME', payload: savedResume });
     }
 
     // Wait for auth state to resolve
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      // console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
       dispatch({ type: 'SET_LOADING', payload: true });
       
       if (user) {
@@ -507,7 +507,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Debug state changes
   useEffect(() => {
-    console.log('AppContext state:', JSON.stringify(state, null, 2));
+    // console.log('AppContext state:', JSON.stringify(state, null, 2));
   }, [state]);
 
   const setResume = (text: string) => {
