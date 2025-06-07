@@ -444,143 +444,148 @@ const handleDownloadDetails = () => {
         transition={{ duration: 0.3 }}
       >
         {/* Left Panel */}
-        <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 overflow-y-auto shadow-xl h-full relative z-10">
-          <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
-              <button
-                onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
-                className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center gap-2 shadow-md"
-                aria-label={isFilterModalOpen ? "Close filter modal" : "Open filter modal"}
+       <div className="w-full lg:w-1/3 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] p-4 sm:p-6 space-y-6 shadow-xl h-full relative z-10 flex flex-col">
+  {/* Header Section (Sticky) */}
+  <div className="sticky top-0 bg-[rgba(255,255,255,0.02)] z-10 pb-4">
+    <div className="flex items-center justify-between">
+      <h2 className="text-3xl font-bold font-raleway text-[#ECF1F0]">Candidates</h2>
+      <button
+        onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
+        className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center gap-2 shadow-md"
+        aria-label={isFilterModalOpen ? "Close filter modal" : "Open filter modal"}
+      >
+        {isFilterModalOpen ? (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14" />
+          </svg>
+        )}
+        {isFilterModalOpen ? "Close" : "Filter"}
+      </button>
+    </div>
+    <hr className="border-t border-[rgba(255,255,255,0.05)] mt-3" />
+    {isClient && jobTitle && (
+      <div
+        style={{
+          backgroundColor: 'rgba(15, 174, 150, 0.1)',
+          padding: '10px',
+          borderRadius: '8px',
+          color: '#ECF1F0',
+          fontWeight: '500',
+        }}
+      >
+        Job Title: {jobTitle}
+      </div>
+    )}
+    {isClient && (
+      <div className="flex flex-wrap items-center gap-4 mt-4">
+        {hasActiveFilters && (
+          <span className="inline-flex items-center gap-4 px-3 py-1 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
+            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
+            </svg>
+            Active Filters
+          </span>
+        )}
+        <button
+          onClick={handleDownloadDetails}
+          className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+        >
+          Download Details
+        </button>
+        <button
+          onClick={handleSendEmail}
+          className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+          disabled={isEmailButtonLoading}
+        >
+          {isEmailButtonLoading ? (
+            <div className="flex items-center gap-2">
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
               >
-                {isFilterModalOpen ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1m-17 4h14m-7 4h7m-14 4h14" />
-                  </svg>
-                )}
-                {isFilterModalOpen ? "Close" : "Filter"}
-              </button>
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Processing...
             </div>
-            <hr className="border-t border-[rgba(255,255,255,0.05)] mt-3" />
-            {isClient && jobTitle && (
-              <div
-                style={{
-                  backgroundColor: 'rgba(15, 174, 150, 0.1)',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  color: '#ECF1F0',
-                  fontWeight: '500',
-                }}
-              >
-                Job Title: {jobTitle}
-              </div>
-            )}
-            {isClient && (
-              <div className="flex flex-wrap items-center gap-4 mt-4">
-                {hasActiveFilters && (
-                  <span className="inline-flex items-center gap-4 px-3 py-1 rounded-full text-xs font-medium bg-[rgba(15,174,150,0.1)] text-[#ECF1F0] shadow-sm">
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M5 4a2 2 0 00-2 2v1h14V6a2 2 0 00-2-2H5zm0 4v6a2 2 0 002 2h6a2 2 0 002-2V8H5z" />
-                    </svg>
-                    Active Filters
-                  </span>
-                )}
-                <button
-                  onClick={handleDownloadDetails}
-                  className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-                >
-                  Download Details
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  className="inline-flex items-center px-4 py-2 gap-2 rounded-md text-sm font-raleway font-semibold bg-[#0FAE96] text-white cursor-pointer shadow-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-                  disabled={isEmailButtonLoading}
-                >
-                  {isEmailButtonLoading ? (
-                    <div className="flex items-center gap-2">
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Processing...
-                    </div>
-                  ) : (
-                    "Send Auto Email"
-                  )}
-                </button>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={areAllSelected}
-                    onChange={handleSelectAll}
-                    className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus:ring-offset-[#11011E]"
-                  />
-                  <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
-                </div>
-              </div>
-            )}
-          </div>
-          <hr className="border-t border-[rgba(255,255,255,0.05)] my-2" />
-          {isClient && (
-            <div className="space-y-4 relative">
-              <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
-              {filteredCandidates.length > 0 ? (
-                [...filteredCandidates]
-                  .filter((c: Candidate) => c.name !== 'Processing Error')
-                  .sort((a: Candidate, b: Candidate) => b.score - a.score)
-                  .map((c: Candidate) => (
-                    <motion.div
-                      key={c.id}
-                      onClick={() => setSelectedId(c.id)}
-                      className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="flex justify-between">
-                        <div>
-                          <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
-                          <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedCandidates.includes(c.id)}
-                            onChange={() => handleCandidateSelect(c.id)}
-                            className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
-                          />
-                        </div>
-                      </div>
-                      <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
-                        Score: {c.score}
-                      </div>
-                    </motion.div>
-                  ))
-              ) : (
-                <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
-              )}
-            </div>
+          ) : (
+            "Send Auto Email"
           )}
+        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={areAllSelected}
+            onChange={handleSelectAll}
+            className="h-5 w-5 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96] focus:ring-offset-1 focus-ring-offset-[#11011E]"
+          />
+          <label className="text-sm text-[#ECF1F0] font-medium">Select All</label>
         </div>
+      </div>
+    )}
+  </div>
+
+  {/* Scrollable Candidate List */}
+  <div className="flex-1 overflow-y-auto">
+    <hr className="border-t border-[rgba(255,255,255,0.05)] my-2" />
+    {isClient && (
+      <div className="space-y-4 relative">
+        <div className="absolute -z-10 w-64 h-64 rounded-full bg-[#7000FF] blur-[180px] opacity-25 top-10 -left-10"></div>
+        {filteredCandidates.length > 0 ? (
+          [...filteredCandidates]
+            .filter((c: Candidate) => c.name !== 'Processing Error')
+            .sort((a: Candidate, b: Candidate) => b.score - a.score)
+            .map((c: Candidate) => (
+              <motion.div
+                key={c.id}
+                onClick={() => setSelectedId(c.id)}
+                className={`bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-5 cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 ${selectedId === c.id ? "ring-2 ring-[#0FAE96]" : "hover:border-[#0FAE96]/50"}`}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-lg font-bold font-raleway text-[#ECF1F0]">{c.name}</p>
+                    <p className="text-sm text-[#B6B6B6] mt-1">{c.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedCandidates.includes(c.id)}
+                      onChange={() => handleCandidateSelect(c.id)}
+                      className="h-6 w-6 text-[#0FAE96] cursor-pointer rounded focus:ring-[#0FAE96]"
+                    />
+                  </div>
+                </div>
+                <div className="float-right mt-2 text-xs bg-[#0FAE96] rounded-full px-3 py-1 text-white font-semibold shadow-sm">
+                  Score: {c.score}
+                </div>
+              </motion.div>
+            ))
+        ) : (
+          <p className="text-[#B6B6B6] text-center py-8 text-lg">No candidates found</p>
+        )}
+      </div>
+    )}
+  </div>
+</div>
 
         {/* Right Panel */}
         <div className="w-full lg:w-2/3 p-4 sm:p-8 bg-[#11011E] relative overflow-y-auto h-full">
