@@ -46,7 +46,8 @@ const Interview = () => {
   const [title, setTitle] = useState<string>("");
   const [actualTitle, setActualTitle] = useState<string>("");
   const [uid, setUid] = useState<string>("");
-  const [jd, setJD] = useState<string>("")
+  const [jd, setJD] = useState<string>("");
+  const [hrUid,setHruid] = useState<string>("");
   const router = useRouter();
   const db = getDatabase(app)
 
@@ -55,6 +56,9 @@ const Interview = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         console.log(user.uid, "uid", "hello");
+        let hrUid = localStorage.getItem("hr_code") || "";
+        console.log("hrUID",hrUid)
+        setHruid(hrUid)
         setUid(user.uid); // Set UID when user is authenticated
       } else {
         toast({
@@ -75,6 +79,7 @@ const Interview = () => {
     let title = localStorage.getItem("title") || "";
     setActualTitle(title)
     title = title.replace(/\s/g, '');
+    console.log("title",title)
     setTitle(title);
     if (!session) {
       setSession({
@@ -88,10 +93,14 @@ const Interview = () => {
   // Get Job Description From Hr through JobTitle
 
 useEffect(() => {
-  let getJob = async function(){
+  let getJob = async function(hrUID:any){
     console.log("Fetching job for:", title, uid);
-    const jobProfileRef = ref(db, `hr/${uid}/jobProfiles/${title}`);
+    console.log(hrUid,title)
+    console.log(`hr/${hrUid}/jobProfiles/${title}`)
+    let low_title=  title.toLowerCase();
+    const jobProfileRef = ref(db, `hr/${hrUid}/jobProfiles/${low_title}`);
     let snapsort = await get(jobProfileRef);
+    console.log(snapsort.val())
     if(snapsort.exists()){
       let jobDescription = snapsort.val().jdText; // Renamed variable to avoid confusion
       console.log("Fetched JD:", jobDescription);
@@ -103,10 +112,12 @@ useEffect(() => {
   }
   
   // Only run if both title and uid are available
-    getJob();
-    console.log("hiiiii suman")
+  if(hrUid){
+    getJob(hrUid);
+  }
+    
   
-}, [title, uid])
+}, [title, hrUid])
 
   // Start video stream when interview begins
   useEffect(() => {

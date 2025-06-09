@@ -107,7 +107,7 @@ export const deleteSkillsDataFromFirebase = async (uid: string) => {
   const skillsDataRef = ref(db, `user/${uid}/skillsData`);
   try {
     await remove(skillsDataRef);
-    // console.log('Skills data deleted from Firebase for user:', uid);
+    console.log('Skills data deleted from Firebase for user:', uid);
   } catch (error) {
     console.error('Error deleting skills data from Firebase:', error);
     throw error;

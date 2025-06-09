@@ -120,7 +120,7 @@ const Page = () => {
           localStorage.setItem("emailPermissionGranted", "false");
           setTimeout(() => {
             window.location.href = data.reauthUrl || "/email_auth";
-          }, 2000);
+          }, 3000);
         }
       } catch (err) {
         console.error("Error checking auth status:", err.message);
@@ -328,11 +328,19 @@ const Page = () => {
   useEffect(() => {
     if (emailLimitReached) return;
 
+    let companies = localStorage.getItem("companies");
+    console.log("companies",companies)
+    if(companies){
+      console.log(companies,"companies")
+    setCompanies(companies);
+    }
+    else{
     document.addEventListener("emailsData", function (event) {
       const jobs = event.detail;
       console.log("Received jobs from extension:", jobs);
 
       const filteredJobs = jobs.filter((job) => job.email !== "Not found");
+      localStorage.setItem("companies",filteredJobs)
       setCompanies(filteredJobs);
 
       if (filteredJobs.length > 0) {
@@ -347,6 +355,7 @@ const Page = () => {
     return () => {
       document.removeEventListener("emailsData", () => {});
     };
+  }
   }, []);
 
   // Step 10: Send emails to company array

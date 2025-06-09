@@ -18,21 +18,21 @@ const Dashboard = () => {
   const auth = getAuth();
 
 
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        if (currentUser) {
-          // console.log("User signed in:", currentUser);
-        } else {
-          toast.error("You need to be signed in to access this page!");
-          setTimeout(() => {
-            window.location.href = "/sign-in";
-          }, 2000)
-  
-        }
-      });
-  
-      return () => unsubscribe();
-    }, []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        // console.log("User signed in:", currentUser);
+      } else {
+        toast.error("You need to be signed in to access this page!");
+        setTimeout(() => {
+          window.location.href = "/sign-in";
+        }, 2000)
+
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     // console.log('Dashboard mounted, learningPath:', JSON.stringify(learningPath, null, 2));
@@ -114,7 +114,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <button
             className="bg-[#FF6B6B] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF6B6B]"
             onClick={handleResetData}
@@ -122,7 +122,7 @@ const Dashboard = () => {
             <Trash2 className="mr-2 h-4 w-4 inline" />
             Reset Data and Re-analyze
           </button>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 pb-16">
           <div className="lg:col-span-2">
@@ -137,6 +137,15 @@ const Dashboard = () => {
             <SkillGapSummary />
             <Milestones />
           </div>
+                <div className="mb-6">
+        <button
+          className="bg-[#FF6B6B] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF6B6B]"
+          onClick={handleResetData}
+        >
+          <Trash2 className="mr-2 h-4 w-4 inline" />
+          Reset Data and Re-analyze
+        </button>
+      </div>
         </div>
       </div>
     </div>
