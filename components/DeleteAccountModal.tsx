@@ -8,9 +8,11 @@ import {
   User,
   Auth,
 } from "firebase/auth";
-import { getDatabase, ref, remove } from "firebase/database";
-import app, { auth} from "@/firebase/config";
+import { getDatabase, ref, remove, set } from "firebase/database";
+import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
+// import { User } from "lucide-react";
+
 
 interface DeleteAccountModalProps {
   onClose: () => void;
@@ -30,6 +32,12 @@ export default function DeleteAccountModal({ onClose }: DeleteAccountModalProps)
       document.body.style.overflow = "auto";
     };
   }, []);
+  useEffect(()=>{
+    if(auth.currentUser){
+      let email = auth.currentUser.email;
+      setEmail(email)
+    }
+  },[])
 
   const deleteUserData = async (uid: string): Promise<void> => {
     try {
@@ -39,6 +47,22 @@ export default function DeleteAccountModal({ onClose }: DeleteAccountModalProps)
     } catch (error: any) {
       console.error("Error deleting user data:", error.message);
       throw error;
+    }
+  };
+
+  //SAVE DELETED MESSAGE IN FIREABSE
+  const handleSaveMessage = async (uid: string, email: string, reason: string): Promise<void> => {
+    try {
+      const messageRef = ref(db, `DeletedUser/Message/${uid}`);
+      await set(messageRef, {
+        email,
+        text: reason,
+        timestamp: Date.now(), // Optional: Add timestamp for tracking
+      });
+      console.log("Message saved successfully for UID:", uid);
+    } catch (error: any) {
+      console.error("Error saving message:", error.message);
+      throw new Error(`Failed to save message: ${error.message}`);
     }
   };
 
@@ -111,6 +135,7 @@ export default function DeleteAccountModal({ onClose }: DeleteAccountModalProps)
       }
 
       try {
+        await handleSaveMessage(user.uid,email,reason);
         await deleteUserData(user.uid);
         await deleteUser(user);
         toast.success("Account deleted successfully!");
