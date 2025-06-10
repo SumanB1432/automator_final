@@ -296,7 +296,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       const preferredVoice = voices.find(
         (voice) =>
           voice.name.includes("Google") ||
-          voice.name.includes("Female")
+          voice.name.includes("Male")
       );
 
       if (preferredVoice) {
