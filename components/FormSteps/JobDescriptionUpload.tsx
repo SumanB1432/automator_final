@@ -314,7 +314,7 @@ const JobDescriptionUpload = () => {
             <Button
               className=" bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center "
               onClick={handleSubmit}
-              disabled={state.jobDescriptions.length === 0 || state.isAnalyzing || isLoading}
+              disabled={state.jobDescriptions.length < 5 || state.isAnalyzing || isLoading}
             >
               {isLoading ? (
                 <>

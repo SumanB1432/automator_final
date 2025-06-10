@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { auth } from "@/firebase/config";
-import DeleteAccountModal from "../../components/DeleteAccountModal";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 
 const Settings = function () {
     let user = auth.currentUser;

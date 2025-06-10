@@ -52,6 +52,7 @@ const PricingSection = () => {
         "Delete your data anytime",
       ],
       buttonText: "Get Started",
+      redirectUrl: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
       buttonStyle:
         "bg-transparent border border-[#0FAE96] text-[#0FAE96] hover:bg-[#0FAE96] hover:text-white hover:shadow-lg transition-all duration-300",
     },
@@ -114,6 +115,9 @@ const PricingSection = () => {
   }, []);
 
   function handlePyment(name, usd, inr) {
+    if(name == "Basic"){
+      window.open("https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa", "_blank");
+    }
     if (name !== "Basic") {
       const selectedPrice = currency === "INR" ? inr : usd;
       window.location.href = `/payment?plan=${encodeURIComponent(
