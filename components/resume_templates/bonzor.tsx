@@ -386,7 +386,7 @@ export default function Resume() {
                 </div>
               )}
               {element.data.twitter && (
-                <div className="flex items-center space-x-1 print:hidden">
+                <div className="flex items-center space-x-1">
                   <svg
                     className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
@@ -409,7 +409,7 @@ export default function Resume() {
                 </div>
               )}
               {element.data.linkedin && (
-                <div className="flex items-center space-x-1 print:hidden">
+                <div className="flex items-center space-x-1">
                   <svg
                     className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"
@@ -503,7 +503,7 @@ export default function Resume() {
                 </div>
               )}
               {element.data.github && (
-                <div className="flex items-center space-x-1 print:hidden">
+                <div className="flex items-center space-x-1">
                   <svg
                     className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0 ${iconDisplay}`}
                     viewBox="0 0 24 24"

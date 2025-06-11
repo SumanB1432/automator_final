@@ -880,178 +880,211 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     return { strengths, improvements };
   };
 
-  const handleFinishInterview = async () => {
-    console.log("Finishing interview initiated");
-    updateUserData(uid,title,hrCode)
-    speechRecognitionRef.current.stop();
-    if (speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-    }
-    if (responseTimeoutRef.current) {
-      clearTimeout(responseTimeoutRef.current);
-    }
-    if (continueListeningTimeoutRef.current) {
-      clearTimeout(continueListeningTimeoutRef.current);
-    }
+ const handleFinishInterview = async () => {
+  console.log("Finishing interview initiated");
+  updateUserData(uid, title, hrCode);
 
-    let recordingUrl: string | undefined = undefined;
-    let recordedBlobs: Blob[] | null = null;
-    if (isRecording) {
-      try {
-        console.log("Stopping recorder");
-        const recordedBlob = await recorderRef.current.stop();
-        if (recordedBlob) {
-          recordedBlobs = [recordedBlob]; // Wrap in array for saveSessionWithRecording
-          console.log("Recording blob obtained, size:", recordedBlob.size);
-        } else {
-          console.warn("No final recording data");
-          toast({
-            title: "No Recording",
-            description:
-              "No video data was recorded, but the interview metadata will be saved.",
-            variant: "default",
-          });
-        }
-      } catch (error: any) {
-        console.error(
-          "Error stopping recorder:",
-          error.name,
-          error.message,
-          error.stack
-        );
+  // Stop speech recognition and synthesis
+  speechRecognitionRef.current.stop();
+  if (speechSynthesisRef.current) {
+    window.speechSynthesis.cancel();
+  }
+  if (responseTimeoutRef.current) {
+    clearTimeout(responseTimeoutRef.current);
+  }
+  if (continueListeningTimeoutRef.current) {
+    clearTimeout(continueListeningTimeoutRef.current);
+  }
+
+  // Stop the recorder and release its stream
+  let recordingUrl: string | undefined = undefined;
+  let recordedBlobs: Blob[] | null = null;
+  if (isRecording) {
+    try {
+      console.log("Stopping recorder");
+      const recordedBlob = await recorderRef.current.stop();
+      if (recordedBlob) {
+        recordedBlobs = [recordedBlob];
+        console.log("Recording blob obtained, size:", recordedBlob.size);
+      } else {
+        console.warn("No final recording data");
         toast({
-          title: "Recording Error",
-          description:
-            "Failed to save the final recording, but the interview will still end.",
-          variant: "destructive",
-        }); // Fixed: Added closing brace before parenthesis
-      }
-      setIsRecording(false);
-    }
-
-    // Rest of the function remains unchanged
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      setMediaStream(null);
-      console.log("Media stream stopped");
-    }
-
-    let finalTranscript = session?.transcript || [];
-    if (
-      finalTranscript.length > 0 &&
-      userResponse &&
-      finalTranscript[finalTranscript.length - 1].answer === ""
-    ) {
-      finalTranscript = finalTranscript.map((entry, index) =>
-        index === finalTranscript.length - 1
-          ? { ...entry, answer: userResponse }
-          : entry
-      );
-      console.log("Final transcript after updating last answer:", finalTranscript);
-    }
-
-    const userResponses = conversation
-      .filter((msg) => msg.role === "user")
-      .map((msg) => msg.content);
-
-    const overallScore =
-      userResponses.length > 0 ? calculateScore(userResponses) : 0;
-
-    const { strengths, improvements } = generateFeedback(finalTranscript);
-
-    const updatedSession = {
-      ...session!,
-      recordings: recordedBlobs ? [] : [],
-      feedback: {
-        strengths,
-        improvements,
-        overallScore,
-        transcript: finalTranscript,
-        recording: recordedBlobs ? [] : [],
-      },
-      isCompleted: true,
-    };
-
-    if (recordedBlobs && session) {
-      try {
-        recordingUrl = await saveSessionWithRecording(
-          {
-            ...updatedSession,
-            recordings: undefined,
-            feedback: {
-              ...updatedSession.feedback,
-              recording: undefined,
-            },
-          },
-          recordedBlobs
-        );
-        console.log("Recording URL from Firebase:", recordingUrl);
-
-        if (recordingUrl) {
-          updatedSession.recordings = [recordingUrl];
-          updatedSession.feedback.recording = [recordingUrl];
-          toast({
-            title: "Recording Saved",
-            description: recordingUrl.startsWith("blob:")
-              ? "Recording saved locally (Firebase unavailable)."
-              : "Recording uploaded to Firebase Storage.",
-            variant: "default",
-          });
-        } else {
-          console.warn("No recording URL returned from saveSessionWithRecording");
-          toast({
-            title: "Recording Save Failed",
-            description:
-              "Failed to save recording to Firebase, but session metadata saved.",
-            variant: "default",
-          });
-        }
-      } catch (error: any) {
-        console.error(
-          "Error saving session with recording:",
-          error.message,
-          error.stack
-        );
-        toast({
-          title: "Save Error",
-          description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
-          variant: "destructive",
-        });
-      }
-    } else if (session) {
-      try {
-        await saveSessionWithRecording(updatedSession, []);
-        toast({
-          title: "Session Saved",
-          description: "Session metadata saved without recording.",
+          title: "No Recording",
+          description: "No video data was recorded, but the interview metadata will be saved.",
           variant: "default",
         });
-      } catch (error: any) {
-        console.error(
-          "Error saving session without recording:",
-          error.message,
-          error.stack
-        );
+      }
+    } catch (error: any) {
+      console.error("Error stopping recorder:", error.message, error.stack);
+      toast({
+        title: "Recording Error",
+        description: "Failed to save the final recording, but the interview will still end.",
+        variant: "destructive",
+      });
+    }
+    setIsRecording(false);
+
+    // Explicitly release the recorder's stream
+    const recorderStream = recorderRef.current.getStream();
+    if (recorderStream) {
+      recorderStream.getTracks().forEach((track) => {
+        track.stop();
+        console.log(`Recorder track ${track.kind} stopped`);
+      });
+    }
+    recorderRef.current.updateStream(null); // Clear the recorder's stream reference
+  }
+
+  // Stop all media stream tracks and clear video element
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+        console.log(`Media stream track ${track.kind} stopped`);
+      } catch (error) {
+        console.error(`Error stopping track ${track.kind}:`, error);
+      }
+    });
+    setMediaStream(null);
+  }
+
+  // Clear video element's srcObject
+  if (videoRef.current) {
+    videoRef.current.srcObject = null;
+    console.log("Video element srcObject cleared");
+  }
+
+  // Close AudioContext if it exists
+  if (audioContextRef.current) {
+    audioContextRef.current.close().then(() => {
+      console.log("AudioContext closed");
+    }).catch((error) => {
+      console.error("Error closing AudioContext:", error);
+    });
+    audioContextRef.current = null;
+  }
+
+  // Clear destinationRef
+  if (destinationRef.current) {
+    destinationRef.current.disconnect();
+    destinationRef.current = null;
+    console.log("Audio destination disconnected");
+  }
+
+  let finalTranscript = session?.transcript || [];
+  if (
+    finalTranscript.length > 0 &&
+    userResponse &&
+    finalTranscript[finalTranscript.length - 1].answer === ""
+  ) {
+    finalTranscript = finalTranscript.map((entry, index) =>
+      index === finalTranscript.length - 1
+        ? { ...entry, answer: userResponse }
+        : entry
+    );
+    console.log("Final transcript after updating last answer:", finalTranscript);
+  }
+
+  const userResponses = conversation
+    .filter((msg) => msg.role === "user")
+    .map((msg) => msg.content);
+
+  const overallScore =
+    userResponses.length > 0 ? calculateScore(userResponses) : 0;
+
+  const { strengths, improvements } = generateFeedback(finalTranscript);
+
+  const updatedSession = {
+    ...session!,
+    recordings: recordedBlobs ? [] : [],
+    feedback: {
+      strengths,
+      improvements,
+      overallScore,
+      transcript: finalTranscript,
+      recording: recordedBlobs ? [] : [],
+    },
+    isCompleted: true,
+  };
+
+  if (recordedBlobs && session) {
+    try {
+      recordingUrl = await saveSessionWithRecording(
+        {
+          ...updatedSession,
+          recordings: undefined,
+          feedback: {
+            ...updatedSession.feedback,
+            recording: undefined,
+          },
+        },
+        recordedBlobs
+      );
+      console.log("Recording URL from Firebase:", recordingUrl);
+
+      if (recordingUrl) {
+        updatedSession.recordings = [recordingUrl];
+        updatedSession.feedback.recording = [recordingUrl];
         toast({
-          title: "Save Error",
-          description: "Failed to save session metadata.",
-          variant: "destructive",
+          title: "Recording Saved",
+          description: recordingUrl.startsWith("blob:")
+            ? "Recording saved locally (Firebase unavailable)."
+            : "Recording uploaded to Firebase Storage.",
+          variant: "default",
+        });
+      } else {
+        console.warn("No recording URL returned from saveSessionWithRecording");
+        toast({
+          title: "Recording Save Failed",
+          description: "Failed to save recording to Firebase, but session metadata saved.",
+          variant: "default",
         });
       }
+    } catch (error: any) {
+      console.error(
+        "Error saving session with recording:",
+        error.message,
+        error.stack
+      );
+      toast({
+        title: "Save Error",
+        description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
+        variant: "destructive",
+      });
     }
+  } else if (session) {
+    try {
+      await saveSessionWithRecording(updatedSession, []);
+      toast({
+        title: "Session Saved",
+        description: "Session metadata saved without recording.",
+        variant: "default",
+      });
+    } catch (error: any) {
+      console.error(
+        "Error saving session without recording:",
+        error.message,
+        error.stack
+      );
+      toast({
+        title: "Save Error",
+        description: "Failed to save session metadata.",
+        variant: "destructive",
+      });
+    }
+  }
 
-    console.log("Updated session:", updatedSession);
-    setSession(updatedSession);
-    onComplete(updatedSession.feedback!);
+  console.log("Updated session:", updatedSession);
+  setSession(updatedSession);
+  onComplete(updatedSession.feedback!);
 
-    toast({
-      title: "Interview Completed",
-      description:
-        "Your interview session has ended. Check the feedback for details.",
-      variant: "default",
-    });
-    console.log("Interview finished, feedback sent");
-  };
+  toast({
+    title: "Interview Completed",
+    description: "Your interview session has ended. Check the feedback for details.",
+    variant: "default",
+  });
+  console.log("Interview finished, feedback sent");
+};
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-0">

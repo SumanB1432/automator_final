@@ -358,7 +358,7 @@ export default function Classic() {
                 </div>
               )}
               {element.data.website && (
-                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
                     className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
                     viewBox="0 0 24 24"
@@ -387,7 +387,7 @@ export default function Classic() {
                 </div>
               )}
               {element.data.linkedin && (
-                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
                     className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
                     viewBox="0 0 24 24"
@@ -431,7 +431,7 @@ export default function Classic() {
                 </div>
               )}
               {element.data.github && (
-                <div className="flex items-center space-x-1 sm:space-x-2 print:hidden">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   <svg
                     className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500"
                     viewBox="0 0 24 24"
