@@ -70,8 +70,7 @@ const JobDescriptionUpload = () => {
       try {
         const urd = await fetchUserResumeData(uid);
         if (urd) {
-          // console.log('URD fetched:', urd);
-          toast.success("RESUME DATA FETCH SUCCESSFULLY");
+      
           setSuccess((prevSuccess) => [...prevSuccess, "Resume data loaded successfully!"]);
           setResumeText(urd);
           setResume(urd);
@@ -104,7 +103,6 @@ const JobDescriptionUpload = () => {
         const key = await fetchGeminiApiKey(uid);
         if (key) {
           setApiKey(key);
-          toast.success("GEMINI KEY FETCH SUCCESSFULLY");
           setSuccess((prevSuccess) => [...prevSuccess, "API key loaded successfully!"]);
           // console.log('Gemini API key fetched from Firebase:', key);
         } else {
@@ -231,26 +229,6 @@ const JobDescriptionUpload = () => {
                 </Button>
 
                 {error && <p className="text-[#FF6B6B] text-sm font-inter">{error}</p>}
-                {success && success.length > 0 && (
-                  <div className="space-y-2">
-                    {success.map((message, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between bg-[rgba(255,255,255,0.02)] border border-green-500/20 rounded-md p-3 text-green-500 text-sm font-inter"
-                      >
-                        <span>{message}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSuccess((prev) => prev.filter((_, i) => i !== index))}
-                          className="text-green-500 hover:text-green-400"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {state.jobDescriptions.length > 0 && (

@@ -46,14 +46,6 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Logo and Social Links */}
           <div className="sm:col-span-2 lg:col-span-1 flex flex-col items-center space-y-6">
-            <Image
-              src="/images/Logo.png"
-              alt="Logo"
-              width={45}
-              height={45}
-              className="hover:opacity-80 transition-opacity filter drop-shadow-lg"
-            />
-
             <div className="flex flex-wrap gap-5">
               {socialLinks.map(({ name, color, link }) => (
                 <a
@@ -79,13 +71,14 @@ const Footer = () => {
 
           {/* Navigation Sections */}
           {["Quick Links", "Features", "Help"].map((section) => (
-            <div key={section} className="flex flex-col space-y-4">
-              <h3 className="text-lg font-bold text-white relative inline-flex items-center group">
+            <div
+              key={section}
+              className="flex flex-col space-y-4 items-start"
+            >
+              <h3 className="text-lg font-bold text-white pl-4">
                 {section}
-                <span className="absolute -bottom-2 left-0 w-12 h-0.5 bg-purple-500/80 
-                group-hover:w-full transition-all duration-300"></span>
               </h3>
-              <ul className="space-y-3 mt-2">
+              <ul className="space-y-3 w-full max-w-[200px] pl-4">
                 {section === "Quick Links" &&
                   [
                     { name: "Home", path: "/" },
@@ -99,7 +92,7 @@ const Footer = () => {
                   [
                     { name: "ATSCheck", path: "/atsresume" },
                     { name: "QuickResume", path: "/atsresume" },
-                    { name: "SkillMatch", path: "/atsresume" },
+                    { name: "Skills", path: "/course/jobdescription" },
                   ].map((item) => (
                     <FooterLink key={item.name} href={item.path} text={item.name} />
                   ))}
@@ -119,22 +112,14 @@ const Footer = () => {
     </footer>
   );
 };
-
 const FooterLink = ({ href, text }) => (
   <li>
     <Link
       href={href}
-      className="text-gray-400 hover:text-white transition-all duration-200 flex items-center group
-      hover:translate-x-1 relative overflow-hidden"
+      className="text-gray-400 hover:text-white hover:underline underline-offset-4 hover:scale-110 transition transform duration-300 ease-in-out"
     >
-      <span
-        className="absolute left-0 w-full h-[1px] bg-purple-500/30 -translate-x-full 
-        group-hover:translate-x-0 transition-transform duration-300"
-      ></span>
-      <span className="opacity-0 group-hover:opacity-100 mr-2 transition-opacity">›</span>
       {text}
     </Link>
   </li>
 );
-
 export default Footer;
