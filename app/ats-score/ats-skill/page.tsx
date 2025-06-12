@@ -36,7 +36,7 @@ const SkillsSuggestions: React.FC<{ skillsData: SkillsData }> = ({ skillsData })
   }
 
     const handleClick = () => {
-    router.push('/atsresume');
+    window.location.href = "/course/jobdescription"
   }
 
   return (
@@ -148,7 +148,7 @@ const SkillsSuggestions: React.FC<{ skillsData: SkillsData }> = ({ skillsData })
           </div>
           <button className="mt-8 px-6 py-3 bg-[#0FAE96] text-white font-semibold rounded-xl shadow-[0_4px_20px_rgba(15,174,150,0.5)] hover:bg-[#0E8C77] hover:scale-105 hover:shadow-[0_6px_30px_rgba(15,174,150,0.7)] transition-all duration-300 transform relative overflow-hidden" onClick={handleClick}>
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.2)] to-transparent animate-shimmer"></span>
-            Optimize Now
+            Build Skills
           </button>
         </div>
       </div>

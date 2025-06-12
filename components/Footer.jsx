@@ -82,7 +82,7 @@ const Footer = () => {
                 {section === "Quick Links" &&
                   [
                     { name: "Home", path: "/" },
-                    { name: "Referral", path: "/referral" },
+                    { name: "Privacy Policy", path: "/privacy" },
                     { name: "About", path: "/about" },
                   ].map((item) => (
                     <FooterLink key={item.name} href={item.path} text={item.name} />
