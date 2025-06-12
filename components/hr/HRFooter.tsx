@@ -85,6 +85,7 @@ const Footer = () => {
                   [
                     { name: "Overview", path: "/hr" },
                     { name: "Talent Insights", path: "/hr/interview" },
+                    {name: "Privacy Policy", path: "/hr/policy" },
                   ].map((item) => <FooterLink key={item.name} href={item.path} text={item.name} />)}
 
                 {section === "Actions" &&
