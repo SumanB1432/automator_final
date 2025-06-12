@@ -137,7 +137,7 @@ const handleParseResumes = async () => {
       formData.append('status', premium.toString());
 
       try {
-        const res = await fetch(`http://localhost:3001/parse-resumes`, {
+        const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
           method: 'POST',
           body: formData,
         });
