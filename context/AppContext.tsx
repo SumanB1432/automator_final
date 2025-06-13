@@ -80,7 +80,8 @@ type AppAction =
   | { type: 'ACHIEVE_MILESTONE'; payload: string }
   | { type: 'SET_SKILL_VIDEOS'; payload: { skillId: string; videos: Video[] } }
   | { type: 'SET_STATE_FROM_FIREBASE'; payload: AppState }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'RESET_STATE' };
 
 const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
@@ -425,6 +426,11 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       };
     }
     
+    case 'RESET_STATE': {
+      return initialState;
+    }
+    
+
     default:
       return state;
   }
@@ -623,6 +629,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     dispatch({ type: 'COMPLETE_SKILL', payload: skillId });
   };
 
+  const resetState = async () => {
+    dispatch({ type: 'RESET_STATE' });
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('resume');
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await saveSkillsDataToFirebase(user.uid, initialState);
+      } catch (error) {
+        console.error('Failed to clear Firebase data:', error);
+      }
+    }
+
+    router.push('/course/jobdescription');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -635,6 +660,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateVideoProgress,
         completeVideo,
         completeSkill,
+        resetState,
       }}
     >
       {children}

@@ -10,12 +10,14 @@ import { getAuth } from 'firebase/auth';
 import { deleteSkillsDataFromFirebase } from '@/services/firebaseService';
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "react-toastify";
+  
 
 const Dashboard = () => {
   const { state } = useAppContext();
   const { learningPath, isLoading } = state;
   const router = useRouter();
   const auth = getAuth();
+const { resetState} = useAppContext();
 
 
   useEffect(() => {
@@ -41,20 +43,26 @@ const Dashboard = () => {
     // console.log('Current user:', auth.currentUser?.uid || 'None');
   }, [learningPath, state.formStep, isLoading]);
 
-  const handleResetData = async () => {
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        await deleteSkillsDataFromFirebase(user.uid);
-        router.push('/course/jobdescription');
-      } catch (error) {
-        console.error('Error resetting skills data:', error);
-      }
-    } else {
-      console.error('No authenticated user found');
-      router.push('/login');
+const handleResetData = async () => {
+ // Access resetState from context
+  const user = auth.currentUser;
+
+  if (user) {
+    try {
+      // Reset Firebase data
+      await deleteSkillsDataFromFirebase(user.uid);
+      // Reset application state
+      await resetState();
+      // Redirect to job description page
+      router.push('/course/jobdescription');
+    } catch (error) {
+      console.error('Error resetting data:', error);
     }
-  };
+  } else {
+    console.error('No authenticated user found');
+    router.push('/login');
+  }
+};
 
   if (!auth.currentUser && !isLoading) {
     console.warn('No authenticated user, redirecting to login');
