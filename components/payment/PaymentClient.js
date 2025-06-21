@@ -187,7 +187,10 @@ const PaymentClient = () => {
               SubscriptionType: "Premium"
 
             }).then(() => {
-              window.location.href = "/hr"
+              setTimeout(()=>{
+               window.location.href = "/hr"
+              },2000)
+              
               console.log("HR payment status update!")
             })
           }
@@ -199,7 +202,10 @@ const PaymentClient = () => {
               SubscriptionType: "Premium"
 
             }).then(() => {
-              window.location.href = "/"
+              setTimeout(()=>{
+                 window.location.href = "/"
+
+              },2000)
               console.log("HR payment status update!")
             })
           }
