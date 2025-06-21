@@ -115,24 +115,24 @@ const CreateResume: React.FC = () => {
   async function analyzeResumeForSkill() {
     // console.log("from analyzer",);
 
-    const prompt = `You are an AI that generates structured resume data in JSON format. Below, I will provide previous resume data and a job description. Your task is to carefully analyze both, understand the job requirements, and update the resume while ensuring that all fields remain correctly structured.
+    const prompt = `You are an AI that generates structured resume data in JSON format. Below, I will provide previous resume data and a job description. Your task is to carefully analyze both, understand the job requirements, and update the resume while ensuring that all fields remain correctly structured with relevent keywords from job discription.
 
-### Instructions:
-1. **Retain personal details exactly as they are** without any modifications.
-2. **Modify the 'skills' section** to align with the job description while maintaining the structure. Ensure that all skills are grouped under relevant headings and formatted as in the example JSON.
-3. **Update the 'experiences' section** by emphasizing responsibilities and achievements relevant to the job description. Retain the same structure and formatting.
-4. **Preserve the JSON structure** exactly as shown in the example, ensuring that key names remain unchanged.
-5. **Ensure uniformity in field values** (e.g., the format of dates, lists, objects) so that the modified resume is consistent with the example structure.
+ Instructions:
+1. Retain personal details exactly as they are without any modifications add relevent keywords from job discription.
+2. Modify the 'skills' section to align with the job description while maintaining the structure. Ensure that all skills are grouped under relevant headings and formatted as in the example JSON.
+3. Update the 'experiences' section by emphasizing responsibilities and achievements relevant to the job description. Retain the same structure and formatting.
+4. Preserve the JSON structure exactly as shown in the example, ensuring that key names remain unchanged.
+5. Ensure uniformity in field values (e.g., the format of dates, lists, objects) so that the modified resume is consistent with the example structure.
 
-### Input Data:
-**Previous Resume Data:**
+ Input Data:
+Previous Resume Data:
 ${previous_resume_data}
 
-**Job Description:**
+Job Description:
 ${job_description}
 
-### Output Format:
-Return the updated resume in **JSON format** ensuring all key names, structures, and data formats are identical to the following example:
+ Output Format:
+Return the updated resume in JSON format ensuring all key names, structures, and data formats are identical to the following example:
 
 \ \ \json
       {
@@ -215,7 +215,7 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
 
     try {
       const model = geminiClient.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash-preview-04-17",
       });
       const response = await model.generateContent(prompt);
       const textResponse =
@@ -287,69 +287,28 @@ Return the updated resume in **JSON format** ensuring all key names, structures,
       fillResumeData(resumeData);
     }
   }, [resumeData]);
-const handlePrint = useReactToPrint({
+  const handlePrint = useReactToPrint({
     contentRef,
-    pageStyle: `
-      @page {
-        size: 210mm 297mm;
-        margin: 2mm 10mm 10mm 10mm !important;
+    pageStyle: `@page {
+      size: 265mm 406mm;
+      margin: 20mm 10mm 10mm 20mm !important;
+    }
+
+    @media print {
+      /* Ensure print color accuracy */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      } 
+      /* Hide unwanted elements */
+      header, footer {
+        display: none !important;
       }
-
-      @media print {
-        body {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        .resume-content {
-          padding: 10mm !important;
-          box-sizing: border-box !important;
-          page-break-after: always;
-        }
-
-        .resume-content:first-of-type {
-          padding-top: 2mm !important;
-          margin-top: 0mm !important;
-        }
-
-        .resume-content:not(:first-of-type) {
-          padding-top: 14mm !important;
-          margin-top: 10mm !important;
-        }
-
-        .resume-content > *:first-child {
-          margin-top: 0 !important;
-          padding-top: 0 !important;
-        }
-
-        .section {
-          margin-bottom: 15mm !important;
-          break-inside: avoid !important;
-        }
-
-        .section-content {
-          padding: 10mm !important;
-          line-height: 1.2 !important;
-        }
-
-        .section-content ul {
-          padding-left: 15mm !important;
-        }
-
-        .section-content li {
-          margin-bottom: 5mm !important;
-        }
-
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-
-        header, footer {
-          display: none !important;
-        }
-      }
-    `
+    }
+    /* Prevent margin collapsing */
+    .page {
+      overflow: hidden;
+    }`
   });
 
   const toggleSidebar = (sidebar: "left" | "right") => {
@@ -412,9 +371,9 @@ const handlePrint = useReactToPrint({
           {/* Main Resume Content */}
           <div
             ref={contentRef}
-            className="w-full flex-1 bg-gray-200 overflow-y-auto scrollbar-hidden print:h-auto print:p-0 print:w-[210mm] mx-auto mt-16 lg:mt-0 relative z-10"
+            className="w-full flex-1 bg-gray-200 overflow-y-auto scrollbar-hidden print:h-auto print:p-0 print:w-[235mm] mx-auto mt-0 lg:mt-0 relative z-10"
           >
-            <div className="resume-container w-full max-w-[210mm] bg-gray-200 mx-auto min-h-screen print:min-h-0 print:bg-white">
+            <div className="resume-container w-full max-w-[255mm] bg-gray-200 mx-auto min-h-screen print:min-h-0 print:bg-white">
               <SelectedTemplateComponent
                 key={selectedTemplate}
                 className="mb-0 pb-0 w-full"
