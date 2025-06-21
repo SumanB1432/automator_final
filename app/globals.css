@@ -19,6 +19,7 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
 .scrollbar-hidden {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
@@ -27,6 +28,51 @@ body {
   display: none; /* Chrome, Safari, and Opera */
 }
 
+/* Mic Animation Styles */
+/* Mic Animation Styles */
+.mic-animation {
+  position: relative;
+  transition: transform 0.1s ease-out, opacity 0.1s ease-out; /* Faster transitions */
+  transform-origin: center;
+  will-change: transform, opacity, filter; /* Optimize for performance */
+}
+
+.mic-animation::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180%; /* Slightly larger glow */
+  height: 180%;
+  background: var(--glow-color, transparent); /* <- change this line */
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 var(--glow-intensity, 0px) var(--glow-color, transparent);
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0.7; /* Slightly brighter glow */
+  transition: box-shadow 0.1s ease-out, transform 0.1s ease-out; /* Faster response */
+}
+
+.mic-animation::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--glow-color, transparent);
+  opacity: var(--overlay-opacity, 0);
+  border-radius: 50%;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  transition: opacity 0.1s ease-out; /* Faster overlay */
+}
+
+/* Ensure the image itself is styled correctly */
+img.mic-animation {
+  display: block;
+  object-fit: contain;
+  filter: brightness(1.1); /* Slight brightness boost for clarity */
+}
+
+/* Animations */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
@@ -41,6 +87,7 @@ body {
 .animate-fadeInUp {
   animation: fadeInUp 0.5s ease-out forwards;
 }
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -92,6 +139,7 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* For Chrome, Safari, and Opera */
 }
+
 @keyframes blob {
   0% { transform: translate(0px, 0px) scale(1); }
   33% { transform: translate(30px, -50px) scale(1.1); }
@@ -111,10 +159,30 @@ body {
   animation-delay: 4s;
 }
 
-.hide-scrollbar {
-  scrollbar-width: none;
+/* .mic-animation {
+  --glow-color: #0FAE96 !important; 
+  --glow-intensity: 10px !important;
+  --overlay-opacity: 0.5 !important;
+} */
+
+@keyframes glowingGradient {
+  0% {
+    --glow-color: rgba(255, 0, 150, 0.6);
+  }
+  25% {
+    --glow-color: rgba(0, 200, 255, 0.6);
+  }
+  50% {
+    --glow-color: rgba(0, 255, 150, 0.6);
+  }
+  75% {
+    --glow-color: rgba(255, 100, 0, 0.6);
+  }
+  100% {
+    --glow-color: rgba(255, 0, 150, 0.6);
+  }
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+.mic-animation.dynamic-glow::before {
+  animation: glowingGradient 4s infinite linear;
 }

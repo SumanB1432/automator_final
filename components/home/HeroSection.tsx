@@ -46,7 +46,7 @@ const HeroSection = () => {
       {/* Main Heading */}
       <h1 className="relative z-10 font-raleway font-bold text-[#ECF1F0] text-[1.65rem] sm:text-3xl md:text-4xl lg:text-[3.9rem] mb-4 leading-normal animate-slideInUp">
         <span className="block">Stop Wasting Time,</span>
-        <span className="block mt-2 sm:mt-6">Get Hired.</span>
+        <span className="block sm:mt-8">Get Hired.</span>
 
       </h1>
 
@@ -84,7 +84,7 @@ const HeroSection = () => {
           ))}
         </div>
         <p className="font-roboto text-[#B6B6B6] text-sm">
-          <span className="text-[#0FAE96] font-bold">350+</span> JobSeeker using JobFrom Automator
+          <span className="text-[#0FAE96] font-bold">450+</span> JobSeeker using JobFrom Automator
         </p>
       </div>
     </div>

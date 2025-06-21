@@ -10,14 +10,14 @@ import { getAuth } from 'firebase/auth';
 import { deleteSkillsDataFromFirebase } from '@/services/firebaseService';
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "react-toastify";
-  
+
 
 const Dashboard = () => {
   const { state } = useAppContext();
   const { learningPath, isLoading } = state;
   const router = useRouter();
   const auth = getAuth();
-const { resetState} = useAppContext();
+  const { resetState } = useAppContext();
 
 
   useEffect(() => {
@@ -43,26 +43,26 @@ const { resetState} = useAppContext();
     // console.log('Current user:', auth.currentUser?.uid || 'None');
   }, [learningPath, state.formStep, isLoading]);
 
-const handleResetData = async () => {
- // Access resetState from context
-  const user = auth.currentUser;
+  const handleResetData = async () => {
+    // Access resetState from context
+    const user = auth.currentUser;
 
-  if (user) {
-    try {
-      // Reset Firebase data
-      await deleteSkillsDataFromFirebase(user.uid);
-      // Reset application state
-      await resetState();
-      // Redirect to job description page
-      router.push('/course/jobdescription');
-    } catch (error) {
-      console.error('Error resetting data:', error);
+    if (user) {
+      try {
+        // Reset Firebase data
+        await deleteSkillsDataFromFirebase(user.uid);
+        // Reset application state
+        await resetState();
+        // Redirect to job description page
+        router.push('/course/jobdescription');
+      } catch (error) {
+        console.error('Error resetting data:', error);
+      }
+    } else {
+      console.error('No authenticated user found');
+      router.push('/login');
     }
-  } else {
-    console.error('No authenticated user found');
-    router.push('/login');
-  }
-};
+  };
 
   if (!auth.currentUser && !isLoading) {
     console.warn('No authenticated user, redirecting to login');
@@ -112,13 +112,13 @@ const handleResetData = async () => {
       <div className="animate-slide-in px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl sm:text-3xl font-raleway font-bold text-[#ECF1F0]">
-              Your AI Learning Roadmap
+            <h2 className="text-3xl sm:text-4xl mt-10 ml-4 font-raleway font-bold text-[#ECF1F0]">
+              Your Learning Roadmap
             </h2>
-            <Sparkles className="h-6 w-6 text-amber-400" />
+            <Sparkles className="mt-10  h-10 w-12 text-amber-400" />
           </div>
-          <p className="text-[#B6B6B6] font-inter text-sm sm:text-base mt-2">
-            Based on AI-powered analysis of your resume and job requirements
+          <p className="text-[#B6B6B6] ml-4 mb-4 font-inter text-sm sm:text-base mt-2">
+            Based on AI-powered analysis of your resume and Real Time Jobs
           </p>
         </div>
 
@@ -144,16 +144,23 @@ const handleResetData = async () => {
           <div className="space-y-6">
             <SkillGapSummary />
             <Milestones />
+            <button
+              className="bg-[#FF6B6B] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF6B6B]"
+              onClick={handleResetData}
+            >
+              <Trash2 className="mr-2 h-4 w-4 inline" />
+              Reset Data and Re-analyze
+            </button>
           </div>
-                <div className="mb-6">
-        <button
+          <div className="mb-6">
+            {/* <button
           className="bg-[#FF6B6B] text-white font-raleway font-semibold text-base px-6 py-2 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF6B6B]"
           onClick={handleResetData}
         >
           <Trash2 className="mr-2 h-4 w-4 inline" />
           Reset Data and Re-analyze
-        </button>
-      </div>
+        </button> */}
+          </div>
         </div>
       </div>
     </div>

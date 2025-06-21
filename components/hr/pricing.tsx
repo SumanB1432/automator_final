@@ -1,12 +1,34 @@
 /** @format */
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { getDatabase, get, update, ref } from "firebase/database";
+import app from "@/firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/firebase/config";
 
 const PricingSection = () => {
   const [currency, setCurrency] = useState("");
   const [country, setCountry] = useState("");
   const [country_name, setCountryname] = useState("");
   const [error, setError] = useState(null);
+  const [uid, setUid] = useState("")
+  const db = getDatabase(app)
+
+  useEffect(() => {
+    // Set up the Firebase auth state listener
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is logged in, set the uid
+        setUid(user.uid);
+      } else {
+        // No user is logged in, redirect to login page
+        window.location.href = "/sign-in"; // Replace '/login' with your actual login page route
+      }
+    });
+
+    // Cleanup the listener on component unmount
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     // Fetch user location data client-side
@@ -34,6 +56,42 @@ const PricingSection = () => {
   useEffect(() => {
     console.log("State updated:", { country, country_name, currency, error });
   }, [currency, country, country_name, error]);
+
+
+  useEffect(() => {
+    const checkSubscriptionStatus = async (uid) => {
+      try {
+        const paymentRef = ref(db, `hr/${uid}/Payment`);
+        const snapshot = await get(paymentRef);
+
+        if (!snapshot.exists()) {
+          return { isPremium: false, paymentData: null };
+        }
+
+        const paymentData = snapshot.val();
+        if (paymentData.Status === "Premium" && paymentData.End_Date) {
+          const endDate = new Date(paymentData.End_Date.replace(" ", "T") + "Z");
+          const now = new Date();
+
+          if (endDate > now) {
+            // Downgrade to Free
+            await update(paymentRef, {
+              Status: "Free",
+              SubscriptionType: "Free",
+              End_Date: null
+            });
+            return { isPremium: false, paymentData: { ...paymentData, Status: "Free", SubscriptionType: "Free", End_Date: null } };
+          }
+        }
+
+        return { isPremium: paymentData.Status === "Premium", paymentData };
+      } catch (error) {
+        console.error("Error checking subscription status:", error);
+        return { isPremium: false, paymentData: null };
+      }
+    };
+    checkSubscriptionStatus(uid)
+  }, [uid])
 
   const formatPrice = (usd, inr) => {
     return currency === "INR" ? `${inr.toLocaleString("en-IN")}` : `${usd}`;
@@ -118,7 +176,7 @@ const PricingSection = () => {
       const selectedPrice = currency === "INR" ? inr : usd;
       window.location.href = `/payment?plan=${encodeURIComponent(
         name
-      )}&price=${encodeURIComponent(selectedPrice)}¤cy=${currency}`;
+      )}&price=${encodeURIComponent(selectedPrice)}¤cy=${currency}&for=${encodeURIComponent("hr")}`;
     }
   }
 
@@ -147,10 +205,9 @@ const PricingSection = () => {
               className={`
                 card relative group p-6 sm:p-8 rounded-3xl border transition-all duration-700 ease-in-out transform
                 ${isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
-                ${
-                  plan.bestSeller
-                    ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
-                    : "border-[#ffffff1A] bg-[#FFFFFF05]"
+                ${plan.bestSeller
+                  ? "border-[#0FAE96] bg-gradient-to-bl from-[#0fae9655] via-[#11011E] to-[#11011E] shadow-[0_0_20px_#0FAE96aa]"
+                  : "border-[#ffffff1A] bg-[#FFFFFF05]"
                 }
                 hover:scale-[1.02] hover:shadow-2xl
               `}

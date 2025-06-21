@@ -79,7 +79,7 @@ const PhaseCard: React.FC<PhaseCardProps> = ({ phase }) => {
           </CardFooter>
         )}
         {!phase.isUnlocked && !phase.isCompleted && (
-          <CardFooter className="bg-[rgba(255,255,255,0.02)] border-t border-[rgba(255,255,255,0.05)]">
+          <CardFooter>
             <div className="flex items-center text-[#B6B6B6] font-inter text-sm">
               <Lock className="h-5 w-5 mr-2 text-[#ECF1F0]" />
               <span>Complete previous phase to unlock</span>

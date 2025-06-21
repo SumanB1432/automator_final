@@ -62,17 +62,10 @@ export const useSearchStore = create<SearchState>((set) => ({
         experienceRange: filterValues.experienceRange,
       };
 
-      const fuseOptions = {
-        keys: ['jobTitle', 'location', 'skills'],
-        threshold: 0.3,
-        includeScore: true,
-      };
-
-      const fuse = new Fuse(state.candidates, fuseOptions);
-
 
       let result = [...state.candidates];
-    //Changes for JobTitle 
+      //Changes for JobTitle 
+      // ✅ Job Title Filter (manual AND match of cleaned keywords)
       if (filterValues.jobTitle.trim()) {
         const cleaned = filterValues.jobTitle
           .toLowerCase()
@@ -83,66 +76,72 @@ export const useSearchStore = create<SearchState>((set) => ({
 
         const words = cleaned.split(' ');
 
-        const jobTitleFuse = new Fuse(state.candidates, {
-          keys: ['jobTitle'],
-          threshold: 0.4,
-          includeScore: true,
-          shouldSort: true,
+        result = result.filter((candidate) => {
+          const title = candidate.jobTitle?.toLowerCase() || '';
+          return words.every((word) => title.includes(word));
         });
-
-        const jobTitleResults = words.reduce((acc, word) => {
-          const matches = jobTitleFuse.search(word).map(({ item }) => item);
-          return acc.length === 0 ? matches : acc.filter((item) => matches.includes(item));
-        }, [] as Candidate[]);
-
-        result = jobTitleResults;
       }
-
+      // ✅ Education Filter
       if (filterValues.education.trim()) {
-        // Split the education field by commas, considering different areas/fields
         const educationKeywords = filterValues.education
           .toLowerCase()
           .split(',')
           .map((keyword) => keyword.trim());
 
-        // Apply fuzzy matching for each part of the education string
         result = result.filter((c) =>
           educationKeywords.some((keyword) =>
-            c.education?.toLowerCase().includes(keyword) // check if each keyword matches part of the education field
+            c.education?.toLowerCase().includes(keyword)
           )
         );
       }
+      // ✅ Location Filter (fuzzy)
       if (filterValues.location.trim()) {
+        const fuse = new Fuse(result, {
+          keys: ['location'],
+          threshold: 0.3,
+          includeScore: true,
+        });
         const fuseResults = fuse.search(filterValues.location.trim());
         result = fuseResults.map(({ item }) => item);
       }
 
+      // ✅ Skills Filter (fuzzy)
       if (filterValues.skills.length > 0) {
+        const fuse = new Fuse(result, {
+          keys: ['skills'],
+          threshold: 0.3,
+          includeScore: true,
+        });
+
         let matchedSkillsCandidates: Candidate[] = [];
 
-        // Check if any of the candidates have matching skills
         filterValues.skills.forEach((skill) => {
-          const fuseResults = fuse.search(skill); // Search using the current skill
-          const matchedItems = fuseResults.map(({ item }) => item); // Get the matched candidates
-
+          const fuseResults = fuse.search(skill);
+          const matchedItems = fuseResults.map(({ item }) => item);
           matchedSkillsCandidates = [...matchedSkillsCandidates, ...matchedItems];
         });
 
-        // Remove duplicates from the matched candidates
+        // Remove duplicates
         matchedSkillsCandidates = [...new Set(matchedSkillsCandidates)];
 
-        // If no candidates matched any skills, don't filter them out entirely, just keep the ones that match other filters
+        // Apply skills match filter if matches found
         if (matchedSkillsCandidates.length > 0) {
           result = result.filter((candidate) =>
             matchedSkillsCandidates.includes(candidate)
           );
         }
       }
+
+      // ✅ Experience Filter
       result = result.filter(
         (c) =>
           c.experience >= filterValues.experienceRange[0] &&
           c.experience <= filterValues.experienceRange[1]
       );
-      return { ...newState, filteredCandidates: result };
+
+      return {
+        ...newState,
+        filteredCandidates: result,
+      };
     }),
 }));

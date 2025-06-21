@@ -70,7 +70,7 @@ const JobDescriptionUpload = () => {
       try {
         const urd = await fetchUserResumeData(uid);
         if (urd) {
-      
+
           setSuccess((prevSuccess) => [...prevSuccess, "Resume data loaded successfully!"]);
           setResumeText(urd);
           setResume(urd);
@@ -164,41 +164,60 @@ const JobDescriptionUpload = () => {
     }
   };
 
+  const handleClick = function(){
+     window.open("https://youtu.be/FeRTK3aHdIk", "_blank");
+  }
+
   if (state.formStep === FormStep.ANALYZING) {
     return <Analyzing />;
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#11011E]">
-      <div className="w-full max-w-4xl mx-auto animate-fade-in py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-[rgba(255,255,255,0.02)] shadow-lg border-[rgba(255,255,255,0.05)] rounded-lg overflow-hidden relative">
+      <div className="w-full max-w-4xl mx-auto animate-fade-in py-12 px-4 sm:px-6 lg:px-8">
+        <div className="bg-[rgba(255,255,255,0.02)] shadow-md border border-[rgba(255,255,255,0.05)] rounded-xl overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-br from-[#7000FF]/25 to-[#FF00C7]/25 blur-[180px] opacity-25 pointer-events-none"></div>
           <div className="px-6 py-8 relative">
-            <h2 className="text-2xl font-raleway font-bold text-[#ECF1F0]">Add Job Descriptions</h2>
-            <p className="text-[#B6B6B6] font-inter mt-2">Add 1-5 job descriptions for roles you're interested in</p>
+            <h2 className="text-2xl font-raleway font-bold text-[#ECF1F0]">🎯 Discover Exactly What You Need to Learn</h2>
+            <div className="mt-4 bg-[#3b796f13] rounded-xl p-4 border border-[#2D2B3F]">
+              <p className="text-[#B6B6B6] font-inter mb-2">
+                Add job descriptions <span className="text-[#0FAE96]">(5 Job Descriptions Recommended)</span>
+              </p>
+              <p className="text-[#B6B6B6] font-inter mb-2">By adding job descriptions, you’ll get:</p>
+              <ul className="text-[#B6B6B6] font-inter space-y-2 list-disc list-inside">
+                <li>Personalized skill roadmap</li>
+                <li>Learning videos for each required skill</li>
+
+              </ul>
+              <button className="mt-4 px-4 py-2 bg-[#0FAE96] text-white rounded-lg font-inter hover:bg-[#0da789] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center" onClick={()=>handleClick()}>
+                🎬 Watch Demo
+              </button>
+            </div>
+
           </div>
+
           <div className="px-6 sm:px-8 pb-8">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
+                    <label className="text-m font-raleway font-medium text-[#ECF1F0] mb-2 block">
                       Job Title (Optional)
                     </label>
                     <Input
                       placeholder="e.g. Frontend Developer"
-                      className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
+                      className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-4 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                       value={jobTitle}
                       onChange={(e) => setJobTitle(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
+                    <label className="text-m font-raleway font-medium text-[#ECF1F0] mb-2 block">
                       Company (Optional)
                     </label>
                     <Input
                       placeholder="e.g. Acme Inc."
-                      className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
+                      className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-4 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                       value={jobCompany}
                       onChange={(e) => setJobCompany(e.target.value)}
                     />
@@ -206,12 +225,12 @@ const JobDescriptionUpload = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm font-raleway font-medium text-[#ECF1F0] mb-1 block">
+                  <label className="text-m font-raleway font-medium text-[#ECF1F0] mb-2 block">
                     Job Description*
                   </label>
                   <Textarea
                     placeholder="Paste the job description here..."
-                    className="min-h-[200px] w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
+                    className="min-h-[200px] w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-lg px-4 py-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
                     value={jobText}
                     onChange={(e) => {
                       setJobText(e.target.value);
@@ -220,37 +239,41 @@ const JobDescriptionUpload = () => {
                   />
                 </div>
 
-                <Button
-                  onClick={handleAddJob}
-                  className="w-full bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4 inline" />
-                  Add Job Description ({state.jobDescriptions.length}/5)
-                </Button>
 
-                {error && <p className="text-[#FF6B6B] text-sm font-inter">{error}</p>}
+                <div className="flex justify-center mt-4">
+                  <Button
+                    onClick={handleAddJob}
+                    className="w-[200px] bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] flex items-center justify-center"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4 inline" />
+                    Add ({state.jobDescriptions.length}/5)
+                  </Button>
+                </div>
+
+
+                {error && <p className="text-[#FF6B6B] text-sm font-inter mt-2">{error}</p>}
               </div>
 
               {state.jobDescriptions.length > 0 && (
                 <div>
                   <h3 className="text-lg font-raleway font-medium text-[#ECF1F0] mb-4">Added Job Descriptions:</h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {state.jobDescriptions.map((job) => (
                       <div
                         key={job.id}
-                        className="bg-[rgba(255,255,255,0.02)]/40 rounded-lg p-4 flex justify-between items-start"
+                        className=" border border-[rgba(255,255,255,0.05)] rounded-lg p-5 flex justify-between items-start"
                       >
                         <div>
-                          <h4 className="font-raleway font-medium text-[#ECF1F0]">
+                          <h4 className="font-raleway font-medium text-[#ECF1F0] text-base">
                             {job.title || 'Untitled Position'}
                             {job.company && ` at ${job.company}`}
                           </h4>
-                          <p className="text-sm text-[#B6B6B6] font-inter line-clamp-2 mt-1">
+                          <p className="text-sm text-[#B6B6B6] font-inter line-clamp-2 mt-2">
                             {job.text}
                           </p>
                         </div>
                         <Button
-                          className="text-[#0FAE96] font-inter text-sm h-10 px-2 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+                          className="text-[#0FAE96] font-inter text-sm h-10 px-3 transition duration-200 hover:bg-[rgba(255,255,255,0.05)] hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
                           onClick={() => removeJobDescription(job.id)}
                         >
                           <X className="h-4 w-4" />
@@ -260,37 +283,17 @@ const JobDescriptionUpload = () => {
                   </div>
                 </div>
               )}
-
-              {/* <div className="border border-dashed border-[rgba(255,255,255,0.05)] p-4 rounded-md bg-[rgba(255,255,255,0.02)]">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-5 w-5 text-[#0FAE96]" />
-                  <h4 className="弈-raleway font-medium text-sm text-[#ECF1F0]">Enable AI-Powered Analysis</h4>
-                </div>
-                <p className="text-sm text-[#B6B6B6] font-inter mb-3">
-                  For more accurate skill extraction and analysis, enter your Gemini API key (optional):
-                </p>
-                <Input
-                  type="password"
-                  placeholder="Your Gemini API key"
-                  className="w-full text-base font-inter text-[#B6B6B6] bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] rounded-md px-4 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0FAE96] transition duration-200"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <p className="text-xs text-[#B6B6B6] font-inter mt-2">
-                  If no API key is provided, we'll use our standard analysis method.
-                </p>
-              </div> */}
             </div>
           </div>
           <div className="bg-[#11011E] px-6 py-6 flex justify-between">
             <Button
-              className="bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 border-[rgba(255,255,255,0.05)] transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
+              className="bg-transparent text-[#0FAE96] font-raleway font-semibold text-base px-6 py-3 rounded-md h-10  transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]"
               onClick={() => setFormStep(FormStep.RESUME)}
             >
-              
+
             </Button>
             <Button
-              className=" bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center "
+              className="bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md h-10 transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               onClick={handleSubmit}
               disabled={state.jobDescriptions.length < 5 || state.isAnalyzing || isLoading}
             >

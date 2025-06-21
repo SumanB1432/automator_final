@@ -18,7 +18,7 @@ return (
        <div className="flex flex-col bg-[#11011E]">
       <Card className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg sm:text-xl font-raleway font-bold text-[#ECF1F0]">
+          <CardTitle className="text-lg sm:text-xl ml-7 mt-7 font-raleway font-bold text-[#ECF1F0]">
             Skill Gap Analysis
           </CardTitle>
         </CardHeader>

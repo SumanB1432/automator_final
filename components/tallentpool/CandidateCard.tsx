@@ -9,12 +9,12 @@ type Props = {
 
 export default function CandidateCard({ candidate, onView, onEdit }: Props) {
   return (
-    <div className="border rounded-xl p-4 shadow-sm flex flex-col gap-2 bg-white dark:bg-neutral-900">
+    <div className="border rounded-xl p-4 shadow-sm flex flex-col gap-2 bg-white text-white dark:bg-neutral-900">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">{candidate.name}</h3>
-          <p className="text-sm text-gray-500">{candidate.jobTitle}</p>
-          <p className="text-sm text-gray-400">{candidate.location}</p>
+          <p className="text-sm">{candidate.jobTitle}</p>
+          <p className="text-sm">{candidate.location}</p>
         </div>
         <div className="text-right text-sm text-gray-400">
           <p>Score: {candidate.score}</p>

@@ -115,10 +115,10 @@ const Resume: React.FC = () => {
     e.preventDefault();
 
     console.log("User before submitting:", user); // Debugging user data before submission
-    function notifyExtensionOnResumeSubmit(urdData:unknown) {
+    function notifyExtensionOnResumeSubmit(urdData: unknown) {
       const event = new CustomEvent('resumeUpdated', {
         detail: {
-          urd : urdData,
+          urd: urdData,
         }
       });
       document.dispatchEvent(event);
@@ -156,7 +156,10 @@ const Resume: React.FC = () => {
 
       toast.success("Document updated successfully!");
       notifyExtensionOnResumeSubmit(urdData)
-   
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1000)
+
 
 
 

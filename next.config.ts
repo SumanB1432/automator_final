@@ -1,5 +1,4 @@
-// next.config.js
-
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   // Disable ESLint errors during builds
   eslint: {
@@ -16,15 +15,16 @@ const nextConfig = {
     config.ignoreWarnings = [
       () => true, // Ignores all warnings
     ];
-
     return config;
   },
 
   // Optionally, disable React strict mode (to suppress dev warnings)
   reactStrictMode: false,
+
+  // Add image domains for next/image
+  images: {
+    domains: ['lh3.googleusercontent.com'],
+  },
 };
 
 module.exports = nextConfig;
-
-
-

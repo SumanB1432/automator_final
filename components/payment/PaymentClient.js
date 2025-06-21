@@ -27,6 +27,7 @@ const PaymentClient = () => {
   const [coupon, setCoupon] = useState("");
   const [country, setCountry] = useState("");
   const [country_name, setCountryname] = useState("");
+  const [section_for, setSectionFor] = useState("")
   const receiptId = "qwsaq1";
   const socialLinks = [
     { Icon: FaInstagram, color: "#ec4899", href: "https://www.instagram.com/yourprofile" },
@@ -41,6 +42,9 @@ const PaymentClient = () => {
   useEffect(() => {
     // Extract price from URL
     const priceFromUrl = searchParams.get("price");
+    const section = searchParams.get("for");
+    console.log(section)
+    setSectionFor(section)
     let initialAmount = 0;
     if (priceFromUrl) {
       // Decode and remove currency symbol (₹ or others) to get numeric value
@@ -150,12 +154,12 @@ const PaymentClient = () => {
           };
 
           const referralCode = getReferralCodeFromCookie();
-          console.log("referral code",referralCode)
+          console.log("referral code", referralCode)
           const userRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
 
           update(userRef, {
             amount: amount,
-            currency:currency,
+            currency: currency,
             paymentDate: formattedDateTime,
           })
             .then(() => {
@@ -164,6 +168,41 @@ const PaymentClient = () => {
             .catch((error) => {
               console.error("Referral update error:", error);
             });
+
+          //UPDATE DATABASE PAYMENT STATUS FOR CANDIDATE OR HRS
+          const recentDate = new Date();
+          const startDateStr = recentDate.toISOString().replace("T", " ").split(".")[0];
+
+          // Calculate End_Date (1 month from Start_Date)
+          const endDate = new Date(recentDate);
+          endDate.setMonth(recentDate.getMonth() + 1);
+          const endDateStr = endDate.toISOString().replace("T", " ").split(".")[0];
+          const userPaymentRef = ref(db, `user/${currentUser}/Payment`);
+          const hrPaymentRef = ref(db, `hr/${currentUser}/Payment`);
+          if (section_for == "hr") {
+            update(hrPaymentRef, {
+              Start_Date: startDateStr,
+              End_Date:endDateStr,
+              Status: "Premium",
+              SubscriptionType: "Premium"
+
+            }).then(() => {
+              window.location.href = "/hr"
+              console.log("HR payment status update!")
+            })
+          }
+          if (section_for == "candidate") {
+            update(userPaymentRef, {
+              Start_Date: startDateStr,
+              End_Date:endDateStr,
+              Status: "Premium",
+              SubscriptionType: "Premium"
+
+            }).then(() => {
+              window.location.href = "/"
+              console.log("HR payment status update!")
+            })
+          }
 
           const paymentRef = ref(db, `user/${currentUser}/Payment`);
           update(paymentRef, {

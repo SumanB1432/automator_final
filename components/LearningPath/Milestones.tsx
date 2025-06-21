@@ -16,10 +16,10 @@ const Milestones = () => {
       <Card className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg sm:text-xl font-raleway font-bold text-[#ECF1F0]">
+            <CardTitle className="text-lg sm:text-xl ml-7 mt-7 font-raleway font-bold text-[#ECF1F0]">
               Milestones
             </CardTitle>
-            <Badge className="border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter text-xs">
+            <Badge className="border-[rgba(255,255,255,0.05)] mr-7 text-[#B6B6B6] font-inter text-xs">
               {achievedCount}/{totalCount} Achieved
             </Badge>
           </div>

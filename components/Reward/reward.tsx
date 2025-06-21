@@ -80,11 +80,17 @@ const RewardsDashboard = ({ totalRef, userName }) => {
 
     const updatePayment = async (uid: any) => {
         console.log("Update User Payment Mode to Premium");
-        const today = new Date();
-        const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+        const recentDate = new Date();
+        const startDateStr = recentDate.toISOString().replace("T", " ").split(".")[0];
+
+        // Calculate End_Date (1 month from Start_Date)
+        const endDate = new Date(recentDate);
+        endDate.setMonth(recentDate.getMonth() + 1);
+        const endDateStr = endDate.toISOString().replace("T", " ").split(".")[0];
         let paymentRef = ref(db, `user/${uid}/Payment`)
         const updatedPaymentData = {
-            Start_Date: formattedDate, // or use dynamic date
+            Start_Date: startDateStr, // or use dynamic date
+            End_Date: endDateStr,
             Status: "Premium",
             SubscriptionType: "Premium"
         };

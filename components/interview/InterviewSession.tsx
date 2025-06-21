@@ -15,7 +15,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import app, { auth } from "@/firebase/config";
 import { getDatabase, ref, set } from "firebase/database";
 
-
 export interface SessionTypes {
   jobDescription?: string;
   role?: string;
@@ -61,83 +60,82 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   const [conversation, setConversation] = useState<
     Array<{ role: string; content: string }>
   >([]);
+  const [title, setTitle] = useState<string>("");
+  const [hrCode, setHrCode] = useState<string>("");
+  const [uid, setUid] = useState<string>("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const recorderRef = useRef<VideoRecorder>(new VideoRecorder());
   const speechRecognitionRef = useRef<SpeechRecognitionUtil>(
     new SpeechRecognitionUtil()
   );
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const destinationNodeRef = useRef<MediaStreamAudioDestinationNode | null>(
+    null
+  );
+  const userAudioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const responseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSpeechRef = useRef<string>("");
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const hasStartedInterview = useRef<boolean>(false);
   const continueListeningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [title, setTitle] = useState<string>("");
-  const [hrCode, setHrCode] = useState<string>("");
-  const [uid, setUid] = useState<string>("");
-  const db = getDatabase(app)
-  // --- CHANGE START ---
-  const accumulatedSpeechRef = useRef<string>(""); // To accumulate speech during the listening window
-  // --- CHANGE END ---
+  const [isFinishing, setIsFinishing] = useState<boolean>(false);
+  const accumulatedSpeechRef = useRef<string>("");
+  const db = getDatabase(app);
   const { toast } = useToast();
+  const micIconRef = useRef<HTMLImageElement | null>(null);
 
-  //Get Uid
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUid(user.uid); // Set UID when user is authenticated
+        setUid(user.uid);
       } else {
         toast({
           title: "Authentication Error",
           description: "No user is signed in. Please log in.",
           variant: "destructive",
         });
-        // Optionally redirect to login page
         window.location.href = "/sign-in";
       }
     });
-
-
-
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
-  //Update User Interview Records for Security
-  const updateUserData = async function (uid: any, title: any, hrCode: any) {
+
+  const updateUserData = async (uid: string, title: string, hrCode: string) => {
     const key = hrCode + title;
     const userInterviewRef = ref(db, `user/${uid}/interViewRecords/${key}`);
-
     try {
-      await set(userInterviewRef, true); // store the actual data here
+      await set(userInterviewRef, true);
       localStorage.removeItem("title");
-      localStorage.removeItem("hr_code")
+      localStorage.removeItem("hr_code");
       console.log("Interview record updated successfully");
     } catch (error) {
       console.error("Error updating interview record:", error);
+      throw error;
     }
   };
 
-  //Get jobtitle & hr_code from localstorage
   useEffect(() => {
-    let code = localStorage.getItem("hr_code") || "";
-    let title = localStorage.getItem("title") || "";
-    let actualTitle = title.replace(/\s/g, '');
-    console.log(code, actualTitle)
+    const code = localStorage.getItem("hr_code") || "";
+    const title = localStorage.getItem("title") || "";
+    const actualTitle = title.replace(/\s/g, "");
+    console.log(code, actualTitle);
     setHrCode(code);
     setTitle(actualTitle);
-
-  }, [])
+  }, []);
 
   useEffect(() => {
-    console.log("useEffect triggered, hasStartedInterview:", hasStartedInterview.current);
+    console.log(
+      "useEffect triggered, hasStartedInterview:",
+      hasStartedInterview.current
+    );
     const setupMedia = async () => {
       if (!window.MediaRecorder) {
         toast({
           title: "Browser Not Supported",
-          description: "Your browser does not support video recording. Please use Chrome or Firefox.",
+          description:
+            "Your browser does not support video recording. Please use Chrome or Firefox.",
           variant: "destructive",
         });
         setHasMediaPermission(false);
@@ -151,13 +149,56 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
         console.log("Media stream acquired:", stream, stream.getTracks());
         stream.getTracks().forEach((track) => {
-          console.log(`Track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
+          console.log(
+            `Track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`
+          );
         });
+
+        audioContextRef.current = new AudioContext();
+        destinationNodeRef.current =
+          audioContextRef.current.createMediaStreamDestination();
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 512;
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const userAudioTracks = stream.getAudioTracks();
+        if (userAudioTracks.length > 0) {
+          userAudioSourceRef.current =
+            audioContextRef.current.createMediaStreamSource(
+              new MediaStream([userAudioTracks[0]])
+            );
+          if (userAudioSourceRef.current) {
+            userAudioSourceRef.current.connect(analyserRef.current);
+            userAudioSourceRef.current.connect(destinationNodeRef.current);
+            console.log(
+              "User audio source connected for analysis and recording"
+            );
+          } else {
+            console.error("Failed to create audio source node");
+            toast({
+              title: "Audio Setup Error",
+              description:
+                "Failed to initialize audio source. Animation may not work.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          console.warn("No user audio tracks available to mix");
+          toast({
+            title: "Audio Setup Warning",
+            description:
+              "No microphone audio detected. Animation and recording may be affected.",
+            variant: "default",
+          });
+        }
 
         const assignStreamToVideo = async (attempts = 5, delay = 500) => {
           if (!videoRef.current) {
             if (attempts > 0) {
-              console.warn(`Video ref not assigned, retrying... (${attempts} attempts left)`);
+              console.warn(
+                `Video ref not assigned, retrying... (${attempts} attempts left)`
+              );
               setTimeout(() => assignStreamToVideo(attempts - 1, delay), delay);
               return;
             }
@@ -181,51 +222,70 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             await videoRef.current.play();
             console.log("Video playback started successfully");
 
-            try {
-              audioContextRef.current = new AudioContext();
-              destinationRef.current = audioContextRef.current.createMediaStreamDestination();
-              const combinedStream = new MediaStream([
-                ...stream.getVideoTracks(),
-                ...stream.getAudioTracks(),
-                ...destinationRef.current.stream.getAudioTracks(),
-              ]);
+            const combinedStream = new MediaStream([
+              ...stream.getVideoTracks(),
+              ...destinationNodeRef.current!.stream.getAudioTracks(),
+            ]);
 
-              console.log("Combined stream created:", combinedStream, combinedStream.getTracks());
-              combinedStream.getTracks().forEach((track) => {
-                console.log(`Combined track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`);
-              });
+            console.log(
+              "Combined stream created:",
+              combinedStream,
+              combinedStream.getTracks()
+            );
+            combinedStream.getTracks().forEach((track) => {
+              console.log(
+                `Combined track ${track.kind}: enabled=${track.enabled}, readyState=${track.readyState}`
+              );
+            });
 
-              try {
-                recorderRef.current.initialize(combinedStream);
-                recorderRef.current.start();
-                setIsRecording(true);
-                console.log("Recorder initialized and started");
-                toast({
-                  title: "Recording Started",
-                  description: "Video recording has started for the interview.",
-                  variant: "default",
-                });
-              } catch (recorderError) {
-                console.error("Error initializing/starting recorder:", recorderError.message, recorderError.stack);
-                toast({
-                  title: "Recording Error",
-                  description: "Failed to start video recording. Continuing without recording.",
-                  variant: "destructive",
-                });
-              }
-            } catch (audioError) {
-              console.error("Error creating AudioContext or combined stream:", audioError.message, audioError.stack);
+            const activeTracks = combinedStream
+              .getTracks()
+              .filter((track) => track.readyState === "live");
+            if (activeTracks.length === 0) {
+              console.error(
+                "No active tracks in combinedStream. Recording will fail."
+              );
               toast({
-                title: "Audio Context Error",
-                description: "Failed to set up audio context. Recording may not work.",
+                title: "Stream Error",
+                description: "No active media tracks available for recording.",
                 variant: "destructive",
               });
+              return;
+            }
+
+            try {
+              recorderRef.current.initialize(combinedStream, {
+                mimeType: "video/webm;codecs=vp8,opus",
+              });
+              recorderRef.current.start();
+              setIsRecording(true);
+              console.log(
+                "Recorder initialized and started with MIME type video/webm"
+              );
+              toast({
+                title: "Recording Started",
+                description: "Video recording has started for the interview.",
+                variant: "default",
+              });
+            } catch (recorderError) {
+              console.error(
+                "Error initializing/starting recorder:",
+                recorderError
+              );
+              toast({
+                title: "Recording Error",
+                description:
+                  "Failed to start video recording. Continuing without recording.",
+                variant: "destructive",
+              });
+              setIsRecording(false);
             }
           } catch (error) {
-            console.error("Error playing video:", error.message, error.stack);
+            console.error("Error playing video:", error);
             toast({
               title: "Video Playback Error",
-              description: "Failed to play video stream. Recording may not work.",
+              description:
+                "Failed to play video stream. Recording may not work.",
               variant: "destructive",
             });
           }
@@ -243,18 +303,18 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
           });
         }
       } catch (error: any) {
-        console.error("Error setting up media:", error.name, error.message, error.stack);
+        console.error("Error setting up media:", error.name, error.message);
         setHasMediaPermission(false);
         toast({
           title: "Media Setup Error",
-          description: "Failed to access camera or microphone. Please check permissions.",
+          description:
+            "Failed to access camera or microphone. Please check permissions.",
           variant: "destructive",
         });
       }
     };
 
     setupMedia();
-    initializeSpeechSynthesis();
     if (!hasStartedInterview.current) {
       hasStartedInterview.current = true;
       startInterview();
@@ -266,8 +326,25 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
         setMediaStream(null);
       }
       speechRecognitionRef.current.stop();
-      if (speechSynthesisRef.current) {
-        window.speechSynthesis.cancel();
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      if (destinationNodeRef.current) {
+        destinationNodeRef.current.disconnect();
+        destinationNodeRef.current = null;
+      }
+      if (userAudioSourceRef.current) {
+        userAudioSourceRef.current.disconnect();
+        userAudioSourceRef.current = null;
+      }
+      if (analyserRef.current) {
+        analyserRef.current.disconnect();
+        analyserRef.current = null;
       }
       if (responseTimeoutRef.current) {
         clearTimeout(responseTimeoutRef.current);
@@ -275,51 +352,111 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       if (continueListeningTimeoutRef.current) {
         clearTimeout(continueListeningTimeoutRef.current);
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
       if (session?.recordings) {
         session.recordings.forEach((url) => URL.revokeObjectURL(url));
       }
     };
   }, []);
 
-  const initializeSpeechSynthesis = () => {
-    if ("speechSynthesis" in window) {
-      speechSynthesisRef.current = new SpeechSynthesisUtterance();
-      speechSynthesisRef.current.onend = () => {
+  const speakText = async (text: string) => {
+    if (!voiceEnabled) return;
+
+    try {
+      console.log(
+        "Attempting to use backend for Google Cloud Text-to-Speech..."
+      );
+      setIsProcessing(true);
+
+      const response = await fetch("http://localhost:3001/synthesize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend response:", response.status, errorText);
+        if (response.status === 429) {
+          toast({
+            title: "Quota Exceeded",
+            description:
+              "Google Cloud TTS quota exceeded. Please check your Google Cloud Console.",
+            variant: "destructive",
+          });
+        } else if (
+          errorText.includes("INVALID_ARGUMENT") &&
+          errorText.includes("voice")
+        ) {
+          toast({
+            title: "Voice Not Available",
+            description:
+              "The requested voice is not available. Please check the voice name.",
+            variant: "destructive",
+          });
+        }
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
+      }
+
+      console.log("Backend call successful, generating audio...");
+      const { audioContent } = await response.json();
+      const audioUrl = `data:audio/mp3;base64,${audioContent}`;
+
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current.src = "";
+      }
+      audioElementRef.current = new Audio();
+      audioElementRef.current.src = audioUrl;
+
+      if (audioContextRef.current && destinationNodeRef.current) {
+        const aiAudioSource = audioContextRef.current.createMediaElementSource(
+          audioElementRef.current
+        );
+        aiAudioSource.connect(destinationNodeRef.current);
+        aiAudioSource.connect(audioContextRef.current.destination);
+        console.log(
+          "AI audio source connected to destination node for recording"
+        );
+      } else {
+        console.warn(
+          "Audio context or destination node not available. AI audio won't be recorded."
+        );
+        toast({
+          title: "Audio Setup Error",
+          description:
+            "Failed to set up audio mixing. AI voice may not be recorded.",
+          variant: "destructive",
+        });
+      }
+
+      audioElementRef.current.play().catch((error) => {
+        console.error("Error playing audio:", error);
+        toast({
+          title: "Audio Playback Error",
+          description:
+            "Failed to play AI voice. Please check your browser's audio settings.",
+          variant: "destructive",
+        });
+      });
+      audioElementRef.current.onended = () => {
         setIsProcessing(false);
         setWaitingForResponse(true);
         startResponseTimeout();
+        URL.revokeObjectURL(audioUrl);
       };
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(
-        (voice) =>
-          voice.name.includes("Google") ||
-          voice.name.includes("Male")
-      );
-
-      if (preferredVoice) {
-        speechSynthesisRef.current.voice = preferredVoice;
-      }
-
-      speechSynthesisRef.current.rate = 1.1;
-      speechSynthesisRef.current.pitch = 1.05;
-
-      if (audioContextRef.current && destinationRef.current) {
-        const audioElement = new Audio();
-        audioElement.crossOrigin = "anonymous";
-        const source =
-          audioContextRef.current.createMediaElementSource(audioElement);
-        source.connect(destinationRef.current);
-        destinationRef.current.connect(audioContextRef.current.destination);
-
-        speechSynthesisRef.current.onstart = () => {
-          const utterance = speechSynthesisRef.current!.text;
-          audioElement.src = `data:audio/wav;base64,${btoa(utterance)}`;
-          audioElement.play();
-        };
-      }
+    } catch (error) {
+      console.error("Error with Google Cloud TTS:", error);
+      toast({
+        title: "Text-to-Speech Error",
+        description:
+          "Failed to generate AI voice. Please check the backend server and Google Cloud setup.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      setWaitingForResponse(true);
+      startResponseTimeout();
     }
   };
 
@@ -335,7 +472,10 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
         }
       );
       console.log("Initial question received:", initialQuestion);
-      if (conversation.length === 0 || !conversation.some(msg => msg.content === initialQuestion)) {
+      if (
+        conversation.length === 0 ||
+        !conversation.some((msg) => msg.content === initialQuestion)
+      ) {
         setCurrentQuestion(initialQuestion);
         setConversation([{ role: "assistant", content: initialQuestion }]);
         if (session) {
@@ -343,7 +483,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             ...prev!,
             transcript: [{ question: initialQuestion, answer: "" }],
           }));
-          console.log("Initial transcript:", [{ question: initialQuestion, answer: "" }]);
+          console.log("Initial transcript:", [
+            { question: initialQuestion, answer: "" },
+          ]);
         }
         const debouncedSpeak = debounce(() => speakText(initialQuestion), 100);
         debouncedSpeak();
@@ -352,7 +494,10 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       console.error("Error starting interview:", error);
       const fallbackQuestion = `Let's get started with your interview. Could you tell me about your background and experience?`;
       console.log("Fallback question:", fallbackQuestion);
-      if (conversation.length === 0 || !conversation.some(msg => msg.content === fallbackQuestion)) {
+      if (
+        conversation.length === 0 ||
+        !conversation.some((msg) => msg.content === fallbackQuestion)
+      ) {
         setCurrentQuestion(fallbackQuestion);
         setConversation([{ role: "assistant", content: fallbackQuestion }]);
         if (session) {
@@ -360,7 +505,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             ...prev!,
             transcript: [{ question: fallbackQuestion, answer: "" }],
           }));
-          console.log("Initial transcript (fallback):", [{ question: fallbackQuestion, answer: "" }]);
+          console.log("Initial transcript (fallback):", [
+            { question: fallbackQuestion, answer: "" },
+          ]);
         }
         const debouncedSpeak = debounce(() => speakText(fallbackQuestion), 100);
         debouncedSpeak();
@@ -386,8 +533,6 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   }, 500);
 
   const handleUserSpeech = async (text: string) => {
-    // --- CHANGE START ---
-    // Accumulate the speech instead of immediately updating the state
     if (accumulatedSpeechRef.current) {
       accumulatedSpeechRef.current += " " + text;
     } else {
@@ -395,7 +540,6 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     }
     setUserResponse(accumulatedSpeechRef.current);
 
-    // Stop the current speech recognition to prevent overlapping
     setIsListening(false);
     speechRecognitionRef.current.stop();
 
@@ -403,11 +547,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       clearTimeout(responseTimeoutRef.current);
     }
 
-    // Continue listening for additional user input during the pause
     speechRecognitionRef.current.start();
     setIsListening(true);
 
-    // Wait for a few seconds to allow the user to continue speaking
     if (continueListeningTimeoutRef.current) {
       clearTimeout(continueListeningTimeoutRef.current);
     }
@@ -415,28 +557,32 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       setIsListening(false);
       speechRecognitionRef.current.stop();
 
-      // Use the accumulated speech as the final user response
       const finalResponse = accumulatedSpeechRef.current;
-      accumulatedSpeechRef.current = ""; // Reset the accumulated speech
+      accumulatedSpeechRef.current = "";
 
-      // Update conversation with the final user response
       setConversation((prev) => {
-        const updatedConversation = [...prev, { role: "user", content: finalResponse }];
+        const updatedConversation = [
+          ...prev,
+          { role: "user", content: finalResponse },
+        ];
         console.log("Updated conversation:", updatedConversation);
         return updatedConversation;
       });
       setWaitingForResponse(false);
       setIsProcessing(true);
 
-      // Update transcript: set the answer for the last question
       if (session) {
         setSession((prev: any) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
           if (updatedTranscript.length > 0) {
-            updatedTranscript[updatedTranscript.length - 1].answer = finalResponse;
+            updatedTranscript[updatedTranscript.length - 1].answer =
+              finalResponse;
           }
-          console.log("Updated transcript after user speech:", updatedTranscript);
+          console.log(
+            "Updated transcript after user speech:",
+            updatedTranscript
+          );
           return {
             ...prev!,
             transcript: updatedTranscript,
@@ -479,18 +625,26 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
         setAiResponse(aiResponseText);
         setConversation((prev) => {
-          const updatedConversation = [...prev, { role: "assistant", content: aiResponseText }];
+          const updatedConversation = [
+            ...prev,
+            { role: "assistant", content: aiResponseText },
+          ];
           console.log("Conversation after AI response:", updatedConversation);
           return updatedConversation;
         });
         setCurrentQuestion(aiResponseText);
 
-        // Update transcript: append the new question
         if (session) {
           setSession((prev: any) => {
             const currentTranscript = prev?.transcript || [];
-            const updatedTranscript = [...currentTranscript, { question: aiResponseText, answer: "" }];
-            console.log("Updated transcript after AI response:", updatedTranscript);
+            const updatedTranscript = [
+              ...currentTranscript,
+              { question: aiResponseText, answer: "" },
+            ];
+            console.log(
+              "Updated transcript after AI response:",
+              updatedTranscript
+            );
             return {
               ...prev!,
               transcript: updatedTranscript,
@@ -533,18 +687,29 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
         setAiResponse(fallbackResponse);
         setConversation((prev) => {
-          const updatedConversation = [...prev, { role: "assistant", content: fallbackResponse }];
-          console.log("Conversation after fallback response:", updatedConversation);
+          const updatedConversation = [
+            ...prev,
+            { role: "assistant", content: fallbackResponse },
+          ];
+          console.log(
+            "Conversation after fallback response:",
+            updatedConversation
+          );
           return updatedConversation;
         });
         setCurrentQuestion(fallbackResponse);
 
-        // Update transcript: append the fallback question
         if (session) {
           setSession((prev: any) => {
             const currentTranscript = prev?.transcript || [];
-            const updatedTranscript = [...currentTranscript, { question: fallbackResponse, answer: "" }];
-            console.log("Updated transcript after fallback:", updatedTranscript);
+            const updatedTranscript = [
+              ...currentTranscript,
+              { question: fallbackResponse, answer: "" },
+            ];
+            console.log(
+              "Updated transcript after fallback:",
+              updatedTranscript
+            );
             return {
               ...prev!,
               transcript: updatedTranscript,
@@ -558,8 +723,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       } finally {
         setIsProcessing(false);
       }
-    }, 6000); // Wait 3 seconds to allow user to continue speaking
-    // --- CHANGE END ---
+    }, 6000);
   };
 
   const getInformationResponse = (text: string): string => {
@@ -596,22 +760,31 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       );
       setAiResponse(aiResponseText);
       setConversation((prev) => {
-        const updatedConversation = [...prev, { role: "assistant", content: aiResponseText }];
+        const updatedConversation = [
+          ...prev,
+          { role: "assistant", content: aiResponseText },
+        ];
         console.log("Conversation after no response:", updatedConversation);
         return updatedConversation;
       });
       setCurrentQuestion(aiResponseText);
 
-      // Update transcript: mark the last question as "No response" and append the new question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
-          if (updatedTranscript.length > 0 && updatedTranscript[updatedTranscript.length - 1].answer === "") {
-            updatedTranscript[updatedTranscript.length - 1].answer = "No response";
+          if (
+            updatedTranscript.length > 0 &&
+            updatedTranscript[updatedTranscript.length - 1].answer === ""
+          ) {
+            updatedTranscript[updatedTranscript.length - 1].answer =
+              "No response";
           }
           updatedTranscript.push({ question: aiResponseText, answer: "" });
-          console.log("Updated transcript after no response:", updatedTranscript);
+          console.log(
+            "Updated transcript after no response:",
+            updatedTranscript
+          );
           return {
             ...prev!,
             transcript: updatedTranscript,
@@ -627,22 +800,34 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       const fallbackResponse = `Looks like you're thinking! Can you describe a challenge you faced in a past project and how you handled it?`;
       setAiResponse(fallbackResponse);
       setConversation((prev) => {
-        const updatedConversation = [...prev, { role: "assistant", content: fallbackResponse }];
-        console.log("Conversation after no response (fallback):", updatedConversation);
+        const updatedConversation = [
+          ...prev,
+          { role: "assistant", content: fallbackResponse },
+        ];
+        console.log(
+          "Conversation after no response (fallback):",
+          updatedConversation
+        );
         return updatedConversation;
       });
       setCurrentQuestion(fallbackResponse);
 
-      // Update transcript: mark the last question as "No response" and append the fallback question
       if (session) {
         setSession((prev) => {
           const currentTranscript = prev?.transcript || [];
           const updatedTranscript = [...currentTranscript];
-          if (updatedTranscript.length > 0 && updatedTranscript[updatedTranscript.length - 1].answer === "") {
-            updatedTranscript[updatedTranscript.length - 1].answer = "No response";
+          if (
+            updatedTranscript.length > 0 &&
+            updatedTranscript[updatedTranscript.length - 1].answer === ""
+          ) {
+            updatedTranscript[updatedTranscript.length - 1].answer =
+              "No response";
           }
-          updatedTranscript.push({ question: fallbackResponse, answer: "" });
-          console.log("Updated transcript after no response (fallback):", updatedTranscript);
+          updatedTranscript.push({ question: fallbackResponse, image: "" });
+          console.log(
+            "Updated transcript after no response (fallback):",
+            updatedTranscript
+          );
           return {
             ...prev!,
             transcript: updatedTranscript,
@@ -684,7 +869,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
   const toggleVideo = () => {
     if (mediaStream) {
       const videoTracks = mediaStream.getVideoTracks();
-      if (videoTracks.length === 0) {
+      if (videoTracks.length == 0) {
         toast({
           title: "No Video Track",
           description: "No video track available. Please check your camera.",
@@ -705,16 +890,8 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
 
   const toggleVoice = () => {
     setVoiceEnabled(!voiceEnabled);
-    if (voiceEnabled) {
-      window.speechSynthesis.cancel();
-    }
-  };
-
-  const speakText = (text: string) => {
-    if (voiceEnabled && speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-      speechSynthesisRef.current.text = text;
-      window.speechSynthesis.speak(speechSynthesisRef.current);
+    if (voiceEnabled && audioElementRef.current) {
+      audioElementRef.current.pause();
     }
   };
 
@@ -762,17 +939,52 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
             recorderRef.current.getStream()?.getTracks() || [];
           currentTracks.forEach((track) => track.stop());
 
+          if (audioContextRef.current && destinationNodeRef.current) {
+            if (userAudioSourceRef.current) {
+              userAudioSourceRef.current.disconnect();
+              userAudioSourceRef.current = null;
+            }
+            const userAudioTracks = newStream.getAudioTracks();
+            if (userAudioTracks.length > 0) {
+              userAudioSourceRef.current =
+                audioContextRef.current.createMediaStreamSource(
+                  new MediaStream([userAudioTracks[0]])
+                );
+              userAudioSourceRef.current.connect(destinationNodeRef.current);
+              userAudioSourceRef.current.connect(analyserRef.current);
+              console.log(
+                "User audio source reconnected to destination node after stream reconnect"
+              );
+            }
+          }
+
           const combinedStream = new MediaStream([
             ...newStream.getVideoTracks(),
-            ...newStream.getAudioTracks(),
-            ...(destinationRef.current?.stream.getAudioTracks() || []),
+            ...destinationNodeRef.current!.stream.getAudioTracks(),
           ]);
 
           recorderRef.current.updateStream(combinedStream);
 
           if (!isRecording) {
-            recorderRef.current.start();
-            setIsRecording(true);
+            try {
+              recorderRef.current.start();
+              setIsRecording(true);
+              console.log("Recorder restarted after stream reconnect");
+              toast({
+                title: "Recording Restated",
+                description:
+                  "Recording has been restarted after reconnecting the media stream.",
+                variant: "default",
+              });
+            } catch (error) {
+              console.error("Error restarting recorder:", error);
+              toast({
+                title: "Recording Error",
+                description:
+                  "Failed to restart recording after reconnecting the stream.",
+                variant: "destructive",
+              });
+            }
           }
         })
         .catch((error) => {
@@ -824,12 +1036,18 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     return Math.round(normalizedScore * 10) / 10;
   };
 
-  const generateFeedback = (transcript: Array<{ question: string; answer: string }>) => {
+  const generateFeedback = (
+    transcript: Array<{ question: string; answer: string }>
+  ) => {
     const strengths: string[] = [];
     const improvements: string[] = [];
-    const responses = transcript.map((item) => item.answer).filter((answer) => answer && answer !== "No response");
+    const responses = transcript
+      .map((item) => item.answer)
+      .filter((answer) => answer && answer !== "No response");
 
-    const hasDetailedResponses = responses.some((response) => response.length > 50);
+    const hasDetailedResponses = responses.some(
+      (response) => response.length > 50
+    );
     const hasRelevantTerms = responses.some((response) =>
       ["react", "component", "state", "javascript"].some((term) =>
         response.toLowerCase().includes(term)
@@ -850,9 +1068,10 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       strengths.push("Attempted to engage with the interview process");
     }
 
-    const hasVagueResponses = responses.some((response) =>
-      response.toLowerCase().includes("don't know") ||
-      response.toLowerCase().includes("not sure")
+    const hasVagueResponses = responses.some(
+      (response) =>
+        response.toLowerCase().includes("don't know") ||
+        response.toLowerCase().includes("not sure")
     );
     const hasShortResponses = responses.some(
       (response) => response.length < 20 && response !== "No response"
@@ -862,348 +1081,436 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
     );
 
     if (hasVagueResponses) {
-      improvements.push("Clarify answers by avoiding vague phrases like 'don't know'");
+      improvements.push(
+        "Clarify answers by avoiding vague phrases like 'don't know'"
+      );
     }
     if (hasShortResponses) {
       improvements.push("Elaborate on answers to provide more depth");
     }
     if (missedResponses) {
-      improvements.push("Ensure to respond to all questions, even with partial answers");
+      improvements.push(
+        "Ensure to respond to all questions, even with partial answers"
+      );
     }
     if (responses.length < transcript.length / 2) {
       improvements.push("Increase engagement by answering more questions");
     }
-    if (improvements.length === 0) {
+    if (improvements.length == 0) {
       improvements.push("Continue practicing to enhance response confidence");
     }
 
     return { strengths, improvements };
   };
 
- const handleFinishInterview = async () => {
-  console.log("Finishing interview initiated");
-  updateUserData(uid, title, hrCode);
+  const handleFinishInterview = async () => {
+    if (isFinishing) return;
+    setIsFinishing(true);
+    console.log("Finishing interview initiated");
 
-  // Stop speech recognition and synthesis
-  speechRecognitionRef.current.stop();
-  if (speechSynthesisRef.current) {
-    window.speechSynthesis.cancel();
-  }
-  if (responseTimeoutRef.current) {
-    clearTimeout(responseTimeoutRef.current);
-  }
-  if (continueListeningTimeoutRef.current) {
-    clearTimeout(continueListeningTimeoutRef.current);
-  }
-
-  // Stop the recorder and release its stream
-  let recordingUrl: string | undefined = undefined;
-  let recordedBlobs: Blob[] | null = null;
-  if (isRecording) {
     try {
-      console.log("Stopping recorder");
-      const recordedBlob = await recorderRef.current.stop();
-      if (recordedBlob) {
-        recordedBlobs = [recordedBlob];
-        console.log("Recording blob obtained, size:", recordedBlob.size);
-      } else {
-        console.warn("No final recording data");
-        toast({
-          title: "No Recording",
-          description: "No video data was recorded, but the interview metadata will be saved.",
-          variant: "default",
+      speechRecognitionRef.current.stop();
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      if (responseTimeoutRef.current) {
+        clearTimeout(responseTimeoutRef.current);
+      }
+      if (continueListeningTimeoutRef.current) {
+        clearTimeout(continueListeningTimeoutRef.current);
+      }
+
+      let recordingUrl: string | undefined = undefined;
+      let recordedBlobs: Blob[] | null = null;
+
+      if (isRecording && recorderRef.current) {
+        console.log("Stopping recorder...");
+        const recordedBlob = await recorderRef.current.stop();
+        if (recordedBlob && recordedBlob.size > 0) {
+          recordedBlobs = [recordedBlob];
+          console.log("Recording blob obtained, size:", recordedBlob.size);
+        } else {
+          console.warn("No valid recording data obtained.");
+          toast({
+            title: "No Recording Data",
+            description: "No video data was recorded. Saving metadata only.",
+            variant: "default",
+          });
+        }
+        setIsRecording(false);
+
+        const recorderStream = recorderRef.current.getStream();
+        if (recorderStream) {
+          recorderStream.getTracks().forEach((track) => {
+            track.stop();
+            console.log(`Recorder track ${track.kind} stopped`);
+          });
+        }
+        recorderRef.current.updateStream(null);
+        console.log("Recorder stream cleared");
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => {
+          track.stop();
+          console.log(`Media stream track ${track.kind} stopped`);
         });
+        setMediaStream(null);
       }
-    } catch (error: any) {
-      console.error("Error stopping recorder:", error.message, error.stack);
-      toast({
-        title: "Recording Error",
-        description: "Failed to save the final recording, but the interview will still end.",
-        variant: "destructive",
-      });
-    }
-    setIsRecording(false);
 
-    // Explicitly release the recorder's stream
-    const recorderStream = recorderRef.current.getStream();
-    if (recorderStream) {
-      recorderStream.getTracks().forEach((track) => {
-        track.stop();
-        console.log(`Recorder track ${track.kind} stopped`);
-      });
-    }
-    recorderRef.current.updateStream(null); // Clear the recorder's stream reference
-  }
-
-  // Stop all media stream tracks and clear video element
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => {
-      try {
-        track.stop();
-        console.log(`Media stream track ${track.kind} stopped`);
-      } catch (error) {
-        console.error(`Error stopping track ${track.kind}:`, error);
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        console.log("Video element srcObject cleared");
       }
-    });
-    setMediaStream(null);
-  }
 
-  // Clear video element's srcObject
-  if (videoRef.current) {
-    videoRef.current.srcObject = null;
-    console.log("Video element srcObject cleared");
-  }
+      let finalTranscript = session?.transcript || [];
+      if (
+        finalTranscript.length > 0 &&
+        userResponse &&
+        finalTranscript[finalTranscript.length - 1].answer === ""
+      ) {
+        finalTranscript = finalTranscript.map((entry, index) =>
+          index === finalTranscript.length - 1
+            ? { ...entry, answer: userResponse }
+            : entry
+        );
+        console.log("Final transcript updated:", finalTranscript);
+      }
 
-  // Close AudioContext if it exists
-  if (audioContextRef.current) {
-    audioContextRef.current.close().then(() => {
-      console.log("AudioContext closed");
-    }).catch((error) => {
-      console.error("Error closing AudioContext:", error);
-    });
-    audioContextRef.current = null;
-  }
+      const userResponses = conversation
+        .filter((msg) => msg.role === "user")
+        .map((msg) => msg.content);
+      const overallScore =
+        userResponses.length > 0 ? calculateScore(userResponses) : 0;
+      const { strengths, improvements } = generateFeedback(finalTranscript);
 
-  // Clear destinationRef
-  if (destinationRef.current) {
-    destinationRef.current.disconnect();
-    destinationRef.current = null;
-    console.log("Audio destination disconnected");
-  }
-
-  let finalTranscript = session?.transcript || [];
-  if (
-    finalTranscript.length > 0 &&
-    userResponse &&
-    finalTranscript[finalTranscript.length - 1].answer === ""
-  ) {
-    finalTranscript = finalTranscript.map((entry, index) =>
-      index === finalTranscript.length - 1
-        ? { ...entry, answer: userResponse }
-        : entry
-    );
-    console.log("Final transcript after updating last answer:", finalTranscript);
-  }
-
-  const userResponses = conversation
-    .filter((msg) => msg.role === "user")
-    .map((msg) => msg.content);
-
-  const overallScore =
-    userResponses.length > 0 ? calculateScore(userResponses) : 0;
-
-  const { strengths, improvements } = generateFeedback(finalTranscript);
-
-  const updatedSession = {
-    ...session!,
-    recordings: recordedBlobs ? [] : [],
-    feedback: {
-      strengths,
-      improvements,
-      overallScore,
-      transcript: finalTranscript,
-      recording: recordedBlobs ? [] : [],
-    },
-    isCompleted: true,
-  };
-
-  if (recordedBlobs && session) {
-    try {
-      recordingUrl = await saveSessionWithRecording(
-        {
-          ...updatedSession,
-          recordings: undefined,
-          feedback: {
-            ...updatedSession.feedback,
-            recording: undefined,
-          },
+      const updatedSession = {
+        ...session!,
+        recordings: recordedBlobs ? [] : [],
+        feedback: {
+          strengths,
+          improvements,
+          overallScore,
+          transcript: finalTranscript,
+          recording: recordedBlobs ? [] : [],
         },
-        recordedBlobs
-      );
-      console.log("Recording URL from Firebase:", recordingUrl);
+        isCompleted: true,
+      };
 
-      if (recordingUrl) {
-        updatedSession.recordings = [recordingUrl];
-        updatedSession.feedback.recording = [recordingUrl];
+      if (recordedBlobs && session) {
+        try {
+          recordingUrl = await saveSessionWithRecording(
+            updatedSession,
+            recordedBlobs
+          );
+          if (recordingUrl) {
+            updatedSession.recordings = [recordingUrl];
+            updatedSession.feedback.recording = [recordingUrl];
+            console.log("Recording saved, URL:", recordingUrl);
+          } else {
+            console.warn("No recording URL returned, saving locally.");
+            const blobUrl = URL.createObjectURL(recordedBlobs[0]);
+            updatedSession.recordings = [blobUrl];
+            updatedSession.feedback.recording = [blobUrl];
+            console.log("Recording saved locally:", blobUrl);
+            toast({
+              title: "Recording Saved Locally",
+              description: "Failed to upload to Firebase, saved locally.",
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error("Error saving recording:", error);
+          const blobUrl = URL.createObjectURL(recordedBlobs[0]);
+          updatedSession.recordings = [blobUrl];
+          updatedSession.feedback.recording = [blobUrl];
+          console.log("Recording saved locally due to error:", blobUrl);
+          toast({
+            title: "Recording Save Error",
+            description: "Saved recording locally due to Firebase error.",
+            variant: "destructive",
+          });
+        }
+      }
+
+      try {
+        await saveSessionWithRecording(updatedSession, []);
+        console.log("Session metadata saved:", updatedSession);
+      } catch (error) {
+        console.error("Error saving session metadata:", error);
         toast({
-          title: "Recording Saved",
-          description: recordingUrl.startsWith("blob:")
-            ? "Recording saved locally (Firebase unavailable)."
-            : "Recording uploaded to Firebase Storage.",
-          variant: "default",
-        });
-      } else {
-        console.warn("No recording URL returned from saveSessionWithRecording");
-        toast({
-          title: "Recording Save Failed",
-          description: "Failed to save recording to Firebase, but session metadata saved.",
-          variant: "default",
+          title: "Metadata Save Error",
+          description: "Failed to save session metadata.",
+          variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error(
-        "Error saving session with recording:",
-        error.message,
-        error.stack
-      );
+
+      try {
+        await updateUserData(uid, title, hrCode);
+      } catch (error) {
+        console.error("Error updating user data:", error);
+        toast({
+          title: "User Data Update Error",
+          description: "Failed to update interview records.",
+          variant: "destructive",
+        });
+      }
+
+      setSession(updatedSession);
+      onComplete(updatedSession.feedback!);
       toast({
-        title: "Save Error",
-        description: "Failed to save session and recording to Firebase. Data saved locally if possible.",
-        variant: "destructive",
-      });
-    }
-  } else if (session) {
-    try {
-      await saveSessionWithRecording(updatedSession, []);
-      toast({
-        title: "Session Saved",
-        description: "Session metadata saved without recording.",
+        title: "Interview Completed",
+        description: "Your interview has ended. View feedback for details.",
         variant: "default",
       });
-    } catch (error: any) {
-      console.error(
-        "Error saving session without recording:",
-        error.message,
-        error.stack
-      );
+      console.log("Interview finished, feedback sent");
+    } catch (error) {
+      console.error("Error finishing interview:", error);
       toast({
-        title: "Save Error",
-        description: "Failed to save session metadata.",
+        title: "Error",
+        description: "An error occurred while ending the interview.",
         variant: "destructive",
       });
+    } finally {
+      setIsFinishing(false);
     }
+  };
+
+useEffect(() => {
+  let animationFrameId: number;
+  let startTime: number | null = null;
+
+  const animate = (timestamp: number) => {
+    if (!startTime) startTime = timestamp;
+
+    if (micIconRef.current) {
+      // USER SPEAKING
+      if (
+        isListening &&
+        analyserRef.current &&
+        audioContextRef.current?.state === "running"
+      ) {
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        const rawVolume = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        const normalizedVolume = Math.min(rawVolume / 128, 1);
+
+        if (!isNaN(normalizedVolume)) {
+          const pulseScale = 1 + normalizedVolume * 0.4;
+          const glowIntensity = normalizedVolume * 30;
+          const opacity = 0.9 + normalizedVolume * 0.1;
+          const rotation = Math.sin(timestamp / 100) * 2;
+          const hueShift = timestamp / 10 % 360;
+
+          micIconRef.current.style.transform = `scale(${pulseScale}) rotate(${rotation}deg)`;
+          micIconRef.current.style.opacity = `${Math.min(opacity, 1)}`;
+          micIconRef.current.style.setProperty(
+            "--glow-color",
+            `radial-gradient(circle, rgba(0,255,150,0.5), rgba(0,150,255,0.5))`
+          );
+          micIconRef.current.style.setProperty("--glow-intensity", `${glowIntensity}px`);
+          micIconRef.current.style.setProperty("--overlay-opacity", `${0.4 + normalizedVolume * 0.4}`);
+          micIconRef.current.style.filter = `hue-rotate(${hueShift}deg) brightness(1.2)`;
+        }
+      }
+
+      // AI SPEAKING
+      else if (isProcessing) {
+        const elapsed = timestamp - startTime;
+        const pulseScale = 1 + Math.sin(elapsed / 300) * 0.25;
+        const glowIntensity = 10 + Math.sin(elapsed / 500) * 10;
+        const waveAngle = Math.sin(elapsed / 250) * 5;
+        const hueShift = timestamp / 5 % 360;
+
+        micIconRef.current.style.transform = `scale(${pulseScale}) rotate(${waveAngle}deg)`;
+        micIconRef.current.style.opacity = `0.95`;
+        micIconRef.current.style.setProperty(
+          "--glow-color",
+          `radial-gradient(circle, rgba(255,0,200,0.5), rgba(255,0,100,0.5))`
+        );
+        micIconRef.current.style.setProperty("--glow-intensity", `${glowIntensity}px`);
+        micIconRef.current.style.setProperty("--overlay-opacity", `${0.5 + Math.sin(elapsed / 400) * 0.3}`);
+        micIconRef.current.style.filter = `hue-rotate(${hueShift}deg) brightness(1.2)`;
+      }
+
+      // IDLE
+      else {
+        micIconRef.current.style.transform = `scale(1) rotate(0deg)`;
+        micIconRef.current.style.opacity = "0.8";
+        micIconRef.current.style.setProperty("--glow-color", "transparent");
+        micIconRef.current.style.setProperty("--glow-intensity", "0px");
+        micIconRef.current.style.setProperty("--overlay-opacity", "0");
+        micIconRef.current.style.filter = "";
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(animate);
+  };
+
+  if (isListening || isProcessing) {
+    animationFrameId = requestAnimationFrame(animate);
   }
 
-  console.log("Updated session:", updatedSession);
-  setSession(updatedSession);
-  onComplete(updatedSession.feedback!);
+  return () => {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+    if (micIconRef.current) {
+      micIconRef.current.style.transform = `scale(1) rotate(0deg)`;
+      micIconRef.current.style.opacity = "0.8";
+      micIconRef.current.style.setProperty("--glow-color", "transparent");
+      micIconRef.current.style.setProperty("--glow-intensity", "0px");
+      micIconRef.current.style.setProperty("--overlay-opacity", "0");
+      micIconRef.current.style.filter = "";
+    }
+    startTime = null;
+  };
+}, [isListening, isProcessing]);
 
-  toast({
-    title: "Interview Completed",
-    description: "Your interview session has ended. Check the feedback for details.",
-    variant: "default",
-  });
-  console.log("Interview finished, feedback sent");
-};
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-      <div className="md:col-span-2 bg-[#11011E] aspect-video relative overflow-hidden">
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-[#7000FF] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
-        <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-[#FF00C7] blur-[180px] opacity-25 rounded-full pointer-events-none"></div>
+return (
+  <div className="grid grid-cols-1 md:grid-cols-3">
+    {/* Left: Video & Controls */}
+    <div className="md:col-span-2 relative bg-[#11011E] flex flex-col justify-between p-4 min-h-[450px] overflow-hidden">
+      
+      {/* Background Blurs */}
+      <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#7000FF] blur-[180px] opacity-20 rounded-full z-0"></div>
+      <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#FF00C7] blur-[180px] opacity-20 rounded-full z-0"></div>
 
-        {hasMediaPermission ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-auto"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-[rgba(255,255,255,0.02)] text-[#ECF1F0] font-raleway border border-[rgba(255,255,255,0.05)]">
-            <p>Camera access required</p>
-          </div>
-        )}
+      {/* Video or Placeholder */}
+      {/* Video or Placeholder */}
+<div className="flex-1 relative z-10 rounded-lg overflow-hidden border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)]">
+  {hasMediaPermission ? (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <p className="text-[#ECF1F0] font-raleway">Camera access required</p>
+    </div>
+  )}
 
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${micEnabled
-              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-              : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
-            onClick={toggleMic}
-          >
-            {micEnabled ? (
-              <Mic className="h-4 w-4 ml-2.5" />
-            ) : (
-              <MicOff className="h-4 w-4 ml-2.5" />
-            )}
-            <span className="sr-only">{micEnabled ? "Disable microphone" : "Enable microphone"}</span>
-          </Button>
+  {/* 🔽 Controls inside video box */}
+  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 z-20">
+    {/* Mic */}
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={toggleMic}
+      className={`rounded-full h-10 w-10 border-2 ${
+        micEnabled
+          ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80"
+          : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7]"
+      }`}
+    >
+      {micEnabled ? <Mic className="h-4 w-4 ml-2.5" /> : <MicOff className="h-4 w-4 ml-2.5" />}
+    </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${videoEnabled
-              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-              : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7] hover:scale-105"
-              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
-            onClick={toggleVideo}
-          >
-            {videoEnabled ? (
-              <Video className="h-4 w-4 ml-2.5" />
-            ) : (
-              <VideoOff className="h-4 w-4 ml-2.5" />
-            )}
-            <span className="sr-only">{videoEnabled ? "Disable video" : "Enable video"}</span>
-          </Button>
+    {/* Video */}
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={toggleVideo}
+      className={`rounded-full h-10 w-10 border-2 ${
+        videoEnabled
+          ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80"
+          : "bg-[#FF00C7]/80 border-[#FF00C7] text-white hover:bg-[#FF00C7]"
+      }`}
+    >
+      {videoEnabled ? <Video className="h-4 w-4 ml-2.5" /> : <VideoOff className="h-4 w-4 ml-2.5" />}
+    </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            className={`rounded-full h-10 w-10 border-2 transition duration-200 ${voiceEnabled
-              ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80 hover:scale-105"
-              : "bg-[rgba(255,255,255,0.1)] border-[rgba(255,255,255,0.1)] text-[#ECF1F0] hover:bg-[rgba(255,255,255,0.2)] hover:scale-105"
-              } focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96]`}
-            onClick={toggleVoice}
-          >
-            {voiceEnabled ? (
-              <Volume2 className="h-4 w-4 ml-2.5" />
-            ) : (
-              <VolumeX className="h-4 w-4 ml-2.5" />
-            )}
-            <span className="sr-only">{voiceEnabled ? "Disable voice" : "Enable voice"}</span>
-          </Button>
-        </div>
-      </div>
+    {/* Voice */}
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={toggleVoice}
+      className={`rounded-full h-10 w-10 border-2 ${
+        voiceEnabled
+          ? "bg-[#0FAE96] border-[#0FAE96] text-white hover:bg-[#0FAE96]/80"
+          : "bg-[rgba(255,255,255,0.1)] border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.2)]"
+      }`}
+    >
+      {voiceEnabled ? <Volume2 className="h-4 w-4 ml-2.5" /> : <VolumeX className="h-4 w-4 ml-2.5" />}
+    </Button>
+  </div>
+</div>
 
-      <div className="p-6 bg-[#11011E] border-l border-[rgba(255,255,255,0.05)] flex flex-col h-[calc(64vh-64px)]">
-        <div className="overflow-y-auto flex-1 hide-scrollbar">
-          {conversation.map((message, index) => (
+
+      {/* Mic Animation */}
+      {(isListening || isProcessing) && (
+        <div className="flex flex-col items-center justify-center mt-4 z-10">
+          <div className="w-12 h-12 rounded-full relative overflow-hidden mic-animation" ref={micIconRef}>
+            <img
+              src="/images/interh.png"
+              alt="Mic Animation"
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                console.error("Mic image failed:", e);
+                e.currentTarget.src = "/images/fallback-animation.gif";
+              }}
+            />
             <div
-              key={index}
-              className={`p-3 rounded-lg ${message.role === "assistant"
-                ? "bg-[rgba(15,174,150,0.1)] border border-[rgba(15,174,150,0.2)]"
-                : "bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]"
-                }`}
-            >
-              <p className="text-sm font-inter text-[#B6B6B6]">
-                <span className={message.role === "assistant" ? "text-[#0FAE96] font-medium" : "text-[#ECF1F0] font-medium"}>
-                  {message.role === "assistant" ? "AI: " : "You: "}
-                </span>
-                {message.content}
-              </p>
-            </div>
-          ))}
-
-          {isProcessing && (
-            <div className="p-3 bg-[rgba(15,174,150,0.05)] rounded-lg border border-[rgba(15,174,150,0.1)]">
-              <p className="text-sm font-inter text-[#0FAE96] animate-pulse">Thinking...</p>
-            </div>
+              className={`absolute inset-0 rounded-full opacity-40 mix-blend-multiply transition-all duration-300 ${
+                isListening ? "bg-[#0FAE96]" : "bg-[#FF00C7]"
+              }`}
+            ></div>
+          </div>
+          {!isListening && (
+            <p className="text-sm text-[#ECF1F0] mt-1 font-raleway">AI Thinking...</p>
           )}
         </div>
-
-        <div className="mt-4 space-y-3">
-          <Button
-            className="w-full bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            onClick={startListening}
-            disabled={isListening || isProcessing || !waitingForResponse}
-          >
-            {isListening ? "Listening..." : "Speak"}
-          </Button>
-          <Button
-            className="w-full bg-[#FF00C7]/80 text-white font-raleway font-semibold text-base px-6 py-3 rounded-md transition duration-200 hover:scale-105 focus-outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF00C7] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            onClick={handleFinishInterview}
-          >
-            End Interview
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
-  );
-};
 
+    {/* Right: Chat Panel */}
+    {/* Right Panel - Chat + Buttons */}
+<div className="p-6 bg-[#11011E] border-l border-[rgba(255,255,255,0.05)] flex flex-col md:col-span-1">
+  {/* Chat History with Scrollable Area (Fixed Height) */}
+  <div className="max-h-[360px] overflow-y-auto flex-1 space-y-4 pr-1 hide-scrollbar">
+    {conversation.map((msg, i) => (
+      <div
+        key={i}
+        className={`p-3 rounded-lg border text-sm font-inter ${
+          msg.role === "assistant"
+            ? "bg-[rgba(15,174,150,0.1)] border-[rgba(15,174,150,0.2)] text-[#B6F2E5]"
+            : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] text-[#ECF1F0]"
+        }`}
+      >
+        <span className="font-medium mr-1">
+          {msg.role === "assistant" ? "AI:" : "You:"}
+        </span>
+        {msg.content}
+      </div>
+    ))}
+  </div>
+
+  {/* Speak + End Buttons */}
+  <div className="mt-5 space-y-3">
+    <Button
+      className="w-full bg-[#0FAE96] text-white font-raleway font-semibold text-base px-6 py-3 rounded-md hover:scale-105 transition duration-200 disabled:opacity-50"
+      onClick={startListening}
+      disabled={isListening || isProcessing || !waitingForResponse}
+    >
+      {isListening ? "Listening..." : "Speak"}
+    </Button>
+    <Button
+      className="w-full bg-[#FF00C7]/80 text-white font-raleway font-semibold text-base px-6 py-3 rounded-md hover:scale-105 transition duration-200 disabled:opacity-50"
+      onClick={handleFinishInterview}
+      disabled={isFinishing}
+    >
+      End Interview
+    </Button>
+  </div>
+</div>
+</div>
+);
+
+};
 export default InterviewSession;

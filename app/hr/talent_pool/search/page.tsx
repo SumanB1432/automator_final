@@ -7,10 +7,8 @@ import FilterSidebar from "@/components/tallentpool/FilterSidebar";
 import PaginationControls from "@/components/tallentpool/PaginationControls";
 import CandidateList from "@/components/tallentpool/CandidateList";
 import { useSearchStore } from "@/store/searchStore";
-import debounce from "lodash/debounce";
 import { Candidate, Metrics } from "@/components/types/types";
-import Fuse from "fuse.js";
-import app from "@/firebase/config";
+import app, { auth } from "@/firebase/config";
 
 export default function SearchPage() {
   const {
@@ -39,9 +37,18 @@ export default function SearchPage() {
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   const router = useRouter();
-  const recruiterId = "demo_recruiter";
-  const usageRef = ref(db, `recruiters/${recruiterId}/usage/metrics`);
+  const [uid, setUid] = useState<string>("");
+  // const usageRef = ref(db, `hr/${recruiterId}/usage/metrics`);
+  //GET UID FOR HR
+  useEffect(() => {
+    const user = auth.currentUser;
+    if(user){
+      let uid = user.uid;
+      setUid(uid)
+    }
 
+
+  })
   // ✅ Updated: use window.location.search instead of useSearchParams
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -82,6 +89,7 @@ export default function SearchPage() {
   const updateUsageMetrics = useCallback(
     async (updates: { matchesFound?: number; candidatesViewed?: number }) => {
       try {
+        const usageRef = ref(db,`hr/${uid}/usage/metrics`)
         const snapshot = await get(usageRef);
         const currentData: Metrics = snapshot.exists()
           ? snapshot.val()
@@ -109,7 +117,7 @@ export default function SearchPage() {
         setError("Failed to update usage metrics. Please try again.");
       }
     },
-    [usageRef, setError]
+    [ uid,setError]
   );
 
   const fetchCandidates = useCallback(async () => {
@@ -142,118 +150,11 @@ export default function SearchPage() {
     }
   }, [candidates, fetchCandidates]);
 
-  const applyFilters = useCallback(() => {
-    const debounced = debounce(async () => {
-      let result = [...candidates];
-
-      const fuseOptions = {
-        keys: ["jobTitle", "education", "location", "skills"],
-        threshold: 0.3,
-        includeScore: true,
-      };
-
-      const fuse = new Fuse(result, fuseOptions);
-
-      if (jobTitle.trim()) {
-        const cleaned = jobTitle
-          .toLowerCase()
-          .replace(/\band\b/g, "")
-          .replace(/[^a-z\s]/g, "")
-          .replace(/\s+/g, " ")
-          .trim();
-
-        const words = cleaned.split(" ");
-
-        const jobTitleFuse = new Fuse(result, {
-          keys: ["jobTitle"],
-          threshold: 0.4,
-          includeScore: true,
-          shouldSort: true,
-        });
-
-        // Use AND-style manual filtering
-        const fuseResults = words.reduce((acc, word) => {
-          const matches = jobTitleFuse.search(word).map(({ item }) => item);
-          return acc.length === 0
-            ? matches
-            : acc.filter((item) => matches.includes(item));
-        }, [] as Candidate[]);
-
-        result = fuseResults;
-      }
-
-      if (education.trim()) {
-        const educationKeywords = education
-          .toLowerCase()
-          .split(",")
-          .map((keyword) => keyword.trim());
-        result = result.filter((c) =>
-          educationKeywords.some((keyword) =>
-            c.education?.toLowerCase().includes(keyword)
-          )
-        );
-      }
-
-      if (location.trim()) {
-        const fuseResults = fuse.search(location.trim());
-        result = fuseResults.map(({ item }) => item);
-      }
-
-      if (skills.length > 0) {
-        let matchedSkillsCandidates: Candidate[] = [];
-
-        skills.forEach((skill) => {
-          const fuseResults = fuse.search(skill);
-          const matchedItems = fuseResults.map(({ item }) => item);
-          matchedSkillsCandidates = [
-            ...matchedSkillsCandidates,
-            ...matchedItems,
-          ];
-        });
-
-        matchedSkillsCandidates = [...new Set(matchedSkillsCandidates)];
-
-        if (matchedSkillsCandidates.length > 0) {
-          result = result.filter((candidate) =>
-            matchedSkillsCandidates.includes(candidate)
-          );
-        }
-      }
-
-      result = result.filter(
-        (c) =>
-          c.experience >= experienceRange[0] &&
-          c.experience <= experienceRange[1]
-      );
-
-      setFilteredCandidates(result);
-
-      const newMatchesFound = result.length;
-      const snapshot = await get(usageRef);
-      const previousMatchesFound = snapshot.exists()
-        ? snapshot.val().matchesFound || 0
-        : 0;
-      const updatedMatchesFound = previousMatchesFound + newMatchesFound;
-      await updateUsageMetrics({ matchesFound: updatedMatchesFound });
-    }, 300);
-
-    debounced();
-  }, [
-    candidates,
-    education,
-    experienceRange,
-    jobTitle,
-    location,
-    setFilteredCandidates,
-    skills,
-    updateUsageMetrics,
-    usageRef,
-  ]);
-
   const handleViewCandidate = useCallback(
     async (email: string) => {
-      window.open(`/candidate/${email}`, "_blank");
+      window.open(`/hr/talent_pool/candidate/${encodeURIComponent(email)}`, "_blank");
       try {
+        const usageRef = ref(db,`hr/${uid}/usage/metrics`)
         const snapshot = await get(usageRef);
         const currentViewed = snapshot.exists()
           ? snapshot.val().candidatesViewed || 0
@@ -264,7 +165,7 @@ export default function SearchPage() {
         setError("Failed to update candidate view count.");
       }
     },
-    [updateUsageMetrics, setError, usageRef]
+    [updateUsageMetrics, setError, uid]
   );
 
   const addSkill = (
@@ -313,7 +214,15 @@ export default function SearchPage() {
             setNewSkill={setNewSkill}
             experienceRange={experienceRange}
             setExperienceRange={(val) => setFilter({ experienceRange: val })}
-            applyFilters={applyFilters}
+            applyFilters={() =>
+              applyFiltersFromJD({
+                jobTitle,
+                education,
+                location,
+                skills,
+                experienceRange,
+              })
+            }
             clearFilters={clearFilters}
             addSkill={addSkill}
             removeSkill={removeSkill}
@@ -332,7 +241,7 @@ export default function SearchPage() {
                 <CandidateList
                   candidates={paginatedCandidates}
                   onView={handleViewCandidate}
-                  onEdit={(email) => router.push(`/edit/${email}`)}
+                  onEdit={(email) => window.open(`/hr/talent_pool/edit/${encodeURIComponent(email)}`, "_blank")}
                 />
               </>
             )}

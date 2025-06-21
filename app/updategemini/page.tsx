@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { auth } from "@/firebase/config";
 import app from "@/firebase/config";
 import { toast } from "react-toastify";
@@ -68,10 +68,12 @@ const GeminiPage: React.FC = () => {
           update(userRef, { API: { apikey: geminiKey } }).catch((err) =>
             console.error("Error updating API key:", err)
           )
-       
-        ]);
 
-     
+        ]);
+        setTimeout(() => {
+          window.location.href = "/"
+        }, 1000)
+
       }
     } catch (error) {
       toast.error("Invalid API key!");
@@ -98,9 +100,9 @@ const GeminiPage: React.FC = () => {
             {/* Header with glow effect */}
             <div className="flex items-center justify-center mb-6">
               <div className="relative">
-                
+
                 <h1 className="text-3xl font-raleway font-bold text-[#ECF1F0]">
-                Activate powerful features at minimal cost.
+                  Activate powerful features at minimal cost.
                 </h1>
               </div>
             </div>

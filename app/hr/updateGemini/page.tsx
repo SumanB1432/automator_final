@@ -71,6 +71,10 @@ const GeminiPage: React.FC = () => {
        
         ]);
 
+      setTimeout(() => {
+        window.location.href = "/hr"
+      }, 1000)
+
      
       }
     } catch (error) {

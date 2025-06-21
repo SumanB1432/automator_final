@@ -55,7 +55,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   aria-label={`Follow us on ${name}`}
                   className={`text-gray-400 transform hover:scale-110 
-                  transition-all duration-300 ease-out hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] ${color}`}
+        transition-all duration-300 ease-out hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] ${color}`}
                 >
                   {name === "instagram" && <FaInstagram size={22} />}
                   {name === "facebook" && <FaFacebook size={22} />}
@@ -65,7 +65,9 @@ const Footer = () => {
               ))}
             </div>
             <p className="mt-4 text-sm text-gray-400 font-light text-center">
-              +91 9766116839 <span className="hidden sm:inline">contact@jobformautomator.com</span>
+              +91 9766116839
+              <br />
+              contact@jobformautomator.com
             </p>
           </div>
 

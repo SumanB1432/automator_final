@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { getDatabase, ref, onValue, get } from 'firebase/database';
 import Link from 'next/link';
-import app from '@/firebase/config';
+import app, { auth } from '@/firebase/config';
 import {toast} from "react-toastify"
 
 export default function DashboardPage() {
@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [uid,setUid] = useState("")
   const recruiterId = 'demo_recruiter';
   const db = getDatabase(app);
 
@@ -32,9 +32,17 @@ export default function DashboardPage() {
     }
   }, []);
 
+  useEffect(()=>{
+    const user = auth.currentUser;
+    if(user){
+      let uid = user.uid;
+      setUid(uid)
+    }
+  })
+
   useEffect(() => {
     // Realtime listener for metrics
-    const metricsRef = ref(db, `recruiters/${recruiterId}/usage/metrics`);
+    const metricsRef = ref(db, `hr/${uid}/usage/metrics`);
     const unsubscribeMetrics = onValue(
       metricsRef,
       (snapshot) => {
@@ -47,6 +55,7 @@ export default function DashboardPage() {
           });
         }
         setError(null);
+        setLoading(false);
       },
       (err) => {
         console.error('Error loading metrics:', err);
@@ -54,38 +63,39 @@ export default function DashboardPage() {
       }
     );
 
-    // Fetch recent searches once
-    const fetchRecentSearches = async () => {
-      try {
-        const searchesSnap = await get(
-          ref(db, `recruiters/${recruiterId}/searches`)
-        );
-        if (searchesSnap.exists()) {
-          const searchesObj = searchesSnap.val() as Record<string,{ query?:string}>;
-          const recent = Object.values(searchesObj)
-            .map((entry) => entry.query || 'Unnamed Search')
-            .slice(-5)
-            .reverse();
-          setRecentSearches(recent);
-        } else {
-          setRecentSearches([]);
-        }
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching recent searches:', err);
-        setError('Failed to load recent searches.');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // // Fetch recent searches once
+    // const fetchRecentSearches = async () => {
+    //   try {
+    //     const searchesSnap = await get(
+    //       ref(db, `recruiters/${recruiterId}/searches`)
+    //     );
+    //     if (searchesSnap.exists()) {
+    //       const searchesObj = searchesSnap.val() as Record<string,{ query?:string}>;
+    //       const recent = Object.values(searchesObj)
+    //         .map((entry) => entry.query || 'Unnamed Search')
+    //         .slice(-5)
+    //         .reverse();
+    //       setRecentSearches(recent);
+    //     } else {
+    //       setRecentSearches([]);
+    //     }
+    //     setError(null);
+    //   } catch (err) {
+    //     console.error('Error fetching recent searches:', err);
+    //     setError('Failed to load recent searches.');
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
 
-    fetchRecentSearches();
-
-    // Cleanup listener
+    // fetchRecentSearches();
+ 
+    // // Cleanup listener
+    // 
     return () => {
       unsubscribeMetrics(); // in Realtime DB this is just a function returned by onValue
     };
-  }, [db, recruiterId]);
+  }, [db, recruiterId,uid]);
 
   if (loading) {
     return (
