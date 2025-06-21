@@ -367,7 +367,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({
       );
       setIsProcessing(true);
 
-      const response = await fetch("http://localhost:3001/synthesize", {
+      const response = await fetch("https://interview-voice-pack.onrender.com/synthesize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
