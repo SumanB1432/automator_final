@@ -77,10 +77,10 @@ const PricingSection = () => {
             // Downgrade to Free
             await update(paymentRef, {
               Status: "Free",
-              SubscriptionType: "Free",
+              SubscriptionType: "FreeTrialStarted",
               End_Date: null
             });
-            return { isPremium: false, paymentData: { ...paymentData, Status: "Free", SubscriptionType: "Free", End_Date: null } };
+            return { isPremium: false, paymentData: { ...paymentData, Status: "Free", SubscriptionType: "FreeTrialStarted", End_Date: null } };
           }
         }
 

@@ -8,7 +8,7 @@ import { auth } from "@/firebase/config";
 import app from "@/firebase/config";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getDatabase, ref, get } from "firebase/database";
-import image from "../public/images/profile.png";
+import image from "../public/images/profile.jpeg";
 
 const Navbar = () => {
   const pathname = usePathname();
