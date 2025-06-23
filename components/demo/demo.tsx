@@ -131,11 +131,11 @@ const StatsSection = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button className="bg-[#0FAE96] text-black px-4 py-2 rounded-md hover:bg-[#0FAE96]/80 transform transition duration-200 hover:scale-105 text-sm sm:text-base">
+              <button className="bg-[#0FAE96] text-black px-4 py-2 rounded-md hover:bg-[#0FAE96]/80 transform transition duration-200 hover:scale-105 text-sm sm:text-base" onClick={() => window.open('https://www.linkedin.com/', '_blank')}>
                 Start Auto-Applying
               </button>
 
-              <button className="bg-transparent border border-[rgba(255,255,255,0.2)] text-white font-medium text-base px-8 py-3 rounded-lg transition-all duration-200 hover:bg-[rgba(255,255,255,0.05)] transform transition duration-200 hover:scale-105 text-sm sm:text-base">
+              <button className="bg-transparent border border-[rgba(255,255,255,0.2)] text-white font-medium text-base px-8 py-3 rounded-lg transition-all duration-200 hover:bg-[rgba(255,255,255,0.05)] transform transition duration-200 hover:scale-105 text-sm sm:text-base"  onClick={() => window.open('https://www.youtube.com/embed/z6JgvamQCb0?rel=0&autoplay=1', '_blank')}>
                 Watch Demo
               </button>
             </div>
@@ -362,7 +362,7 @@ const StatsSection = () => {
 
                 <div className="flex flex-col md:flex-row items-center md:justify-center gap-8 md:gap-12 w-full">
                   {/* Watch Demo Button */}
-                  <button className="group relative bg-[#0FAE96] text-white font-raleway font-semibold text-base px-8 py-4 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] min-h-[40px] shadow-lg hover:shadow-xl">
+                  <button className="group relative bg-[#0FAE96] text-white font-raleway font-semibold text-base px-8 py-4 rounded-md transition duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0FAE96] min-h-[40px] shadow-lg hover:shadow-xl" onClick={() => window.open('https://www.youtube.com/embed/z6JgvamQCb0?rel=0&autoplay=1', '_blank')}>
                     <span className="flex items-center gap-3">
                       <div className="relative">
                         <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
