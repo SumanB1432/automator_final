@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { getDatabase, ref, get, set } from "firebase/database";
-import { useRouter } from "next/navigation";
+import { getDatabase, ref, get, runTransaction } from "firebase/database";
 import FilterSidebar from "@/components/tallentpool/FilterSidebar";
 import PaginationControls from "@/components/tallentpool/PaginationControls";
 import CandidateList from "@/components/tallentpool/CandidateList";
@@ -22,7 +21,6 @@ export default function SearchPage() {
     skills,
     experienceRange,
     setCandidates,
-    setFilteredCandidates,
     setFilter,
     setLoading,
     setError,
@@ -35,25 +33,53 @@ export default function SearchPage() {
   const itemsPerPage = 10;
   const db = getDatabase(app);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
-
-  const router = useRouter();
+  const [checkingQuota, setCheckingQuota] = useState(true);
   const [uid, setUid] = useState<string>("");
-  // const usageRef = ref(db, `hr/${recruiterId}/usage/metrics`);
-  //GET UID FOR HR
+  const [filtersJustApplied, setFiltersJustApplied] = useState(false);
+  const [subscriptionType, setSubscriptionType] = useState<"Free" | "Premium">(
+    "Free"
+  );
+
+  // ✅ Combined fetch for subscription type and quota
   useEffect(() => {
     const user = auth.currentUser;
-    if(user){
-      let uid = user.uid;
-      setUid(uid)
+    if (user) {
+      setUid(user.uid);
+
+      const fetchSubscriptionAndQuota = async () => {
+        try {
+          const subRef = ref(db, `hr/${user.uid}/Payment/SubscriptionType`);
+          const usageRef = ref(db, `hr/${user.uid}/usage/metrics`);
+          const [subSnap, usageSnap] = await Promise.all([
+            get(subRef),
+            get(usageRef),
+          ]);
+
+          const subscription = subSnap.exists() ? subSnap.val() : "Free";
+          const maxQuota = subscription === "Premium" ? 500 : 10;
+          setSubscriptionType(subscription === "Premium" ? "Premium" : "Free");
+
+          const usageData = usageSnap.exists() ? usageSnap.val() : { matchesFound: 0 };
+          if (usageData.matchesFound >= maxQuota) {
+            setQuotaExceeded(true);
+          }
+        } catch (err) {
+          console.error("Error fetching subscription or quota:", err);
+          setSubscriptionType("Free");
+          setQuotaExceeded(false); // fallback to Free
+        } finally {
+          setCheckingQuota(false);
+        }
+      };
+
+      fetchSubscriptionAndQuota();
     }
+  }, [db]);
 
-
-  })
-  // ✅ Updated: use window.location.search instead of useSearchParams
+  // ✅ Filters from JD (URL query)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-
       const jobTitleParam = params.get("jobTitle");
       const educationParam = params.get("education");
       const locationParam = params.get("location");
@@ -78,6 +104,7 @@ export default function SearchPage() {
               : [0, 10],
           };
           applyFiltersFromJD(filterValues);
+          setFiltersJustApplied(true);
         } catch (err) {
           console.error("Error parsing query params:", err);
           setError("Failed to apply JD filters.");
@@ -88,26 +115,36 @@ export default function SearchPage() {
 
   const updateUsageMetrics = useCallback(
     async (updates: { matchesFound?: number; candidatesViewed?: number }) => {
+      if (!uid) return;
+
+      const usageRef = ref(db, `hr/${uid}/usage/metrics`);
+      const maxQuota = subscriptionType === "Premium" ? 500 : 10;
+
       try {
-        const usageRef = ref(db,`hr/${uid}/usage/metrics`)
-        const snapshot = await get(usageRef);
-        const currentData: Metrics = snapshot.exists()
-          ? snapshot.val()
-          : { matchesFound: 0, candidatesViewed: 0, quotaLeft: 100 };
+        await runTransaction(usageRef, (current) => {
+          const currentData: Metrics = current || {
+            matchesFound: 0,
+            candidatesViewed: 0,
+            quotaLeft: maxQuota,
+          };
 
-        const updatedMatchesFound =
-          (updates.matchesFound ?? currentData.matchesFound) || 0;
-        const updatedCandidatesViewed =
-          (updates.candidatesViewed ?? currentData.candidatesViewed) || 0;
-        const updatedQuotaLeft = Math.max(100 - updatedMatchesFound, 0);
+          const updatedMatchesFound =
+            currentData.matchesFound + (updates.matchesFound ?? 0);
+          const updatedCandidatesViewed =
+            currentData.candidatesViewed + (updates.candidatesViewed ?? 0);
+          const updatedQuotaLeft = Math.max(maxQuota - updatedMatchesFound, 0);
 
-        await set(usageRef, {
-          matchesFound: updatedMatchesFound,
-          candidatesViewed: updatedCandidatesViewed,
-          quotaLeft: updatedQuotaLeft,
+          return {
+            ...currentData,
+            matchesFound: updatedMatchesFound,
+            candidatesViewed: updatedCandidatesViewed,
+            quotaLeft: updatedQuotaLeft,
+          };
         });
 
-        if (updatedQuotaLeft <= 0) {
+        const snapshot = await get(usageRef);
+        const updatedData = snapshot.val();
+        if (updatedData?.quotaLeft <= 0) {
           setQuotaExceeded(true);
         }
 
@@ -117,10 +154,18 @@ export default function SearchPage() {
         setError("Failed to update usage metrics. Please try again.");
       }
     },
-    [ uid,setError]
+    [uid, db, setError, subscriptionType]
   );
 
+  useEffect(() => {
+    if (filtersJustApplied && filteredCandidates.length > 0 && uid) {
+      updateUsageMetrics({ matchesFound: filteredCandidates.length });
+      setFiltersJustApplied(false);
+    }
+  }, [filteredCandidates, uid, filtersJustApplied, updateUsageMetrics]);
+
   const fetchCandidates = useCallback(async () => {
+    if (quotaExceeded) return;
     setLoading(true);
     try {
       const snapshot = await get(ref(db, "talent_pool"));
@@ -130,7 +175,7 @@ export default function SearchPage() {
           id,
           ...candidate,
         }));
-        setCandidates(data.slice(0, 20));
+        setCandidates(data.slice(0, 5));
         setError(null);
       } else {
         setCandidates([]);
@@ -142,31 +187,14 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [db, setCandidates, setError, setLoading]);
+  }, [db, setCandidates, setError, setLoading, quotaExceeded]);
 
+  
   useEffect(() => {
-    if (candidates.length === 0) {
+    if (!quotaExceeded && candidates.length === 0) {
       fetchCandidates();
     }
-  }, [candidates, fetchCandidates]);
-
-  const handleViewCandidate = useCallback(
-    async (email: string) => {
-      window.open(`/hr/talent_pool/candidate/${encodeURIComponent(email)}`, "_blank");
-      try {
-        const usageRef = ref(db,`hr/${uid}/usage/metrics`)
-        const snapshot = await get(usageRef);
-        const currentViewed = snapshot.exists()
-          ? snapshot.val().candidatesViewed || 0
-          : 0;
-        await updateUsageMetrics({ candidatesViewed: currentViewed + 1 });
-      } catch (err) {
-        console.error("Error updating candidates viewed:", err);
-        setError("Failed to update candidate view count.");
-      }
-    },
-    [updateUsageMetrics, setError, uid]
-  );
+  }, [quotaExceeded, candidates.length, fetchCandidates]);
 
   const addSkill = (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -186,6 +214,10 @@ export default function SearchPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedCandidates = filteredCandidates.slice(startIndex, endIndex);
   const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage);
+
+  if (checkingQuota) {
+    return <p className="text-center p-10 text-gray-500">Checking quota...</p>;
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6 p-4">
@@ -214,15 +246,16 @@ export default function SearchPage() {
             setNewSkill={setNewSkill}
             experienceRange={experienceRange}
             setExperienceRange={(val) => setFilter({ experienceRange: val })}
-            applyFilters={() =>
+            applyFilters={() => {
               applyFiltersFromJD({
                 jobTitle,
                 education,
                 location,
                 skills,
                 experienceRange,
-              })
-            }
+              });
+              setFiltersJustApplied(true);
+            }}
             clearFilters={clearFilters}
             addSkill={addSkill}
             removeSkill={removeSkill}
@@ -237,13 +270,21 @@ export default function SearchPage() {
                 No candidates found matching your criteria.
               </p>
             ) : (
-              <>
-                <CandidateList
-                  candidates={paginatedCandidates}
-                  onView={handleViewCandidate}
-                  onEdit={(email) => window.open(`/hr/talent_pool/edit/${encodeURIComponent(email)}`, "_blank")}
-                />
-              </>
+              <CandidateList
+                candidates={paginatedCandidates}
+                onView={(email) =>
+                  window.open(
+                    `/hr/talent_pool/candidate/${encodeURIComponent(email)}`,
+                    "_blank"
+                  )
+                }
+                onEdit={(email) =>
+                  window.open(
+                    `/hr/talent_pool/edit/${encodeURIComponent(email)}`,
+                    "_blank"
+                  )
+                }
+              />
             )}
 
             <PaginationControls

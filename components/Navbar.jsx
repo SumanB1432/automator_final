@@ -6,9 +6,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { auth } from "@/firebase/config";
 import app from "@/firebase/config";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { getDatabase, ref, get } from "firebase/database";
 import image from "../public/images/profile.jpeg";
+import { FaUser, FaCog } from "react-icons/fa";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -17,11 +18,11 @@ const Navbar = () => {
   const [isLogin, setIsLogin] = useState(null);
   const [fullName, setFullName] = useState("");
   const [isPremium, setIsPremium] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(image); // Default dummy profile photo
+  const [profilePhoto, setProfilePhoto] = useState(image);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const db = getDatabase(app);
 
   useEffect(() => {
-    // Track authentication state
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
@@ -44,7 +45,7 @@ const Navbar = () => {
             let lname = snapshot.val()?.lname;
             let email = snapshot.val()?.email;
             let premium = snapshot.val()?.Payment?.Status;
-            let photoURL = snapshot.val()?.profilePhoto; // Fetch profile photo URL
+            let photoURL = snapshot.val()?.profilePhoto;
             let user = "";
 
             if (Name) {
@@ -61,14 +62,12 @@ const Navbar = () => {
               setFullName(user);
             }
 
-            // Set premium status
             if (premium === "Premium") {
               setIsPremium(true);
             } else {
               setIsPremium(false);
             }
 
-            // Validate and set profile photo
             if (
               photoURL &&
               typeof photoURL === "string" &&
@@ -76,12 +75,12 @@ const Navbar = () => {
             ) {
               setProfilePhoto(photoURL);
             } else {
-              setProfilePhoto(image); // Fallback to dummy image
+              setProfilePhoto(image);
             }
           })
           .catch((error) => {
             console.error("Error fetching user data:", error);
-            setProfilePhoto(image); // Fallback on error
+            setProfilePhoto(image);
           });
       }
     };
@@ -89,25 +88,17 @@ const Navbar = () => {
     fetchUserData();
   }, []);
 
-  // Close the mobile menu when the pathname changes
   useEffect(() => {
     setIsMenuOpen(false);
+    setIsProfileMenuOpen(false);
   }, [pathname]);
 
   const isActive = (path) => pathname === path;
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
-
-  const handleSettings = async () => {
-    try {
-      window.location.href = "/settings";
-    } catch (error) {
-      console.error("Error :", error);
-    }
-  };
+  const toggleProfileMenu = () => setIsProfileMenuOpen((prev) => !prev);
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-r from-[#11011E] to-[#2A0A3A] text-white py-4 px-6 sm:px-12 flex items-center justify-between z-50 shadow-lg shadow-[#ffffff]/20">
-      {/* Logo */}
       <div className="flex items-center">
         <Image
           src="/images/Logo.png"
@@ -118,7 +109,6 @@ const Navbar = () => {
         />
       </div>
 
-      {/* Desktop Menu */}
       <ul className="hidden sm:flex space-x-8 text-sm sm:text-base">
         {[
           { label: "Home", path: "/" },
@@ -140,7 +130,6 @@ const Navbar = () => {
         ))}
       </ul>
 
-      {/* Mobile Menu Toggle */}
       <div className="sm:hidden flex items-center">
         <button
           onClick={toggleMenu}
@@ -169,7 +158,6 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Backdrop for Mobile Menu */}
       {isMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40"
@@ -177,7 +165,6 @@ const Navbar = () => {
         ></div>
       )}
 
-      {/* Mobile Dropdown Menu */}
       <div
         className={`sm:hidden fixed top-0 left-0 w-4/5 h-full bg-[#11011E] py-6 px-6 shadow-lg z-50 transform transition-transform duration-300 ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
@@ -201,79 +188,26 @@ const Navbar = () => {
             >
               <Link
                 href={item.path}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMenuOpen(false);
-                }}
+                onClick={() => setIsMenuOpen(false)}
               >
                 {item.label}
               </Link>
             </li>
           ))}
           {isLogin ? (
-            <>
-              <li className="flex items-center space-x-2">
-                <div className="relative">
-                  <Image
-                    src={profilePhoto}
-                    alt="User Profile"
-                    width={32}
-                    height={32}
-                    className={`rounded-full object-cover ${
-                      isPremium
-                        ? "border-2 border-yellow-400"
-                        : "border-2 border-gray-300"
-                    }`}
-                  />
-                  {isPremium && (
-                    <svg
-                      className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M3 8l3-5 3 5 3-5 3 5 3-5 3 5h-18zM3 8v8h18v-8h-3l-2 4-2-4-2 4-2-4-2 4-2-4h-3z" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-[#0FAE96]">{fullName}</span>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    handleSettings();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full text-left hover:text-[#0FAE96] hover:bg-[#0FAE96]/20 px-2 py-1 rounded-md transition duration-200 transform hover:scale-105"
-                >
-                  Settings
-                </button>
-              </li>
-            </>
-          ) : (
-            <li className="hover:text-[#0FAE96] transition duration-200 transform hover:scale-105">
-              <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>
-                Login / Sign Up
-              </Link>
-            </li>
-          )}
-        </ul>
-      </div>
-
-      {/* Auth Buttons */}
-      <div className="hidden sm:flex items-center space-x-4">
-        {isLogin ? (
-          <>
-            <div className="relative group flex items-center space-x-2">
+            <li className="flex items-center space-x-2">
               <div className="relative">
                 <Image
                   src={profilePhoto}
                   alt="User Profile"
                   width={32}
                   height={32}
-                  className={`rounded-full object-cover transition-transform duration-200 group-hover:scale-110 ${
-                    isPremium ? "border-2 border-yellow-400" : "border-2 border-gray-300"
+                  className={`rounded-full object-cover ${
+                    isPremium
+                      ? "border-2 border-yellow-400"
+                      : "border-2 border-gray-300"
                   }`}
+                  onClick={toggleProfileMenu}
                 />
                 {isPremium && (
                   <svg
@@ -286,17 +220,141 @@ const Navbar = () => {
                   </svg>
                 )}
               </div>
-              <span className="absolute top-full mt-2 hidden group-hover:block bg-[#0FAE96] text-black text-xs rounded-md px-2 py-1">
-                {fullName}
-              </span>
-            </div>
+              <span className="text-[#0FAE96]">{fullName}</span>
+            </li>
+          ) : (
+            <li className="hover:text-[#0FAE96] transition duration-200 transform hover:scale-105">
+              <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>
+                Login / Sign Up
+              </Link>
+            </li>
+          )}
+        </ul>
+        {isLogin && isProfileMenuOpen && (
+          <div className="mt-4 bg-[#2A0A3A] rounded-md shadow-lg py-2 px-4 relative">
             <button
-              onClick={handleSettings}
-              className="bg-[#0FAE96] text-black px-4 py-2 rounded-md hover:bg-[#0FAE96]/80 transform transition duration-200 hover:scale-105 text-sm sm:text-base"
+              onClick={toggleProfileMenu}
+              className="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-200"
             >
-              Settings
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
-          </>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/profile"
+                  className="flex items-center space-x-2 text-white hover:text-[#0FAE96] hover:bg-[#0FAE96]/20 px-2 py-1 rounded-md transition duration-200"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsProfileMenuOpen(false);
+                  }}
+                >
+                  <FaUser className="w-4 h-4" />
+                  <span>Profile</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/settings"
+                  className="flex items-center space-x-2 text-white hover:text-[#0FAE96] hover:bg-[#0FAE96]/20 px-2 py-1 rounded-md transition duration-200"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsProfileMenuOpen(false);
+                  }}
+                >
+                  <FaCog className="w-4 h-4" />
+                  <span>Settings</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden sm:flex items-center space-x-4">
+        {isLogin ? (
+          <div className="relative flex items-center space-x-2">
+            <div className="relative">
+              <Image
+                src={profilePhoto}
+                alt="User Profile"
+                width={32}
+                height={32}
+                className={`rounded-full object-cover transition-transform duration-200 cursor-pointer ${
+                  isPremium ? "border-2 border-yellow-400" : "border-2 border-gray-300"
+                }`}
+                onClick={toggleProfileMenu}
+              />
+              {isPremium && (
+                <svg
+                  className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  onClick={toggleProfileMenu}
+                >
+                  <path d="M3 8l3-5 3 5 3-5 3 5 3-5 3 5h-18zM3 8v8h18v-8h-3l-2 4-2-4-2 4-2-4-2 4-2-4h-3z" />
+                </svg>
+              )}
+            </div>
+            {isProfileMenuOpen && (
+              <div className="absolute top-12 right-0 bg-[#2A0A3A] rounded-md shadow-lg py-2 w-40 z-50">
+                <button
+                  onClick={toggleProfileMenu}
+                  className="absolute top-2 right-2 text-white hover:text-red-500 transition-colors duration-200"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <ul className="space-y-1">
+                  <li>
+                    <Link
+                      href="/profile"
+                      className="flex items-center space-x-2 text-white hover:text-[#0FAE96] hover:bg-[#0FAE96]/20 px-4 py-2 rounded-md transition duration-200"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <FaUser className="w-4 h-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/settings"
+                      className="flex items-center space-x-2 text-white hover:text-[#0FAE96] hover:bg-[#0FAE96]/20 px-4 py-2 rounded-md transition duration-200"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <FaCog className="w-4 h-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <Link href="/sign-in">

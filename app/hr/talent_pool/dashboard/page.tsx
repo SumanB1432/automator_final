@@ -1,10 +1,11 @@
 'use client';
 
-import React, { use, useEffect, useState } from 'react';
-import { getDatabase, ref, onValue, get } from 'firebase/database';
+import React, { useEffect, useState } from 'react';
+import { getDatabase, ref, onValue} from 'firebase/database';
 import Link from 'next/link';
 import app, { auth } from '@/firebase/config';
 import {toast} from "react-toastify"
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -13,11 +14,9 @@ export default function DashboardPage() {
     quotaLeft: 100,
   });
 
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uid,setUid] = useState("")
-  const recruiterId = 'demo_recruiter';
   const db = getDatabase(app);
 
     useEffect(() => {
@@ -32,70 +31,45 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(()=>{
-    const user = auth.currentUser;
-    if(user){
-      let uid = user.uid;
-      setUid(uid)
-    }
-  })
-
   useEffect(() => {
-    // Realtime listener for metrics
-    const metricsRef = ref(db, `hr/${uid}/usage/metrics`);
-    const unsubscribeMetrics = onValue(
-      metricsRef,
-      (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          setMetrics({
-            candidatesViewed: data.candidatesViewed || 0,
-            matchesFound: data.matchesFound || 0,
-            quotaLeft: data.quotaLeft || 100,
-          });
-        }
-        setError(null);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error loading metrics:', err);
-        setError('Failed to load real-time metrics.');
-      }
-    );
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setUid(user.uid);
+    } else {
+      setError("User not authenticated");
+      setLoading(false);
+    }
+  });
 
-    // // Fetch recent searches once
-    // const fetchRecentSearches = async () => {
-    //   try {
-    //     const searchesSnap = await get(
-    //       ref(db, `recruiters/${recruiterId}/searches`)
-    //     );
-    //     if (searchesSnap.exists()) {
-    //       const searchesObj = searchesSnap.val() as Record<string,{ query?:string}>;
-    //       const recent = Object.values(searchesObj)
-    //         .map((entry) => entry.query || 'Unnamed Search')
-    //         .slice(-5)
-    //         .reverse();
-    //       setRecentSearches(recent);
-    //     } else {
-    //       setRecentSearches([]);
-    //     }
-    //     setError(null);
-    //   } catch (err) {
-    //     console.error('Error fetching recent searches:', err);
-    //     setError('Failed to load recent searches.');
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
+  return () => unsubscribe();
+}, []);
 
-    // fetchRecentSearches();
- 
-    // // Cleanup listener
-    // 
-    return () => {
-      unsubscribeMetrics(); // in Realtime DB this is just a function returned by onValue
-    };
-  }, [db, recruiterId,uid]);
+useEffect(() => {
+  if (!uid) return;
+
+  const metricsRef = ref(db, `hr/${uid}/usage/metrics`);
+
+  const unsubscribe = onValue(
+    metricsRef,
+    (snapshot) => {
+      const data = snapshot.val();
+      setMetrics({
+        candidatesViewed: data?.candidatesViewed || 0,
+        matchesFound: data?.matchesFound || 0,
+        quotaLeft: data?.quotaLeft ?? (100 - (data?.matchesFound || 0)),
+      });
+      setError(null);
+      setLoading(false);
+    },
+    (err) => {
+      console.error('Error loading metrics:', err);
+      setError('Failed to load real-time metrics.');
+      setLoading(false);
+    }
+  );
+
+  return () => unsubscribe();
+}, [db, uid]);
 
   if (loading) {
     return (
@@ -143,22 +117,6 @@ export default function DashboardPage() {
             Start New Search
           </button>
         </Link>
-      </div>
-
-      {/* Recent Searches */}
-      <div>
-        <h2 className="text-lg font-raleway font-semibold text-[#ECF1F0] mt-3 mb-2 tracking-tight">Recent Searches</h2>
-        <ul className="space-y-2">
-          {recentSearches.length > 0 ? (
-            recentSearches.map((search, idx) => (
-              <li key={idx} className="bg-[rgba(255,255,255,0.02)] p-2.5 rounded-lg border border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter text-base hover:bg-[rgba(255,255,255,0.05)] hover:shadow-md transition-all duration-200 shadow-sm">
-                {search}
-              </li>
-            ))
-          ) : (
-            <p className="text-[#B6B6B6] font-inter text-base opacity-80">No recent searches found.</p>
-          )}
-        </ul>
       </div>
     </div>
   );
