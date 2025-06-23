@@ -18,12 +18,15 @@ const nextConfig = {
     return config;
   },
 
-  // Optionally, disable React strict mode (to suppress dev warnings)
+  // Optionally, disable React strict mode
   reactStrictMode: false,
 
   // Add image domains for next/image
   images: {
-    domains: ['lh3.googleusercontent.com'],
+    domains: [
+      'lh3.googleusercontent.com',
+      'firebasestorage.googleapis.com', // Add Firebase Storage
+    ],
   },
 };
 
