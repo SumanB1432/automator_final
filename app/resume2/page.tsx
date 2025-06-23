@@ -183,7 +183,7 @@ const Resume: React.FC = () => {
           console.log("Error:", err.message);
         });
 
-      setTimeout(() => { window.location.href = "/" }, 3000);
+      setTimeout(() => { window.location.href = "/demo" }, 3000);
     } catch (err) {
       toast.error(
         err instanceof Error
