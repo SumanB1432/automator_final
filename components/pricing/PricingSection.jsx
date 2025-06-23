@@ -15,21 +15,21 @@ const PricingSection = () => {
 
 
 
-  useEffect(() => {
-    // Set up the Firebase auth state listener
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is logged in, set the uid
-        setUid(user.uid);
-      } else {
-        // No user is logged in, redirect to login page
-        window.location.href = "/sign-in"; // Replace '/login' with your actual login page route
-      }
-    });
+  // useEffect(() => {
+  //   // Set up the Firebase auth state listener
+  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //     if (user) {
+  //       // User is logged in, set the uid
+  //       setUid(user.uid);
+  //     } else {
+  //       // No user is logged in, redirect to login page
+  //       window.location.href = "/sign-in"; // Replace '/login' with your actual login page route
+  //     }
+  //   });
 
-    // Cleanup the listener on component unmount
-    return () => unsubscribe();
-  }, [auth]);
+  //   // Cleanup the listener on component unmount
+  //   return () => unsubscribe();
+  // }, [auth]);
 
   useEffect(() => {
     // Fetch user location data client-side
