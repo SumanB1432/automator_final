@@ -84,7 +84,7 @@ const HeroSection = () => {
           ))}
         </div>
         <p className="font-roboto text-[#B6B6B6] text-sm">
-          <span className="text-[#0FAE96] font-bold">450+</span> JobSeeker using JobFrom Automator
+          <span className="text-[#0FAE96] font-bold">450+</span> JobSeeker using JobForm Automator
         </p>
       </div>
     </div>
