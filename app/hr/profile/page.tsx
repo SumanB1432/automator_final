@@ -1,4 +1,3 @@
-/** @format */
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -96,16 +95,14 @@ const HRProfilePage = () => {
       return;
     }
 
-    // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
     if (!allowedTypes.includes(selectedFile.type)) {
       alert("Please upload a valid image file (JPEG, PNG, or GIF).");
       setFile(null);
-      e.target.value = null; // Clear input
+      e.target.value = null;
       return;
     }
 
-    // Validate file size (e.g., max 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB.");
       setFile(null);
@@ -130,16 +127,13 @@ const HRProfilePage = () => {
 
     setUploadLoading(true);
     try {
-      // Upload to Firebase Storage
       const fileRef = storageRef(storage, `hr_profile_photos/${userId}/${file.name}`);
       await uploadBytes(fileRef, file);
       const downloadURL = await getDownloadURL(fileRef);
 
-      // Update Realtime Database
       const userRef = dbRef(db, `hr/${userId}`);
       await update(userRef, { profilePhoto: downloadURL });
 
-      // Update local state
       setProfilePhoto(downloadURL);
       setImageError(false);
       setFile(null);
@@ -150,7 +144,7 @@ const HRProfilePage = () => {
       setImageError(true);
       setProfilePhoto(defaultProfileImage);
     } finally {
-    window.location.href = "/hr/profile"
+      window.location.href = "/hr/profile";
       setUploadLoading(false);
     }
   };
@@ -185,11 +179,10 @@ const HRProfilePage = () => {
           <Image
             src={imageError ? defaultProfileImage : profilePhoto}
             alt="HR Profile"
-            width={120}
-            height={120}
-            className={`rounded-full object-cover ${
-              isPremium ? "border-4 border-yellow-400" : "border-4 border-gray-300"
-            } shadow-lg`}
+            width={150}
+            height={150}
+            className="rounded-full object-cover border-4 border-gray-300 shadow-lg"
+            style={{ borderRadius: '50%', objectFit: 'cover', width: '150px', height: '150px' }}
             onError={() => {
               setImageError(true);
               setProfilePhoto(defaultProfileImage);

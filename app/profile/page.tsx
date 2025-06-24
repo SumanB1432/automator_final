@@ -150,7 +150,7 @@ const CandidateProfilePage = () => {
       setImageError(true);
       setProfilePhoto(defaultProfileImage);
     } finally {
-     window.location.href = "/profile"
+      window.location.href = "/profile";
       setUploadLoading(false);
     }
   };
@@ -185,11 +185,10 @@ const CandidateProfilePage = () => {
           <Image
             src={imageError ? defaultProfileImage : profilePhoto}
             alt="Candidate Profile"
-            width={120}
-            height={120}
-            className={`rounded-full object-cover ${
-              isPremium ? "border-4 border-yellow-400" : "border-4 border-gray-300"
-            } shadow-lg`}
+            width={150}
+            height={150}
+            className="rounded-full object-cover border-4 border-gray-300 shadow-lg"
+            style={{ borderRadius: '50%', objectFit: 'cover', width: '150px', height: '150px' }}
             onError={() => {
               setImageError(true);
               setProfilePhoto(defaultProfileImage);

@@ -9,7 +9,7 @@ import app from "@/firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
 import { getDatabase, ref, get } from "firebase/database";
 import image from "../public/images/profile.jpeg";
-import { FaUser, FaCog } from "react-icons/fa";
+import { FaUser, FaCog, FaCrown } from "react-icons/fa";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -200,24 +200,21 @@ const Navbar = () => {
                 <Image
                   src={profilePhoto}
                   alt="User Profile"
-                  width={32}
-                  height={32}
+                  width={40}
+                  height={40}
                   className={`rounded-full object-cover ${
                     isPremium
                       ? "border-2 border-yellow-400"
                       : "border-2 border-gray-300"
-                  }`}
+                  } hover:scale-110 transition-transform duration-200 cursor-pointer`}
+                  style={{ borderRadius: '50%', objectFit: 'cover', width: '40px', height: '40px' }}
                   onClick={toggleProfileMenu}
                 />
                 {isPremium && (
-                  <svg
-                    className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M3 8l3-5 3 5 3-5 3 5 3-5 3 5h-18zM3 8v8h18v-8h-3l-2 4-2-4-2 4-2-4-2 4-2-4h-3z" />
-                  </svg>
+                  <FaCrown
+                    className="absolute top-0 right-0 w-4 h-4 text-yellow-400 transform translate-x-1/2 -translate-y-1/2"
+                    onClick={toggleProfileMenu}
+                  />
                 )}
               </div>
               <span className="text-[#0FAE96]">{fullName}</span>
@@ -290,23 +287,19 @@ const Navbar = () => {
               <Image
                 src={profilePhoto}
                 alt="User Profile"
-                width={32}
-                height={32}
+                width={40}
+                height={40}
                 className={`rounded-full object-cover transition-transform duration-200 cursor-pointer ${
                   isPremium ? "border-2 border-yellow-400" : "border-2 border-gray-300"
                 }`}
+                style={{ borderRadius: '50%', objectFit: 'cover', width: '40px', height: '40px' }}
                 onClick={toggleProfileMenu}
               />
               {isPremium && (
-                <svg
-                  className="absolute -top-1 -right-1 w-4 h-4 text-yellow-400"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+                <FaCrown
+                  className="absolute top-0 right-0 w-4 h-4 text-yellow-400 transform translate-x-1/2 -translate-y-1/2"
                   onClick={toggleProfileMenu}
-                >
-                  <path d="M3 8l3-5 3 5 3-5 3 5 3-5 3 5h-18zM3 8v8h18v-8h-3l-2 4-2-4-2 4-2-4-2 4-2-4h-3z" />
-                </svg>
+                />
               )}
             </div>
             {isProfileMenuOpen && (

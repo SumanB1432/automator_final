@@ -2,9 +2,10 @@
 import React, { useState } from "react";
 import { auth } from "@/firebase/config";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
+import { FiKey, FiUser, FiTrash2, FiLogOut } from "react-icons/fi";
 
 const Settings = function () {
-    let user = auth.currentUser;
+    const user = auth.currentUser;
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     async function updateKey() {
@@ -16,20 +17,19 @@ const Settings = function () {
     }
 
     async function deleteAccount() {
-        window.location.href = "/deleteaccount";
+        setIsModalOpen(true);
     }
 
     function notifyExtensionOnLogout() {
         try {
             const event = new CustomEvent("onLogout", { detail: { status: "logged out" } });
             document.dispatchEvent(event);
-            return true; // Indicate successful dispatch
+            return true;
         } catch (error) {
             console.error("Error dispatching logout event:", error);
             return false;
         }
     }
-
 
     async function handleLogout() {
         try {
@@ -37,13 +37,13 @@ const Settings = function () {
             console.log("User signed out");
             localStorage.clear();
             console.log("LocalStorage cleared");
-    
+
             const notificationSuccess = notifyExtensionOnLogout();
             console.log("Notification success:", notificationSuccess);
             if (!notificationSuccess) {
                 console.warn("Logout notification may not have been processed correctly");
             }
-    
+
             setTimeout(() => {
                 console.log("Redirecting...");
                 window.location.href = "/sign-in";
@@ -54,21 +54,29 @@ const Settings = function () {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] px-4">
-            <div className="w-full max-w-lg p-8 rounded-2xl shadow-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.1)]">
-                <h1 className="text-center text-3xl font-bold text-[#ECF1F0] mb-6 bg-gradient-to-r from-[#0FAE96] to-[#FF00C7] bg-clip-text text-transparent">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0A0015] via-[#1A0030] to-[#0A0015] px-4 py-12">
+            <div className="w-full max-w-md bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-2xl shadow-xl p-8">
+                <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-[#0FAE96] to-[#FF00C7] mb-8">
                     Settings
                 </h1>
-                <div className="space-y-6">
-                    {[{ label: "Update Gemini Key", action: updateKey },
-                    { label: "Update Data", action: updateData },
-                    { label: "Delete Account", action: () => setIsModalOpen(true), color: "bg-red-600" },
-                    { label: "Logout", action: handleLogout }].map((item, index) => (
-                        <div key={index} className="flex justify-between items-center bg-[rgba(255,255,255,0.1)] rounded-xl px-6 py-4 shadow-md hover:bg-opacity-20 transition-all">
-                            <span className="text-[#ECF1F0] font-semibold text-lg">{item.label}</span>
+                <div className="space-y-4">
+                    {[
+                        { label: "Update Gemini Key", action: updateKey, icon: <FiKey className="w-6 h-6" />, color: "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]" },
+                        { label: "Update Data", action: updateData, icon: <FiUser className="w-6 h-6" />, color: "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]" },
+                        { label: "Delete Account", action: deleteAccount, icon: <FiTrash2 className="w-6 h-6" />, color: "bg-red-600" },
+                        { label: "Logout", action: handleLogout, icon: <FiLogOut className="w-6 h-6" />, color: "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]" },
+                    ].map((item, index) => (
+                        <div
+                            key={index}
+                            className="flex items-center justify-between bg-[rgba(255,255,255,0.08)] rounded-lg p-4 hover:bg-[rgba(255,255,255,0.12)] transition-all duration-300 cursor-pointer"
+                            onClick={item.action}
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className="text-[#ECF1F0] opacity-80">{item.icon}</div>
+                                <span className="text-[#ECF1F0] font-medium text-lg">{item.label}</span>
+                            </div>
                             <button
-                                className={`${item.color || "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]"} text-white font-semibold text-lg px-6 py-2 rounded-xl shadow-md hover:opacity-90 transition-all duration-300 hover:scale-105`}
-                                onClick={item.action}
+                                className={`${item.color} text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-300 transform hover:scale-105 focus:outline-none`}
                             >
                                 {item.label}
                             </button>
@@ -79,6 +87,6 @@ const Settings = function () {
             </div>
         </div>
     );
-}
+};
 
 export default Settings;

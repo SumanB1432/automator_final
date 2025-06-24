@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { auth } from "@/firebase/config";
 import DeleteAccountModal from "../../../components/DeleteAccountModal";
+import { FiKey, FiTrash2, FiLogOut } from "react-icons/fi";
 
 const Settings = function () {
     let user = auth.currentUser;
@@ -19,13 +20,12 @@ const Settings = function () {
         try {
             const event = new CustomEvent("onLogout", { detail: { status: "logged out" } });
             document.dispatchEvent(event);
-            return true; // Indicate successful dispatch
+            return true;
         } catch (error) {
             console.error("Error dispatching logout event:", error);
             return false;
         }
     }
-
 
     async function handleLogout() {
         try {
@@ -50,19 +50,27 @@ const Settings = function () {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] px-4">
-            <div className="w-full max-w-lg p-8 rounded-2xl shadow-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.1)]">
-                <h1 className="text-center text-3xl font-bold text-[#ECF1F0] mb-6 bg-gradient-to-r from-[#0FAE96] to-[#FF00C7] bg-clip-text text-transparent">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#11011E] via-[#35013E] to-[#11011E] px-4 py-12">
+            <div className="w-full max-w-md p-8 rounded-2xl shadow-xl bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <h1 className="text-center text-4xl font-extrabold text-[#ECF1F0] mb-8 bg-gradient-to-r from-[#0FAE96] to-[#FF00C7] bg-clip-text text-transparent">
                     Settings
                 </h1>
-                <div className="space-y-6">
-                    {[{ label: "Update Gemini Key", action: updateKey },
-                    { label: "Delete Account", action: () => setIsModalOpen(true), color: "bg-red-600" },
-                    { label: "Logout", action: handleLogout }].map((item, index) => (
-                        <div key={index} className="flex justify-between items-center bg-[rgba(255,255,255,0.1)] rounded-xl px-6 py-4 shadow-md hover:bg-opacity-20 transition-all">
-                            <span className="text-[#ECF1F0] font-semibold text-lg">{item.label}</span>
+                <div className="space-y-4">
+                    {[
+                        { label: "Update Gemini Key", action: updateKey, icon: <FiKey size={24} />, color: "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]" },
+                        { label: "Delete Account", action: () => setIsModalOpen(true), icon: <FiTrash2 size={24} />, color: "bg-gradient-to-r from-red-600 to-red-800" },
+                        { label: "Logout", action: handleLogout, icon: <FiLogOut size={24} />, color: "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]" },
+                    ].map((item, index) => (
+                        <div
+                            key={index}
+                            className="flex items-center justify-between bg-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3 shadow-md hover:bg-opacity-20 transition-all duration-300"
+                        >
+                            <div className="flex items-center space-x-3">
+                                <span className="text-[#ECF1F0]">{item.icon}</span>
+                                <span className="text-[#ECF1F0] font-medium text-lg">{item.label}</span>
+                            </div>
                             <button
-                                className={`${item.color || "bg-gradient-to-r from-[#0FAE96] to-[#0FAE96]"} text-white font-semibold text-lg px-6 py-2 rounded-xl shadow-md hover:opacity-90 transition-all duration-300 hover:scale-105`}
+                                className={`${item.color} text-white font-semibold text-base px-4 py-2 rounded-xl shadow-md hover:opacity-90 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#11011E] focus:ring-[#0FAE96]`}
                                 onClick={item.action}
                             >
                                 {item.label}
