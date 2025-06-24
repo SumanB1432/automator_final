@@ -55,7 +55,8 @@ const Dashboard = () => {
         const fname = fnameSnapshot.val() || "";
         const lname = lnameSnapshot.val() || "";
         const fullName = fname + lname;
-        setName(fullName.trim());
+        const nameWithoutSpaces = fullName.trim().replace(/\s/g, "")
+        setName(nameWithoutSpaces);
       } else {
         let name = nameSnapshot.val();
         const nameWithoutSpaces = name.replace(/\s/g, "");
@@ -74,7 +75,7 @@ const Dashboard = () => {
 💸 Use my referral link to join and get exclusive benefits: window.location.origin}/${name}
 
 🔥 Limited time offer! Don’t miss out.`)
-
+    console.log("name",name)
     const visitorRef = ref(db, `visitors/${name}`);
     get(visitorRef).then((snapshot) => {
       const visitorData = snapshot.val();
