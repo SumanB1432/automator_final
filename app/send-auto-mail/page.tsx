@@ -417,17 +417,21 @@ const Page = () => {
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
 
-        // Clear localStorage after all emails are sent
+        // Only clear localStorage after all emails are sent and UI is updated
         if (sentEmailCount > 0) {
+          setIsSending(false);
+          setIsSent(true);
           localStorage.removeItem("companies");
           console.log("Cleared companies from localStorage");
+        } else {
+          setIsSending(false);
+          setIsSent(true);
         }
-
-        setIsSending(false);
-        setIsSent(true);
       } catch (err) {
         console.error("Error sending emails:", err.message);
         toast.error("Failed to send emails.");
+        setIsSending(false);
+        setIsSent(true);
       }
     };
 
@@ -459,7 +463,7 @@ const Page = () => {
           </div>
         )}
 
-        {!emailLimitReached && (
+        {!emailLimitReached && companies.length > 0 && (
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-3">
               <FaBriefcase className="text-white" />
