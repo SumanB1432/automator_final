@@ -46,7 +46,6 @@ const Page = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUid(user.uid);
-        // Check Firebase for email authentication
         const DB_email = email.replace(/\./g, ",");
         const userRef = ref(db, `users/${DB_email}`);
         get(userRef)
@@ -64,7 +63,6 @@ const Page = () => {
             toast.error("Error verifying authentication. Please try again.");
           });
 
-        // Fetch resume and user data
         const getUserData = async () => {
           if (emailLimitReached) return;
           try {
@@ -294,18 +292,34 @@ const Page = () => {
     if (!jsonData || jsonData.length === 0 || emailLimitReached) return;
 
     const processData = () => {
-      const jobTitles = jsonData.map((job) => job.jobTitle);
-      setJobTitle(jobTitles);
+      try {
+        const jobTitles = jsonData
+          .filter((job) => job.jobTitle)
+          .map((job) => job.jobTitle);
+        setJobTitle(jobTitles);
 
-      const avgExperience =
-        jsonData.reduce((sum, job) => {
-          const [min, max] = job.experience.split("-").map(Number);
-          return sum + (min + max) / 2;
-        }, 0) / jsonData.length;
-      setExp(avgExperience);
+        const validJobs = jsonData.filter(
+          (job) => typeof job.experience === "string" && job.experience.includes("-")
+        );
+        const avgExperience =
+          validJobs.length > 0
+            ? validJobs.reduce((sum, job) => {
+                const [min, max] = job.experience.split("-").map(Number);
+                if (isNaN(min) || isNaN(max)) {
+                  console.warn(`Invalid experience range for job: ${job.jobTitle}, experience: ${job.experience}`);
+                  return sum;
+                }
+                return sum + (min + max) / 2;
+              }, 0) / validJobs.length
+            : 0;
+        setExp(avgExperience);
 
-      const locations = [...new Set(jsonData.map((job) => job.location))];
-      setLocation(locations);
+        const locations = [...new Set(jsonData.filter((job) => job.location).map((job) => job.location))];
+        setLocation(locations);
+      } catch (error) {
+        console.error("Error processing Gemini data:", error.message);
+        toast.error("Failed to process job data.");
+      }
     };
 
     processData();
