@@ -73,9 +73,12 @@ const Page = () => {
             const resumeSnapshot = await get(resumeRef);
             if (resumeSnapshot.exists()) {
               setResume(resumeSnapshot.val());
-              resumeFetched.current = true; // Mark resume as fetched
+              resumeFetched.current = true;
             } else {
               toast.error("No resume data found in database.");
+              setTimeout(() => {
+                window.location.href = "/resume2";
+              }, 2000);
             }
             if (URD) {
               setUrd(URD);
@@ -87,6 +90,9 @@ const Page = () => {
                 localStorage.setItem("URD", snapshot.val());
               } else {
                 toast.error("No URD data found.");
+                setTimeout(() => {
+                  window.location.href = "/resume2";
+                }, 2000);
               }
             }
           } catch (err) {
@@ -95,7 +101,7 @@ const Page = () => {
           }
         };
 
-        getUserData(); // Call getUserData inside the callback where user is defined
+        getUserData();
       } else {
         toast.error("No user logged-in!");
         window.location.href = "/sign-in";
@@ -324,23 +330,33 @@ const Page = () => {
       });
   }, [userEmail]);
 
-  // Step 9: Handle email data from extension
+  // Step 9: Handle email data from extension and localStorage
   useEffect(() => {
     if (emailLimitReached) return;
 
-    let companies = localStorage.getItem("companies");
-    console.log("companies",companies)
-    if(companies){
-      console.log(companies,"companies")
-    setCompanies(companies);
+    // Load companies from localStorage if available
+    const storedCompanies = localStorage.getItem("companies");
+    if (storedCompanies) {
+      try {
+        const parsedCompanies = JSON.parse(storedCompanies);
+        setCompanies(parsedCompanies);
+        const emails = parsedCompanies
+          .map((company: any) => company.email)
+          .filter((email: string) => email !== "Not found");
+        setEmailArray(emails);
+        console.log("Loaded companies from localStorage:", parsedCompanies);
+      } catch (err) {
+        console.error("Error parsing stored companies:", err.message);
+      }
     }
-    else{
-    document.addEventListener("emailsData", function (event) {
+
+    // Listen for new jobs from extension
+    const handleEmailsData = (event: any) => {
       const jobs = event.detail;
       console.log("Received jobs from extension:", jobs);
 
-      const filteredJobs = jobs.filter((job) => job.email !== "Not found");
-      localStorage.setItem("companies",filteredJobs)
+      const filteredJobs = jobs.filter((job: any) => job.email !== "Not found");
+      localStorage.setItem("companies", JSON.stringify(filteredJobs));
       setCompanies(filteredJobs);
 
       if (filteredJobs.length > 0) {
@@ -350,15 +366,16 @@ const Page = () => {
         setEmailArray(emails);
         console.log("Recruiter Emails:", emails);
       }
-    });
+    };
+
+    document.addEventListener("emailsData", handleEmailsData);
 
     return () => {
-      document.removeEventListener("emailsData", () => {});
+      document.removeEventListener("emailsData", handleEmailsData);
     };
-  }
-  }, []);
+  }, [emailLimitReached]);
 
-  // Step 10: Send emails to company array
+  // Step 10: Send emails to company array and clear localStorage
   useEffect(() => {
     if (emailArray.length === 0 || hasRun.current || emailLimitReached || !resumeFetched.current) return;
 
@@ -400,6 +417,12 @@ const Page = () => {
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
 
+        // Clear localStorage after all emails are sent
+        if (sentEmailCount > 0) {
+          localStorage.removeItem("companies");
+          console.log("Cleared companies from localStorage");
+        }
+
         setIsSending(false);
         setIsSent(true);
       } catch (err) {
@@ -416,46 +439,46 @@ const Page = () => {
   };
 
   return (
-   <div className="min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013e] to-[#11011E] py-12 text-white">
-  <div className="max-w-7xl w-full mx-auto px-4 flex flex-col gap-6">
-    {emailLimitReached && (
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF]240 text-center flex flex-col gap-5 scale-[1.2]">
-        <h2 className="text-[32px] font-bold text-[#FFFFFF]">Email Limit Reached</h2>
-        <p className="text-[16px] leading-6 text-[#B6B6B6]">
-          Hit the <span className="font-semibold text-[#FFFFFF]">10000-email</span> free plan limit.
-        </p>
-        <p className="text-[16px] leading-6 text-[#B6B6B6]">
-          Go <span className="underline font-semibold text-[#0FAE96]">Premium</span> to send more.
-        </p>
-        <button
-          className="bg-[#0FAE96] text-[#FFFFFF] font-semibold py-2 px-6 rounded-[10px] hover:bg-[#0C8C79] transition-opacity duration-150 w-full max-w-[200px] mx-auto"
-          onClick={handleUpdatePlan}
-        >
-          Upgrade
-        </button>
-      </div>
-    )}
-
-    {!emailLimitReached && (
-      <div>
-        <h2 className="text-3xl font-bold flex items-center gap-3">
-          <FaBriefcase className="text-white" />
-          {isSending ? "Searching Jobs..." : "Applications"}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {companies.map((company, index) => (
-            <div
-              key={index}
-              className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150 h-full flex flex-col"
+    <div className="min-h-screen bg-gradient-to-b from-[#11011E] via-[#35013e] to-[#11011E] py-12 text-white">
+      <div className="max-w-7xl w-full mx-auto px-4 flex flex-col gap-6">
+        {emailLimitReached && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] p-10 rounded-[12px] bg-[#11011E] border border-[#0FAE96] shadow-[0_0_12px_2px_#DFDFDF]240 text-center flex flex-col gap-5 scale-[1.2]">
+            <h2 className="text-[32px] font-bold text-[#FFFFFF]">Email Limit Reached</h2>
+            <p className="text-[16px] leading-6 text-[#B6B6B6]">
+              Hit the <span className="font-semibold text-[#FFFFFF]">10000-email</span> free plan limit.
+            </p>
+            <p className="text-[16px] leading-6 text-[#B6B6B6]">
+              Go <span className="underline font-semibold text-[#0FAE96]">Premium</span> to send more.
+            </p>
+            <button
+              className="bg-[#0FAE96] text-[#FFFFFF] font-semibold py-2 px-6 rounded-[10px] hover:bg-[#0C8C79] transition-opacity duration-150 w-full max-w-[200px] mx-auto"
+              onClick={handleUpdatePlan}
             >
-              <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+              Upgrade
+            </button>
+          </div>
+        )}
+
+        {!emailLimitReached && (
+          <div>
+            <h2 className="text-3xl font-bold flex items-center gap-3">
+              <FaBriefcase className="text-white" />
+              {isSending ? "Searching Jobs..." : "Applications"}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {companies.map((company, index) => (
+                <div
+                  key={index}
+                  className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150 h-full flex flex-col"
+                >
+                  <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
-    )}
-  </div>
-</div>
+    </div>
   );
 };
 
