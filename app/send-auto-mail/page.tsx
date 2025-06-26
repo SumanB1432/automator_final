@@ -9,7 +9,7 @@ import { getDatabase, ref, set, get } from "firebase/database";
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const Page = () => {
-  const [isSending, setIsSending] = useState(true);
+  const [isSending, setIsSending] = useState(false); // Changed to false to prevent automatic sending
   const [isSent, setIsSent] = useState(false);
   const [emailArray, setEmailArray] = useState<string[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -391,69 +391,75 @@ const Page = () => {
     };
   }, [emailLimitReached]);
 
-  // Step 10: Send emails to company array and clear localStorage
-  useEffect(() => {
-    if (emailArray.length === 0 || hasRun.current || emailLimitReached || !resumeFetched.current) return;
+  // Step 10: Send emails to company array
+  const sendEmails = async () => {
+    if (emailArray.length === 0 || hasRun.current || emailLimitReached || !resumeFetched.current) {
+      toast.error("Cannot send emails: No valid emails or limit reached.");
+      return;
+    }
 
+    setIsSending(true);
     hasRun.current = true;
 
-    const sendEmails = async () => {
-      try {
-        let sentEmailCount = 0;
-        const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
+    try {
+      let sentEmailCount = 0;
+      const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
 
-        for (const email of emailArray) {
-          // Re-fetch email count before sending each email
-          const snapshot = await get(emailCountRef);
-          const currentCount = snapshot.exists() ? snapshot.val() : 0;
-          console.log("Current email count before sending:", currentCount);
+      for (const email of emailArray) {
+        const snapshot = await get(emailCountRef);
+        const currentCount = snapshot.exists() ? snapshot.val() : 0;
+        console.log("Current email count before sending:", currentCount);
 
-          if (currentCount + sentEmailCount >= 10000) {
-            setEmailLimitReached(true);
-            toast.warning(
-              <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
-                <h2 className="text-lg font-bold">💼 Email Limit Reached</h2>
-                <p className="text-sm mt-1">
-                  You've hit the <span className="font-semibold">10000 email</span> limit on your free plan.
-                </p>
-                <p className="text-sm">
-                  Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.
-                </p>
-              </div>,
-              { autoClose: 8000 }
-            );
-            break;
-          }
-
-          const success = await sendEmail(email);
-          if (success) {
-            sentEmailCount += 1;
-            await set(emailCountRef, currentCount + sentEmailCount);
-            console.log(`Updated email count to ${currentCount + sentEmailCount}`);
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+        if (currentCount + sentEmailCount >= 10000) {
+          setEmailLimitReached(true);
+          toast.warning(
+            <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
+              <h2 className="text-lg font-bold">💼 Email Limit Reached</h2>
+              <p className="text-sm mt-1">
+                You've hit the <span className="font-semibold">10000 email</span> limit on your free plan.
+              </p>
+              <p className="text-sm">
+                Upgrade to <span className="underline font-semibold">Premium</span> to continue sending job applications automatically.
+              </p>
+            </div>,
+            { autoClose: 8000 }
+          );
+          break;
         }
 
-        if (sentEmailCount > 0) {
-          setIsSending(false);
-          setIsSent(true);
-          localStorage.removeItem("companies");
-          console.log("Cleared companies from localStorage");
-        } else {
-          setIsSending(false);
-          setIsSent(true);
+        const success = await sendEmail(email);
+        if (success) {
+          sentEmailCount += 1;
+          await set(emailCountRef, currentCount + sentEmailCount);
+          console.log(`Updated email count to ${currentCount + sentEmailCount}`);
         }
-      } catch (err) {
-        console.error("Error sending emails:", err.message);
-        toast.error("Failed to send emails.");
-        setIsSending(false);
-        setIsSent(true);
+
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
-    };
 
-    sendEmails();
-  }, [emailArray, resume, uid, userEmail, userName]);
+      if (sentEmailCount > 0) {
+        toast.success(
+          <div className="p-4 bg-gradient-to-r from-green-600 to-green-400 rounded-xl shadow-lg text-white">
+            <h2 className="text-lg font-bold">🎉 Emails Sent Successfully</h2>
+            <p className="text-sm mt-1">
+              Successfully sent <span className="font-semibold">{sentEmailCount}</span> job application emails.
+            </p>
+          </div>,
+          { autoClose: 5000 }
+        );
+        setIsSent(true);
+        localStorage.removeItem("companies");
+        console.log("Cleared companies from localStorage");
+      } else {
+        toast.info("No emails were sent.");
+      }
+    } catch (err) {
+      console.error("Error sending emails:", err.message);
+      toast.error("Failed to send emails.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleUpdatePlan = () => {
     window.location.href = "/payment";
@@ -480,22 +486,38 @@ const Page = () => {
           </div>
         )}
 
-        {!emailLimitReached && companies.length > 0 && (
+        {!emailLimitReached && (
           <div>
             <h2 className="text-3xl font-bold flex items-center gap-3">
               <FaBriefcase className="text-white" />
-              {isSending ? "Searching Jobs..." : "Applications"}
+              {isSending ? "Sending Emails..." : isSent ? "Applications Sent" : "Applications"}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {companies.map((company, index) => (
-                <div
-                  key={index}
-                  className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150 h-full flex flex-col"
+            {companies.length > 0 && (
+              <>
+                <button
+                  className={`bg-[#0FAE96] text-[#FFFFFF] font-semibold py-2 px-6 rounded-[10px] hover:bg-[#0C8C79] transition-opacity duration-150 w-full max-w-[300px] mx-auto mt-4 ${
+                    isSending || isSent ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  onClick={sendEmails}
+                  disabled={isSending || isSent}
                 >
-                  <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+                  {isSending ? "Sending..." : isSent ? "Emails Sent" : "Send Emails to All Companies"}
+                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {companies.map((company, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#11011E] border border-[#0FAE96] rounded-[10px] p-6 shadow-[0_0_8px_2px_#DFDFDF] hover:opacity-90 transition-opacity duration-150 h-full flex flex-col"
+                    >
+                      <CompanyCard {...company} isSending={isSending} isSent={isSent} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+            {companies.length === 0 && (
+              <p className="text-center text-[#B6B6B6] mt-6">No companies loaded. Please wait for the extension to provide job data.</p>
+            )}
           </div>
         )}
       </div>
