@@ -353,6 +353,7 @@ const Page = () => {
     if (emailLimitReached) return;
 
     const storedCompanies = localStorage.getItem("companies");
+    console.log("647")
     if (storedCompanies) {
       try {
         const parsedCompanies = JSON.parse(storedCompanies);
