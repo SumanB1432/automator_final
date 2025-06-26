@@ -144,6 +144,7 @@ const Page = () => {
         const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
         const snapshot = await get(emailCountRef);
         const email_count = snapshot.val() || 0;
+        console.log("Fetched email count from Firebase:", email_count);
 
         if (email_count >= 10000) {
           setEmailLimitReached(true);
@@ -162,6 +163,7 @@ const Page = () => {
         }
       } catch (error) {
         console.error("Error fetching email count:", error.message);
+        toast.error("Failed to fetch email count.");
       }
     };
 
@@ -275,9 +277,11 @@ const Page = () => {
 
         const jsonMatch = textResponse.match(/```json\n([\s\S]*?)\n```/);
         const jsonOutput = jsonMatch ? JSON.parse(jsonMatch[1]) : JSON.parse(textResponse);
-
-        console.log("✅ Gemini Parsed Response:", jsonOutput);
-        setJsonData(jsonOutput);
+        const validatedOutput = jsonOutput.filter(
+          (job) => job.jobTitle && job.location && typeof job.experience === "string" && job.experience.includes("-")
+        );
+        console.log("✅ Validated Gemini Response:", validatedOutput);
+        setJsonData(validatedOutput);
       } catch (error) {
         console.error("❌ Error in fetchGeminiResponse:", error);
         toast.error("Failed to process resume with Gemini API.");
@@ -348,7 +352,6 @@ const Page = () => {
   useEffect(() => {
     if (emailLimitReached) return;
 
-    // Load companies from localStorage if available
     const storedCompanies = localStorage.getItem("companies");
     if (storedCompanies) {
       try {
@@ -364,7 +367,6 @@ const Page = () => {
       }
     }
 
-    // Listen for new jobs from extension
     const handleEmailsData = (event: any) => {
       const jobs = event.detail;
       console.log("Received jobs from extension:", jobs);
@@ -399,12 +401,14 @@ const Page = () => {
       try {
         let sentEmailCount = 0;
         const emailCountRef = ref(db, `user/${uid}/Payment/email_count`);
-        const snapshot = await get(emailCountRef);
-        let existingCount = snapshot.exists() ? snapshot.val() : 0;
-        console.log("Existing email count:", existingCount);
 
         for (const email of emailArray) {
-          if (existingCount + sentEmailCount >= 10000) {
+          // Re-fetch email count before sending each email
+          const snapshot = await get(emailCountRef);
+          const currentCount = snapshot.exists() ? snapshot.val() : 0;
+          console.log("Current email count before sending:", currentCount);
+
+          if (currentCount + sentEmailCount >= 10000) {
             setEmailLimitReached(true);
             toast.warning(
               <div className="p-4 bg-gradient-to-r from-purple-800 via-pink-600 to-red-500 rounded-xl shadow-lg text-white">
@@ -424,14 +428,13 @@ const Page = () => {
           const success = await sendEmail(email);
           if (success) {
             sentEmailCount += 1;
-            await set(emailCountRef, existingCount + sentEmailCount);
-            console.log(`Updated email count to ${existingCount + sentEmailCount}`);
+            await set(emailCountRef, currentCount + sentEmailCount);
+            console.log(`Updated email count to ${currentCount + sentEmailCount}`);
           }
 
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
 
-        // Only clear localStorage after all emails are sent and UI is updated
         if (sentEmailCount > 0) {
           setIsSending(false);
           setIsSent(true);
