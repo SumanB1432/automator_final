@@ -100,6 +100,7 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-r from-[#11011E] to-[#2A0A3A] text-white py-4 px-6 sm:px-12 flex items-center justify-between z-50 shadow-lg shadow-[#ffffff]/20">
       <div className="flex items-center">
+        <Link href="/">
         <Image
           src="/images/Logo.png"
           alt="Logo"
@@ -107,6 +108,7 @@ const Navbar = () => {
           height={40}
           className="animate-[logoFade_0.5s_ease-in-out] hover:scale-105 transition-transform duration-200"
         />
+        </Link>
       </div>
 
       <ul className="hidden sm:flex space-x-8 text-sm sm:text-base">
