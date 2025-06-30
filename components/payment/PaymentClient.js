@@ -1,13 +1,12 @@
 
 "use client";
 import React, { useState, useEffect } from "react";
-import { get, ref, getDatabase, update } from "firebase/database";
+import { get, set, ref, getDatabase, update } from "firebase/database";
 import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
 import { onAuthStateChanged } from "firebase/auth";
-import { FaCheck, FaTimes } from "react-icons/fa";
 import { MdLocationOn, MdCall, MdEmail } from "react-icons/md";
-import { FaInstagram, FaFacebook, FaLinkedin, FaYoutube } from "react-icons/fa";
+import { FaInstagram, FaFacebook, FaLinkedin, FaYoutube,FaCheck,FaTimes,FaExclamationTriangle } from "react-icons/fa";
 import { ArrowRightIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -16,6 +15,7 @@ import master from "./mastercard.svg";
 import visa from "./visa.svg";
 import rupay from "./rupay.svg";
 import upi from "./upi.svg";
+
 
 const db = getDatabase(app);
 
@@ -179,33 +179,54 @@ const PaymentClient = () => {
           const endDateStr = endDate.toISOString().replace("T", " ").split(".")[0];
           const userPaymentRef = ref(db, `user/${currentUser}/Payment`);
           const hrPaymentRef = ref(db, `hr/${currentUser}/Payment`);
-          if (section_for == "hr") {
-            update(hrPaymentRef, {
-              Start_Date: startDateStr,
-              End_Date:endDateStr,
-              Status: "Premium",
-              SubscriptionType: "Premium"
+          const hrmetricsRef = ref(db, `hr/${currentUser}/usage/metrics`);
+          if (section_for === "hr") {
+            try {
+              // Validate input variables
+              if (!hrPaymentRef || !hrmetricsRef || !startDateStr || !endDateStr) {
+                throw new Error("Required variables are undefined: check hrPaymentRef, hrmetricsRef, startDateStr, or endDateStr");
+              }
 
-            }).then(() => {
-              setTimeout(()=>{
-               window.location.href = "/hr"
-              },2000)
-              
-              console.log("HR payment status update!")
-            })
+              // Update hrPaymentRef
+              await update(hrPaymentRef, {
+                Start_Date: startDateStr,
+                End_Date: endDateStr,
+                Status: "Premium",
+                SubscriptionType: "Premium"
+              });
+              console.log("HR payment status updated successfully:", {
+                Start_Date: startDateStr,
+                End_Date: endDateStr,
+                Status: "Premium",
+                SubscriptionType: "Premium"
+              });
+
+              // Update hrmetricsRef
+              await set(hrmetricsRef, {
+                matchesFound: 0,
+                candidatesViewed: 0,
+                quotaLeft: 500
+              });
+              console.log("HR metrics data written successfully");
+
+              // Redirect after both updates succeed
+              console.log("Redirecting to /hr");
+              window.location.href = "/hr";
+            } catch (error) {
+              console.error("Error during Firebase operations:", error);
+              // Optionally, show an error to the user (e.g., alert or UI notification)
+              // Do not redirect if there's an error
+            }
           }
           if (section_for == "candidate") {
             update(userPaymentRef, {
               Start_Date: startDateStr,
-              End_Date:endDateStr,
+              End_Date: endDateStr,
               Status: "Premium",
               SubscriptionType: "Premium"
 
             }).then(() => {
-              setTimeout(()=>{
-                 window.location.href = "/"
-
-              },2000)
+              window.location.href = "/"
               console.log("HR payment status update!")
             })
           }
@@ -462,6 +483,21 @@ const PaymentClient = () => {
                 Pay Now
                 <ArrowRightIcon className="h-5 w-5" />
               </motion.button>
+
+              {/* Payment Warning */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.3 }}
+                className="p-4 bg-[#FF6B6B]/10 border border-[#FF6B6B]/40 rounded-lg text-sm sm:text-base text-[#ECF1F0]"
+              >
+                <div className="flex items-start">
+                  <FaExclamationTriangle className="text-[#FF6B6B] mr-3 mt-1 flex-shrink-0" />
+                  <p>
+                    After initiating payment, please do not refresh the page. Wait a moment to ensure your payment is completed successfully.
+                  </p>
+                </div>
+              </motion.div>
 
               {/* Payment Methods */}
               <div className="mt-6 text-center">

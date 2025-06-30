@@ -137,18 +137,14 @@ const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session, actua
                 Auto-detected role: {actualTitle}
               </div>
             )}
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full h-12 bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] text-[#B6B6B6] font-inter focus:ring-[#0FAE96] focus:border-[#0FAE96]">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#11011E] border-[rgba(255,255,255,0.05)] text-[#B6B6B6]">
-                <SelectItem value="Software Engineer" className="focus:bg-[rgba(255,255,255,0.05)] focus:text-[#ECF1F0]">Software Engineer</SelectItem>
-                <SelectItem value="Product Manager" className="focus:bg-[rgba(255,255,255,0.05)] focus:text-[#ECF1F0]">Product Manager</SelectItem>
-                <SelectItem value="Data Scientist" className="focus:bg-[rgba(255,255,255,0.05)] focus:text-[#ECF1F0]">Data Scientist</SelectItem>
-                <SelectItem value="Designer" className="focus:bg-[rgba(255,255,255,0.05)] focus:text-[#ECF1F0]">Designer</SelectItem>
-                <SelectItem value="Other" className="focus:bg-[rgba(255,255,255,0.05)] focus:text-[#ECF1F0]">Other (Custom)</SelectItem>
-              </SelectContent>
-            </Select>
+             <Input
+              id="role"
+              type="text"
+              // value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="mt-1 w-full h-12 bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] text-[#B6B6B6] focus:ring-[#0FAE96] focus:border-[#0FAE96] ring-2 ring-[#0FAE96] rounded-lg p-3"
+              placeholder="e.g. Software Engineer"
+            />
 
             {selectedRole === "Other" && (
               <div className="mt-4">
@@ -167,24 +163,14 @@ const InterviewSetup: React.FC<InterviewSetupProps> = ({ onStart, session, actua
 
           <div>
             <Label className="text-lg font-medium font-raleway text-[#ECF1F0] mb-3 block">Experience level</Label>
-            <RadioGroup value={skillLevel} onValueChange={setSkillLevel} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { value: "Beginner", label: "Beginner", description: "0-2 years experience" },
-                { value: "Intermediate", label: "Intermediate", description: "3-5 years experience" },
-                { value: "Advanced", label: "Advanced", description: "6+ years experience" },
-              ].map((level) => (
-                <div key={level.value} className="relative">
-                  <RadioGroupItem value={level.value} id={level.value} className="peer sr-only" />
-                  <Label
-                    htmlFor={level.value}
-                    className="flex flex-col h-full p-4 border border-[rgba(255,255,255,0.05)] rounded-md cursor-pointer bg-[rgba(255,255,255,0.02)] hover:border-[#0FAE96] transition duration-200 peer-data-[state=checked]:border-[#0FAE96] peer-data-[state=checked]:bg-[rgba(15,174,150,0.1)]"
-                  >
-                    <span className="text-lg font-medium font-raleway text-[#ECF1F0]">{level.label}</span>
-                    <span className="text-sm font-inter text-[#B6B6B6]">{level.description}</span>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            <Input
+              id="skill-level"
+              type="text"
+              // value={skillLevel}
+              onChange={(e) => setSkillLevel(e.target.value)}
+              className="mt-1 w-full h-12 bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.05)] text-[#B6B6B6] focus:ring-[#0FAE96] focus:border-[#0FAE96] ring-2 ring-[#0FAE96] rounded-lg p-3"
+              placeholder="e.g. Intermediate (3-5 years)"
+            />
           </div>
 
           <div>

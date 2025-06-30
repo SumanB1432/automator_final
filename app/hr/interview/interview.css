@@ -40,4 +40,24 @@
   .read-the-docs {
     color: #888;
   }
+select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-color: #11011E !important;
+  color: #ECF1F0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+select option {
+  background-color: #11011E !important;
+  color: #ECF1F0 !important;
+}
+
+/* Ensure no light theme interference */
+select:-internal-list-box,
+select:-moz-focusring {
+  background-color: #11011E !important;
+  color: #ECF1F0 !important;
+}
   

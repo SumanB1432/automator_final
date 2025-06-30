@@ -70,7 +70,7 @@ const PricingSection = () => {
           const endDate = new Date(paymentData.End_Date.replace(" ", "T") + "Z");
           const now = new Date();
 
-          if (endDate > now) {
+          if (endDate < now) {
             // Downgrade to Free
             await update(paymentRef, {
               Status: "Free",
@@ -113,7 +113,7 @@ const PricingSection = () => {
     {
       name: "Premium",
       priceUSD: "$49",
-      priceINR: "₹1499",
+      priceINR: "₹1",
       description: "Advanced Features for the Serious Job Seeker",
       features: [
         "All in Beginner plan",

@@ -281,7 +281,9 @@ const Resume: React.FC = () => {
             <br></br>
             {/* Upload Resume */}
             <label htmlFor="file-upload" className="cursor-pointer text-white">
-              Upload Your Resume
+              <span className="text-[#ECF1F0] text-xl font-raleway font-semibold tracking-wide relative inline-block after:content-[''] after:block after:w-16 after:h-1 after:mt-1 after:mx-auto">
+                Upload Your Resume
+              </span>
               <div className="border border-dashed border-[#B6B6B6] rounded-md p-4 text-center text-[#B6B6B6] cursor-pointer hover:bg-[#1A1A2E]">
                 <input
                   type="file"

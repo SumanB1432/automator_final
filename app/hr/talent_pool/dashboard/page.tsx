@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getDatabase, ref, onValue} from 'firebase/database';
+import { getDatabase, ref, onValue, get } from 'firebase/database';
 import Link from 'next/link';
 import app, { auth } from '@/firebase/config';
-import {toast} from "react-toastify"
+import { toast } from "react-toastify"
 import { onAuthStateChanged } from 'firebase/auth';
 
+
 export default function DashboardPage() {
+
+  
+
   const [metrics, setMetrics] = useState({
     candidatesViewed: 0,
     matchesFound: 0,
@@ -16,15 +20,16 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uid,setUid] = useState("")
+  const [uid, setUid] = useState("")
   const db = getDatabase(app);
 
-    useEffect(() => {
+
+  useEffect(() => {
     const isHRLoggedIn = localStorage.getItem("IsLoginAsHR");
-  
+
     if (isHRLoggedIn !== "true") {
       toast.warning("Access denied. Please log in as an HR user.");
-  
+
       setTimeout(() => {
         window.location.href = "/hr/login";
       }, 2000);
@@ -32,44 +37,56 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      setUid(user.uid);
-    } else {
-      setError("User not authenticated");
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      } else {
+        setError("User not authenticated");
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    const metricsRef = ref(db, `hr/${uid}/usage/metrics`);
+
+    const unsubscribe = onValue(
+      metricsRef,
+      (snapshot) => {
+        const data = snapshot.val();
+        setMetrics({
+          candidatesViewed: data?.candidatesViewed || 0,
+          matchesFound: data?.matchesFound || 0,
+          quotaLeft: data?.quotaLeft ?? (100 - (data?.matchesFound || 0)),
+        });
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error loading metrics:', err);
+        setError('Failed to load real-time metrics.');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [db, uid]);
+
+  useEffect(() => {
+    const getSubscriptionType = async function (uid: any) {
+      const subRef = ref(db, `hr/${uid}/Payment/SubscriptionType`);
+      const subSnap = await get(subRef);
+      const subType = subSnap.exists() && subSnap.val() === "Premium" ? "Premium" : "Free";
     }
-  });
 
-  return () => unsubscribe();
-}, []);
+    getSubscriptionType(uid)
 
-useEffect(() => {
-  if (!uid) return;
 
-  const metricsRef = ref(db, `hr/${uid}/usage/metrics`);
-
-  const unsubscribe = onValue(
-    metricsRef,
-    (snapshot) => {
-      const data = snapshot.val();
-      setMetrics({
-        candidatesViewed: data?.candidatesViewed || 0,
-        matchesFound: data?.matchesFound || 0,
-        quotaLeft: data?.quotaLeft ?? (100 - (data?.matchesFound || 0)),
-      });
-      setError(null);
-      setLoading(false);
-    },
-    (err) => {
-      console.error('Error loading metrics:', err);
-      setError('Failed to load real-time metrics.');
-      setLoading(false);
-    }
-  );
-
-  return () => unsubscribe();
-}, [db, uid]);
+  })
 
   if (loading) {
     return (
@@ -80,7 +97,7 @@ useEffect(() => {
   }
 
   return (
-   <div className="p-4 sm:p-5 bg-[#11011E] space-y-3 relative overflow-hidden">
+    <div className="p-4 sm:p-5 bg-[#11011E] space-y-3 relative overflow-hidden min-h-screen flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-br from-[#7000FF]/15 to-[#FF00C7]/15 opacity-25 blur-[180px] -z-10" />
       <h1 className="text-2xl sm:text-3xl font-raleway font-extrabold text-[#ECF1F0] tracking-tight">Dashboard</h1>
 
@@ -118,6 +135,8 @@ useEffect(() => {
           </button>
         </Link>
       </div>
+
+
     </div>
   );
 }

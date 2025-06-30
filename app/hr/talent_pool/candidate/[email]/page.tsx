@@ -162,6 +162,7 @@ export default function CandidatePage() {
       </div>
     );
   }
+  
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6 dark:bg-neutral-900">

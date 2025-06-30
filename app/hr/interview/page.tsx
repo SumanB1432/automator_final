@@ -141,9 +141,9 @@ const Index = () => {
                   onChange={handleTitleChange}
                   className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-[#ECF1F0] rounded-md p-2 w-full max-w-md mx-auto focus:outline-none focus:ring-2 focus:ring-[#0FAE96]/50"
                 >
-                  <option value="" disabled>Select a job title</option>
+                  <option value="" className="bg-[#1d0239]" disabled>Select a job title</option>
                   {jobTitles.map((title, index) => (
-                    <option key={index} value={title}>
+                    <option className="bg-[#1d0239] text-[#ECF1F0]" key={index} value={title}>
                       {title}
                     </option>
                   ))}

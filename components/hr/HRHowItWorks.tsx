@@ -23,9 +23,8 @@ const Step = ({ id, title, description, buttonText, buttonLink, imageOnLeft, vid
 
   return (
     <div
-      className={`flex flex-col md:flex-row ${
-        imageOnLeft ? "md:flex-row-reverse" : ""
-      } rounded-2xl bg-[#FFFFFF05] hover:bg-[#FFFFFF08] border-[#ffffff17] border-[1.5px] mx-4 md:mx-20 p-6 md:p-12 items-center gap-8 md:gap-12 transition-all duration-300`}
+      className={`flex flex-col md:flex-row ${imageOnLeft ? "md:flex-row-reverse" : ""
+        } rounded-2xl bg-[#FFFFFF05] hover:bg-[#FFFFFF08] border-[#ffffff17] border-[1.5px] mx-4 md:mx-20 p-6 md:p-12 items-center gap-8 md:gap-12 transition-all duration-300`}
     >
       {/* Video/Image Container */}
       <div className="w-full md:w-1/2 h-48 md:h-[60vh] rounded-3xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-300 group relative">
@@ -44,13 +43,13 @@ const Step = ({ id, title, description, buttonText, buttonLink, imageOnLeft, vid
                   </svg>
                 </button>
               </div>
-              
+
               {/* Corner accent indicators */}
               <div className="absolute top-4 left-4 w-3 h-3 bg-[#0FAE96] rounded-full opacity-60 animate-pulse"></div>
               <div className="absolute top-4 right-4 w-2 h-2 bg-[#0FAE96] rounded-full opacity-40"></div>
               <div className="absolute bottom-4 left-4 w-2 h-2 bg-[#0FAE96] rounded-full opacity-40"></div>
               <div className="absolute bottom-4 right-4 w-3 h-3 bg-[#0FAE96] rounded-full opacity-60 animate-pulse delay-500"></div>
-              
+
               <img
                 className="w-full h-full object-cover relative z-10 cursor-pointer"
                 src={thumbnail}
@@ -68,7 +67,7 @@ const Step = ({ id, title, description, buttonText, buttonLink, imageOnLeft, vid
               allowFullScreen
             />
           )}
-          
+
           {/* Bottom gradient border accent */}
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#0FAE96] to-transparent opacity-60"></div>
         </div>
@@ -111,7 +110,7 @@ const HowItWorks = () => {
       title: "🧠 Human-Precision Parsing",
       description:
         "AI reads each resume like an expert recruiter, outputs match percentage (>98 % accuracy).",
-      buttonText: "Start for Free",  
+      buttonText: "Start for Free",
       buttonLink: "https://www.jobformautomator.com/hr/resumeUpload",
       videoId: "vSvcGE8_VHo",
       thumbnail: "/images/parse.jpeg",
@@ -121,8 +120,8 @@ const HowItWorks = () => {
       title: "💬 Automated Outreach",
       description:
         "AI drafts, sends, and replies to personalised emails that double response rates.",
-      buttonText: "Start Now", 
-      buttonLink:"https://www.jobformautomator.com/hr/hrEmail",
+      buttonText: "Start Now",
+      buttonLink: "https://www.jobformautomator.com/hr/hrEmail",
       videoId: "lT7bcvlfBiI",
       thumbnail: "/images/autocom.jpeg",
     },
@@ -131,11 +130,20 @@ const HowItWorks = () => {
       title: "🤖 Interview Intelligence",
       description:
         "AI interviewer asks role-specific questions, records video, scores answers, and flags top talent—bias-free.",
-        buttonText:"Start for Free",
-        buttonLink:"https://www.jobformautomator.com/hr/interview",
-        videoId: "Pntex6wr7WI",
-        thumbnail: "/images/interview.jpeg",
+      buttonText: "Start for Free",
+      buttonLink: "https://www.jobformautomator.com/hr/interview",
+      videoId: "Pntex6wr7WI",
+      thumbnail: "/images/interview.jpeg",
     },
+    {
+      "id": 5,
+      "title": "🎯 Talent Pool",
+      "description": "AI-driven talent pool system organizes candidate profiles, tracks skills, and matches top talent to roles—streamlined and efficient.",
+      "buttonText": "Start for Free",
+      "buttonLink": "https://www.jobformautomator.com/hr/talent_pool",
+      "videoId": "Xyzw9kqr8MJ",
+      "thumbnail": "/images/talent_pool.png"
+    }
   ];
 
   return (
@@ -144,7 +152,7 @@ const HowItWorks = () => {
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#7000FF] rounded-full blur-[180px] opacity-25 animate-pulse"></div>
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#FF00C7] rounded-full blur-[180px] opacity-25 animate-pulse delay-1000"></div>
       <div className="absolute top-3/4 left-3/4 w-48 h-48 bg-[#0FAE96] rounded-full blur-[200px] opacity-20 animate-pulse delay-2000"></div>
-      
+
       <div className="relative z-10 space-y-8 md:space-y-12 flex flex-col justify-center items-center text-center px-4 md:px-0 py-12 md:py-20">
         <div className="px-5 py-2.5 space-x-3 border-[1.5px] border-[#ffffff17] justify-center rounded-full flex items-center bg-[#FFFFFF05] hover:bg-[#FFFFFF08] transition-all duration-300">
           <div className="w-4 h-4 bg-[#0FAE96] rounded-full animate-pulse"></div>
