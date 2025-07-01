@@ -113,7 +113,7 @@ const PricingSection = () => {
     {
       name: "Premium",
       priceUSD: "$49",
-      priceINR: "₹1",
+      priceINR: "₹1499",
       description: "Advanced Features for the Serious Job Seeker",
       features: [
         "All in Beginner plan",

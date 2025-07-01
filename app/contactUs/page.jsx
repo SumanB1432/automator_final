@@ -9,6 +9,7 @@ const ContactUs = () => {
     phoneNumber: "",
     userQuery: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,7 +21,9 @@ const ContactUs = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    if (isSubmitting) return; // Prevent multiple submissions
+
+    setIsSubmitting(true);
     try {
       const response = await fetch("/api/sendemails", {
         method: "POST",
@@ -29,7 +32,7 @@ const ContactUs = () => {
         },
         body: JSON.stringify(formData),
       });
-  
+
       if (response.ok) {
         toast.success("Your query has been sent successfully!");
         setFormData({ name: "", email: "", phoneNumber: "", userQuery: "" });
@@ -39,9 +42,10 @@ const ContactUs = () => {
     } catch (error) {
       console.error("Error sending email:", error);
       toast.error("There was an error. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#11011E] via-[#35013E] to-[#11011E] px-4">
@@ -82,11 +86,11 @@ const ContactUs = () => {
               <input
                 type="tel"
                 name="phoneNumber"
-                placeholder="phoneNo"
+                placeholder="Phone Number"
                 className="border border-[rgba(255,255,255,0.1)] w-full px-3 py-2 rounded-md bg-[#1A1A2E] text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] placeholder-[#B6B6B6]"
-                required
                 value={formData.phoneNumber}
                 onChange={handleChange}
+                required
                 pattern="[0-9]{10}"
               />
             </div>
@@ -99,9 +103,9 @@ const ContactUs = () => {
                 name="email"
                 placeholder="Email"
                 className="border border-[rgba(255,255,255,0.1)] w-full px-3 py-2 rounded-md bg-[#1A1A2E] text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] placeholder-[#B6B6B6]"
-                required
                 value={formData.email}
                 onChange={handleChange}
+                required
               />
             </div>
             <div>
@@ -110,19 +114,20 @@ const ContactUs = () => {
               </label>
               <textarea
                 name="userQuery"
-                placeholder="query"
+                placeholder="Your Query"
                 className="border border-[rgba(255,255,255,0.1)] w-full px-3 py-2 rounded-md bg-[#1A1A2E] text-[#ECF1F0] focus:outline-none focus:ring-2 focus:ring-[#0FAE96] placeholder-[#B6B6B6]"
-                required
                 value={formData.userQuery}
                 onChange={handleChange}
+                required
               />
             </div>
             <br />
             <button
               type="submit"
               className="w-full py-2 bg-[#0FAE96] text-[#FFFFFF] rounded-md font-raleway font-medium text-base hover:opacity-90 bg-[#0FAE96] text-black px-4 py-2 rounded-md hover:bg-[#0FAE96]/80 transform transition duration-200 hover:scale-105 text-sm sm:text-base"
+              disabled={isSubmitting}
             >
-              Send Message
+              {isSubmitting ? "Sending..." : "Send Message"}
             </button>
           </form>
         </div>
