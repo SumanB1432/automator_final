@@ -7,32 +7,33 @@ const TestimonialSection = () => {
   const testimonials = [
     {
       name: "Arun Kumar",
-      role: "Software Testing Engineer",
+      role: "React JS Consultant",
       feedback:
-        "The Job From Automator is a very useful extension tool for filling the job application, offering significant time savings in the India Job Market",
-      image: "/images/team1.jpg",
+        "JobForm Automator streamlined my application process, saving me countless hours. Thanks to it, I secured a position at <span style=\"font-size: 1.2em; color: #1e90ff;\">Infosys</span> and couldn't be happier!",
+      image: "/images/team1.png",
     },
     {
       name: "Godchoice Bright",
-      role: "Human Resources Manager",
+      role: "Full Stack Engineer",
       feedback:
-        "JobForm Automator didn't just save me time; it transformed my job search experience.",
-      image: "/images/team2.jpg",
+        "This tool transformed my job search, making it efficient and stress-free. I landed my dream role at <span style=\"font-size: 1.2em; color: #1e90ff;\">Uplers</span>, and I highly recommend JobForm Automator!",
+      image: "/images/team2.png",
     },
     {
-      name: "Adão",
-      role: "Job Seeker",
+      name: "Emma",
+      role: "Sales And Marketing Specialist",
       feedback:
-        "I landed interviews at companies I thought were out of reach. This tool is a game-changer.",
-      image: "/images/team3.jpg",
+        "JobForm Automator helped me stand out and land interviews at top companies. I’m now proudly working at <span style=\"font-size: 1.2em; color: #1e90ff;\">PolicyStacker</span>, and this tool made all the difference!",
+      image: "/images/team3.png",
     },
     {
       name: "Isah Muhammed",
-      role: "Software Engineer",
+      role: "Software Engineer- Nodejs",
       feedback:
-        "JobFrom Automator has been a game-changer for me!",
-      image: "/images/team1.jpg",
+        "Using JobForm Automator was a game-changer! It simplified my applications and helped me secure a role at <span style=\"font-size: 1.2em; color: #1e90ff;\">Paytm</span>. Highly recommend it to every job seeker!",
+      image: "/images/team4.png",
     },
+    
   ];
 
   return (
@@ -43,7 +44,7 @@ const TestimonialSection = () => {
           Trusted by Job Seekers Everywhere
         </h2>
         <p className="mt-4 font-roboto text-sm sm:text-lg text-[#B6B6B6]">
-          See how we&apos;re streamlining the job search process and saving time for users like you.
+          See how we're streamlining the job search process and saving time for users like you.
         </p>
         {/* Responsive grid layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-8">
@@ -76,9 +77,10 @@ const TestimonialSection = () => {
                   </p>
                 </div>
               </div>
-              <p className="mt-4 font-roboto text-sm text-[#B6B6B6]">
-                {testimonial.feedback}
-              </p>
+              <p
+                className="mt-4 font-roboto text-sm text-[#B6B6B6]"
+                dangerouslySetInnerHTML={{ __html: testimonial.feedback }}
+              />
             </motion.div>
           ))}
         </div>

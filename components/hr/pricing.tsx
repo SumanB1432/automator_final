@@ -20,7 +20,7 @@ const PricingSection = () => {
       if (user) {
         // User is logged in, set the uid
         setUid(user.uid);
-      } 
+      }
     });
 
     // Cleanup the listener on component unmount
@@ -90,7 +90,7 @@ const PricingSection = () => {
     checkSubscriptionStatus(uid)
   }, [uid])
 
-  const formatPrice = (usd, inr) => {
+  const formatPrice = (usd: any, inr: any) => {
     return currency === "INR" ? `${inr.toLocaleString("en-IN")}` : `${usd}`;
   };
 
@@ -99,14 +99,15 @@ const PricingSection = () => {
       name: "Basic",
       priceUSD: "Free",
       priceINR: "Free",
-      description: "Essential Tools to Kickstart Your Job Search",
+      description: "Essential HR Tools to Streamline Recruitment",
       features: [
-        "Auto-Download Resumes",
-        "AI Resume Parsing (Basic Fields)",
-        "Send up to 500 AI Emails/Month",
+        "Auto-Apply up to 10 jobs/day",
+        "AI Autofill on job forms",
+        "One click ATS Resume Builder",
         "Delete your data anytime",
       ],
       buttonText: "Get Started",
+      redirectUrl: "https://chromewebstore.google.com/detail/jobform-automator-ai-auto/lknamgjmcmbfhcjjeicdndokedcmpbaa",
       buttonStyle:
         "bg-transparent border border-[#0FAE96] text-[#0FAE96] hover:bg-[#0FAE96] hover:text-white hover:shadow-lg transition-all duration-300",
     },
@@ -114,13 +115,13 @@ const PricingSection = () => {
       name: "Premium",
       priceUSD: "$49",
       priceINR: "₹1499",
-      description: "Advanced Features for the Serious Job Seeker",
+      description: "Advanced HR Features for Efficient Talent Acquisition",
       features: [
         "All in Beginner plan",
-        "Auto-Download from All Major Job Boards",
-        "AI Parsing with 98%+ Accuracy",
-        "1,000 AI Emails/Month",
-        "AI Video Interview (Up to 50 Seats)",
+        "100 Auto Email to Recruiters",
+        "Auto-Apply 300 jobs Daily",
+        "Skill Suggestions Based on Job Market Trends",
+        "Advanced AI-Crafted Resume",
       ],
       buttonText: "Subscribe",
       buttonStyle:
@@ -131,12 +132,12 @@ const PricingSection = () => {
       name: "Diamond",
       priceUSD: "$99",
       priceINR: "₹2999",
-      description: "Untill you are hired",
+      description: "Comprehensive HR Solutions Until Hiring Goals Are Met",
       features: [
         "All in Premium Plan",
-        "Enterprise-Grade AI Parsing",
-        "10,000 AI Emails/Month",
-        "Unlimited AI Interviews",
+        "Priority Email + Call Support",
+        "1000 Auto Email to Recruiters",
+        "Real-Time Skill Gap Analysis with Free Learning Links",
       ],
       buttonText: "Subscribe",
       buttonStyle:
@@ -188,8 +189,8 @@ const PricingSection = () => {
         <h2 className="text-3xl sm:text-4xl font-semibold font-raleway mt-6">
           The perfect plan for your job hunt
         </h2>
-        <p className moving-right-to-left="text-lg sm:text-xl text-[#B6B6B6] mt-3">
-          Choose the plan that best supports your job search and unlock more
+        <p className="text-lg sm:text-xl text-[#B6B6B6] mt-3">
+          Choose the plan that best supports your HR recruitment needs and unlock more
           powerful features.
         </p>
 
