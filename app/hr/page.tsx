@@ -8,7 +8,7 @@ import HRHowItWorksSection from "@/components/hr/HRHowItWorks";
 import HRResumeATSChecker from "@/components/hr/HRResumeATSChecker";
 import HRTestimonialSection from "@/components/hr/HRTestimonialSection";
 import HRVideoSection from "@/components/hr/HRVideoSection";
-import JobSeeker from "@/components/JobSeeker";
+import JobSeeker from "@/components/hr/jobseeker";
 import PricingSection from "@/components/hr/pricing";
 
 export default function HRPage() {

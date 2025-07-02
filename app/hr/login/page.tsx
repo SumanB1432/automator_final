@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import React, { useState, useEffect } from "react";
 import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
-import { getDatabase, ref, get } from "firebase/database";
+import { getDatabase, ref, get, set } from "firebase/database";
 import Link from 'next/link';
 import SignInWithGoogle from "../loginwithGoogle/SignInWithGoogle"
 
@@ -50,7 +50,35 @@ function HRLogin() {
         localStorage.setItem("UIDforHR", user.uid);
         localStorage.setItem("IsLoginAsHR", "true");
 
-        // notifyExtensionOnLogin(user.uid);
+        //GET REFERRAL IF THERE IN COOKIE
+
+        const getReferralCodeFromCookie = () => {
+          const cookie = document.cookie.split('; ').find(row => row.startsWith('referral='));
+          return cookie ? cookie.split('=')[1] : null;
+        };
+        const referralCode = getReferralCodeFromCookie()
+        //** SAVE REFERAL CODE IN DATABASE  */
+        const currentDate = new Date();
+        const formattedDateTime = currentDate.toISOString().replace("T", " ").split(".")[0];
+        const currentUser = auth?.currentUser?.uid;
+
+        if (referralCode) {
+          console.log("Save in database/firebase")
+          const newDocRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
+          console.log(newDocRef, typeof (newDocRef), "referrals");
+          get(newDocRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+              // If the referral code doesn't exist, create a new entry
+              set(newDocRef, {
+                signupDate: formattedDateTime,
+                amount: 0,
+              }).then(() => {
+
+              })
+            }
+          })
+        }
+
 
         // Only fetch Gemini API key
         const apiRef1 = ref(db, `hr/${user.uid}/API/apiKey`);
@@ -66,19 +94,19 @@ function HRLogin() {
         }
 
         localStorage.setItem("api_key", apiKey);
-        console.log(apiKey,"key suman")
+        console.log(apiKey, "key suman")
 
         toast.success("HR logged in successfully", { position: "top-center" });
-        if(apiKey){
-          setTimeout(()=>{
-           window.location.href = "/hr"
+        if (apiKey) {
+          setTimeout(() => {
+            window.location.href = "/hr"
           })
-          
+
         }
-        else{
-          setTimeout(()=>{
+        else {
+          setTimeout(() => {
             window.location.href = "/hr/gemini";
-          },2000)
+          }, 2000)
         }
         // Direct HR to /gemini only
         // window.location.href = "/hr/gemini";
