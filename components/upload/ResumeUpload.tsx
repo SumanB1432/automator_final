@@ -34,6 +34,7 @@ export default function ResumeUpload({
   const [uid, setUid] = useState<string>("")
   const router = useRouter();
   const [premium, setPremium] = useState<boolean>(false);
+  const [api_key, setApi_key] = useState<string>("")
   const db = getDatabase(app)
   //GET UID
   useEffect(() => {
@@ -49,23 +50,46 @@ export default function ResumeUpload({
     return () => unsubscribe();
   }, []);
 
+  // Get API KEY
+  useEffect(() => {
+    const getApi = async function () {
+      let apiRef = ref(db, `hr/${uid}/API/apikey`);
+      let snapsort = await get(apiRef);
+      if (snapsort.exists()) {
+        let val = snapsort.val();
+        setApi_key(val)
+      }
+      else {
+        let apiRef = ref(db, `hr/${uid}/API/apiKey`);
+        let snapsort = await get(apiRef);
+        if(snapsort.exists()){
+          let val = snapsort.val();
+          setApi_key(val)
+        }
+
+      }
+    }
+    getApi()
+
+  }, [uid])
+
 
   //Get User Payment Status From Firebase
   useEffect(() => {
-    const getPaymentStatus = async function(){
+    const getPaymentStatus = async function () {
 
-      let paymentRef = ref(db,`hr/${uid}/Payment/Status`)
+      let paymentRef = ref(db, `hr/${uid}/Payment/Status`)
       let snapsort = await get(paymentRef);
-      if(snapsort.exists()){
+      if (snapsort.exists()) {
         let val = snapsort.val();
-        console.log(val,"payment status")
-        if(val=="Premium"){
+        console.log(val, "payment status")
+        if (val == "Premium") {
           setPremium(true)
         }
       }
 
     }
-    if(uid){
+    if (uid) {
       console.log(uid)
       getPaymentStatus()
     }
@@ -106,108 +130,109 @@ export default function ResumeUpload({
   };
 
 
-const handleParseResumes = async () => {
-  if (!jobDescription.trim()) {
-    setError('Job description is required.');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  if (selectedFiles.length === 0) {
-    setError('Please select at least one resume file.');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  const allCandidates: Candidate[] = [];
-  const allFailedFiles: string[] = [];
-
-  try {
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      toast.info(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`);
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('jd', jobDescription);
-      formData.append('rs', recruiterSuggestion);
-      formData.append('jt', jobTitle);
-      formData.append('status', premium.toString());
-
-      try {
-        const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || `Failed to parse ${file.name}`);
-        }
-
-        const { candidate, pdfParseFailedFiles: failed }: { candidate: Candidate | null; pdfParseFailedFiles: string[] } = await res.json();
-
-        // Add failed PDFs to the list
-        if (failed && failed.length > 0) {
-          allFailedFiles.push(...failed);
-          toast.warn(
-            `PDF parsing failed for: ${failed.join(', ')}. ${
-              premium
-                ? 'Adobe fallback used for premium parsing.'
-                : 'Check download details for failed files. Upgrade to premium for better parsing accuracy.'
-            }`
-          );
-          console.log(`PDF parsing with pdf-parse failed for: ${failed.join(', ')}`);
-        }
-
-        // Skip if no candidate or candidate has invalid data
-        if (!candidate || candidate.name === 'Unknown' || candidate.name === 'Processing Error' || candidate.name === 'Insufficient Text') {
-          if (!failed.includes(file.name)) {
-            allFailedFiles.push(file.name);
-          }
-          toast.warn(`Skipped ${file.name}: Invalid or no candidate data returned`);
-          continue;
-        }
-
-        // Add valid candidates to the list
-        allCandidates.push(candidate);
-        toast.success(`Processed ${file.name} successfully!`);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
-        toast.error(`Error processing ${file.name}: ${errorMessage}`);
-        allFailedFiles.push(file.name);
-      }
-    }
-
-    if (allCandidates.length === 0) {
-      setError('No valid resumes were processed successfully.');
+  const handleParseResumes = async () => {
+    if (!jobDescription.trim()) {
+      setError('Job description is required.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      setLoading(false);
       return;
     }
 
-    setCandidates(allCandidates);
-    localStorage.setItem('failedResumeFiles', JSON.stringify(allFailedFiles));
-    console.log('Candidates:', allCandidates);
-    console.log('Failed Files:', allFailedFiles);
-    setSelectedFiles([]);
-    toast.success(
-      `Resumes parsed successfully! ${allFailedFiles.length > 0 ? `${allFailedFiles.length} file(s) failed and are listed in download details.` : ''}`
-    );
+    if (selectedFiles.length === 0) {
+      setError('Please select at least one resume file.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
-    setTimeout(() => {
-      window.location.href = '/hr/candidates';
-    }, 3000);
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
-    setError(`Unexpected error occurred: ${errorMessage}`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setError('');
+    const allCandidates: Candidate[] = [];
+    const allFailedFiles: string[] = [];
+
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        toast.info(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}`);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('jd', jobDescription);
+        formData.append('rs', recruiterSuggestion);
+        formData.append('jt', jobTitle);
+        formData.append('status', premium.toString());
+        console.log("api_key",api_key)
+        formData.append('api_key',api_key);
+
+        try {
+          const res = await fetch(`http://localhost:3001/parse-resumes`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || `Failed to parse ${file.name}`);
+          }
+
+          const { candidate, pdfParseFailedFiles: failed }: { candidate: Candidate | null; pdfParseFailedFiles: string[] } = await res.json();
+
+          // Add failed PDFs to the list
+          if (failed && failed.length > 0) {
+            allFailedFiles.push(...failed);
+            toast.warn(
+              `PDF parsing failed for: ${failed.join(', ')}. ${premium
+                ? 'Adobe fallback used for premium parsing.'
+                : 'Check download details for failed files. Upgrade to premium for better parsing accuracy.'
+              }`
+            );
+            console.log(`PDF parsing with pdf-parse failed for: ${failed.join(', ')}`);
+          }
+
+          // Skip if no candidate or candidate has invalid data
+          if (!candidate || candidate.name === 'Unknown' || candidate.name === 'Processing Error' || candidate.name === 'Insufficient Text') {
+            if (!failed.includes(file.name)) {
+              allFailedFiles.push(file.name);
+            }
+            toast.warn(`Skipped ${file.name}: Invalid or no candidate data returned`);
+            continue;
+          }
+
+          // Add valid candidates to the list
+          allCandidates.push(candidate);
+          toast.success(`Processed ${file.name} successfully!`);
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+          toast.error(`Error processing ${file.name}: ${errorMessage}`);
+          allFailedFiles.push(file.name);
+        }
+      }
+
+      if (allCandidates.length === 0) {
+        setError('No valid resumes were processed successfully.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setLoading(false);
+        return;
+      }
+
+      setCandidates(allCandidates);
+      localStorage.setItem('failedResumeFiles', JSON.stringify(allFailedFiles));
+      console.log('Candidates:', allCandidates);
+      console.log('Failed Files:', allFailedFiles);
+      setSelectedFiles([]);
+      toast.success(
+        `Resumes parsed successfully! ${allFailedFiles.length > 0 ? `${allFailedFiles.length} file(s) failed and are listed in download details.` : ''}`
+      );
+
+      setTimeout(() => {
+        window.location.href = '/hr/candidates';
+      }, 3000);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+      setError(`Unexpected error occurred: ${errorMessage}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#11011E] py-12 px-6 relative overflow-hidden">

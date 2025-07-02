@@ -95,56 +95,57 @@ const Step = ({ id, title, description, buttonText, buttonLink, imageOnLeft, vid
 
 const HowItWorks = () => {
   const steps = [
-    {
-      id: 1,
-      title: "📄 One-Click Download",
-      description:
-        "Our Chrome extension automatically downloads every resume the moment it appears — from LinkedIn, Indeed, Naukri, and more.",
-      buttonText: "Add to Chrome",
-      buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk",
-      videoId: "ae7xvwP8qPI",
-      thumbnail: "/images/download.jpeg",
-    },
-    {
-      id: 2,
-      title: "🧠 Human-Precision Parsing",
-      description:
-        "AI reads each resume like an expert recruiter, outputs match percentage (>98 % accuracy).",
-      buttonText: "Start for Free",
-      buttonLink: "https://www.jobformautomator.com/hr/resumeUpload",
-      videoId: "vSvcGE8_VHo",
-      thumbnail: "/images/parse.jpeg",
-    },
-    {
-      id: 3,
-      title: "💬 Automated Outreach",
-      description:
-        "AI drafts, sends, and replies to personalised emails that double response rates.",
-      buttonText: "Start Now",
-      buttonLink: "https://www.jobformautomator.com/hr/hrEmail",
-      videoId: "lT7bcvlfBiI",
-      thumbnail: "/images/autocom.jpeg",
-    },
-    {
-      id: 4,
-      title: "🤖 Interview Intelligence",
-      description:
-        "AI interviewer asks role-specific questions, records video, scores answers, and flags top talent—bias-free.",
-      buttonText: "Start for Free",
-      buttonLink: "https://www.jobformautomator.com/hr/interview",
-      videoId: "Pntex6wr7WI",
-      thumbnail: "/images/interview.jpeg",
-    },
-    {
-      "id": 5,
-      "title": "🎯 Talent Pool",
-      "description": "AI-driven talent pool system organizes candidate profiles, tracks skills, and matches top talent to roles—streamlined and efficient.",
-      "buttonText": "Start for Free",
-      "buttonLink": "https://www.jobformautomator.com/hr/talent_pool",
-      "videoId": "Xyzw9kqr8MJ",
-      "thumbnail": "/images/talent_pool.png"
-    }
-  ];
+  {
+    id: 1,
+    title: "📄 One-Click Download",
+    description:
+      "Our Chrome extension automatically downloads every resume the moment it appears — from LinkedIn, Indeed, Naukri, and more.",
+    buttonText: "Add to Chrome",
+    buttonLink: "https://chromewebstore.google.com/detail/jobform-automator-ai-hiri/odejagafiodlccfjnfcnhgpeggmbapnk",
+    videoId: "ae7xvwP8qPI",
+    thumbnail: "/images/download.jpeg",
+  },
+  {
+    id: 2,
+    title: "🧠 Human-Precision Parsing",
+    description:
+      "AI reads each resume like an expert recruiter, outputs match percentage (>98 % accuracy).",
+    buttonText: "Analyze Resumes",
+    buttonLink: "https://www.jobformautomator.com/hr/resumeUpload",
+    videoId: "vSvcGE8_VHo",
+    thumbnail: "/images/parse.jpeg",
+  },
+  {
+    id: 3,
+    title: "💬 Automated Outreach",
+    description:
+      "AI drafts, sends, and replies to personalised emails that double response rates.",
+    buttonText: "Automate Emails",
+    buttonLink: "https://www.jobformautomator.com/hr/hrEmail",
+    videoId: "lT7bcvlfBiI",
+    thumbnail: "/images/autocom.jpeg",
+  },
+  {
+    id: 4,
+    title: "🤖 Interview Intelligence",
+    description:
+      "AI interviewer asks role-specific questions, records video, scores answers, and flags top talent—bias-free.",
+    buttonText: "Conduct AI Interviews",
+    buttonLink: "https://www.jobformautomator.com/hr/interview",
+    videoId: "Pntex6wr7WI",
+    thumbnail: "/images/interview.jpeg",
+  },
+  {
+    id: 5,
+    title: "🎯 Talent Pool",
+    description:
+      "AI-driven talent pool system organizes candidate profiles, tracks skills, and matches top talent to roles—streamlined and efficient.",
+    buttonText: "Acquire Top Talent",
+    buttonLink: "https://www.jobformautomator.com/hr/talent_pool",
+    videoId: "Xyzw9kqr8MJ",
+    thumbnail: "/images/talent_pool.png",
+  },
+];
 
   return (
     <div className="space-y-10 bg-[#11011E] relative overflow-hidden">
