@@ -241,30 +241,24 @@ const handleDownloadDetails = () => {
     }
   }, [db]);
 
-  const handleSendEmail = useCallback(async () => {
-    console.log("handleSendEmail called");
+const handleSendEmail = useCallback(async () => {
     if (isAuthLoading) {
       toast.error("Authentication is still loading. Please wait a moment.");
       return;
     }
-
     if (!uid) {
       toast.error("User not authenticated. Please log in again.");
       return;
     }
-
     if (!email) {
       toast.error("No HR email found. Please ensure your email is set up.");
       return;
     }
-
     if (isRedirecting) {
       console.log("Redirect already in progress, skipping...");
       return;
     }
-
     setIsEmailButtonLoading(true);
-
     try {
       const isEmailVerified = await verifyEmailInHrToken(email);
       if (!isEmailVerified) {
@@ -273,45 +267,52 @@ const handleDownloadDetails = () => {
         window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
         return;
       }
-
       let attempts = 3;
       let demoResponse;
       while (attempts > 0) {
-        demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            recipient: {
-              name: "Test User",
-              email: "deadpool69cloud@gmail.com",
+        try {
+          demoResponse = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-            companyEmail: email,
-            subject: "Demo Email: Candidate Management",
-            body: "This is a demo email to verify email functionality.",
-            footer: "Best regards, HR Team",
-          }),
-        });
-
-        if (demoResponse.ok) {
-          break;
+            body: JSON.stringify({
+              recipient: {
+                name: "Test User",
+                email: "deadpool69cloud@gmail.com",
+              },
+              companyEmail: email,
+              subject: "Demo Email: Candidate Management",
+              body: "This is a demo email to verify email functionality.",
+              footer: "Best regards, HR Team",
+            }),
+          });
+          if (demoResponse.ok) {
+            console.log("Demo email sent successfully");
+            break;
+          }
+          const errorData = await demoResponse.json();
+          console.error(`Demo email attempt ${4 - attempts} failed:`, errorData);
+          if (errorData.error.includes("Authentication required")) {
+            console.log("Demo email failed due to authentication. Checking token...");
+            await verifyEmailInHrToken(email);
+          }
+        } catch (error) {
+          console.error(`Demo email attempt ${4 - attempts} error:`, error);
         }
         attempts--;
         if (attempts > 0) {
           console.log(`Retrying demo email... (${attempts} attempts left)`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
-
       if (!demoResponse?.ok) {
-        console.error("Failed to send demo email after retries");
+        console.error("Demo email failed after retries:", await demoResponse?.text());
         toast.error("Failed to verify email. Redirecting to authentication...");
         setIsRedirecting(true);
         window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
         return;
       }
-
       setIsEmailModalOpen(true);
       setEmailSubject("");
       setEmailBody("");
@@ -325,24 +326,22 @@ const handleDownloadDetails = () => {
     } finally {
       setIsEmailButtonLoading(false);
     }
-  }, [email, uid, isAuthLoading, verifyEmailInHrToken, isRedirecting]);
+}, [email, uid, isAuthLoading, verifyEmailInHrToken, isRedirecting]);
 
-  const handleEmailSubmit = async () => {
+const handleEmailSubmit = async () => {
     if (!emailSubject.trim() || !emailBody.trim() || !emailFooter.trim()) {
       setEmailError("Subject, body, and footer are all required.");
       return;
     }
     setIsSending(true);
-
     const companyEmail = email;
     const db = getDatabase(app);
-
+    let redirectRequired = false;
     for (const candidate of filteredCandidates) {
       const recipient = {
         name: candidate.name,
         email: candidate.email,
       };
-
       try {
         const response = await fetch("https://email-sending-hr.onrender.com/send-job-application", {
           method: "POST",
@@ -357,13 +356,16 @@ const handleDownloadDetails = () => {
             footer: emailFooter,
           }),
         });
-
         if (!response.ok) {
-          window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
-          console.error(`Failed to send email to ${recipient.email}`);
+          const errorData = await response.json();
+          console.error(`Failed to send email to ${recipient.email}:`, errorData);
+          if (errorData.error.includes("Authentication required")) {
+            redirectRequired = true;
+            continue;
+          }
+          toast.error(`Failed to send email to ${recipient.email}`);
         } else {
           toast.success(`Email sent successfully to ${candidate.email}`);
-          console.log(`Email sent to ${recipient.email}`);
           const safeEmail = candidate.email.replace(/\./g, ",").toLowerCase();
           const baseTitle = jobTitle.trim().replace(/\s+/g, "").toLowerCase();
           const emailSentListRef = databaseRefUtil(db, `hr/${uid}/emailSent/${safeEmail}`);
@@ -377,17 +379,23 @@ const handleDownloadDetails = () => {
             body: emailBody,
             footer: emailFooter,
           };
-
           await set(emailSentListRef, emailData);
         }
+        await new Promise(resolve => setTimeout(resolve, 500)); // Rate limit delay
       } catch (error) {
         console.error(`Error sending email to ${recipient.email}:`, error);
+        toast.error(`Error sending email to ${recipient.email}`);
       }
     }
     setIsSending(false);
-    toast.success("All emails have been sent successfully!");
+    if (redirectRequired) {
+      toast.error("Authentication required for some emails. Redirecting...");
+      window.location.href = "https://email-sending-hr.onrender.com/auth/google?state=candidates";
+    } else {
+      toast.success("All emails have been processed!");
+    }
     setIsEmailModalOpen(false);
-  };
+};
 
   const handleSendMessageAll = async () => {
     const candidates = filteredCandidates
