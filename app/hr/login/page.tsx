@@ -64,7 +64,7 @@ function HRLogin() {
 
         if (referralCode) {
           console.log("Save in database/firebase")
-          const newDocRef = ref(db, `/referrals/${referralCode}/${currentUser}`);
+          const newDocRef = ref(db, `/referrals/${referralCode}/${user.uid}`);
           console.log(newDocRef, typeof (newDocRef), "referrals");
           get(newDocRef).then((snapshot) => {
             if (!snapshot.exists()) {
