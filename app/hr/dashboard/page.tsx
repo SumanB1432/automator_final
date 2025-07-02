@@ -6,8 +6,8 @@ import { get, ref, getDatabase, update, set } from "firebase/database";
 import app, { auth } from "@/firebase/config";
 import { toast } from "react-toastify";
 import { onAuthStateChanged } from "firebase/auth";
-import ShareMenu from "@/components/shareMenu/shareMenu";
-import RewardsDashboard from "@/components/Reward/reward";
+import ShareMenu from "@/components/hr/shareMenu/shareMenu";
+import RewardsDashboard from "@/components/hr/Reward/reward";
 const db = getDatabase(app);
 
 const Dashboard = () => {
