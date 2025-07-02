@@ -75,7 +75,7 @@ const Dashboard = () => {
 💸 Use my referral link to join and get exclusive benefits: window.location.origin}/${name}
 
 🔥 Limited time offer! Don’t miss out.`)
-    console.log("name",name)
+    console.log("name", name)
     const visitorRef = ref(db, `visitors/${name}`);
     get(visitorRef).then((snapshot) => {
       const visitorData = snapshot.val();
@@ -119,12 +119,23 @@ const Dashboard = () => {
       const premium = [];
       await Promise.all(
         refArray.map(async (uid) => {
-          const userRef = ref(db, `hr/${uid}`);
-          const marketingRef = ref(db, `marketing_email/${uid}`);
+          console.log("dashboard", uid);
+          let userRef = ref(db, `hr/${uid}`);
+          let userData;
           try {
-            const snapshot = await get(userRef);
-            const userData = snapshot.val();
+            let snapshot = await get(userRef);
+            userData = snapshot.val();
+
+            // If no data found in hr/uid, try user/uid
+            if (!userData) {
+              userRef = ref(db, `user/${uid}`);
+              snapshot = await get(userRef);
+              userData = snapshot.val();
+            }
+
             if (!userData) return;
+
+            const marketingRef = ref(db, `marketing_email/${uid}`);
             let fullName = userData.name || "";
             if (!fullName) {
               const fname = userData.fname || "";
@@ -137,6 +148,7 @@ const Dashboard = () => {
             } else if (userData.Payment?.Status === "Premium") {
               newStatus = "Premium";
             }
+            console.log("data", uid, newStatus);
             const referralData = {
               uid,
               name: fullName || "Unknown",
