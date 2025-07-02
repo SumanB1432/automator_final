@@ -159,7 +159,6 @@ export default function ResumeUpload({
         formData.append('rs', recruiterSuggestion);
         formData.append('jt', jobTitle);
         formData.append('status', premium.toString());
-        console.log("api_key",api_key)
         formData.append('api_key',api_key);
 
         try {
