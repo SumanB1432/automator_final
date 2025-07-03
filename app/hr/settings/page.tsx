@@ -12,7 +12,7 @@ const Settings = function () {
         {
             label: "Update Gemini Key",
             description: "Manage your API key for Gemini services.",
-            action: () => (window.location.href = "/hr/updategemini"),
+            action: () => (window.location.href = "/hr/updateGemini"),
             icon: <FiKey className="w-6 h-6 text-indigo-400" />,
             isDestructive: false,
         },
