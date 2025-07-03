@@ -51,38 +51,38 @@ export default function ResumeUpload({
   }, []);
 
   // Get API KEY
-useEffect(() => {
-  const getApi = async () => {
-    try {
-      // First attempt to fetch from 'apikey' path
-      let apiRef = ref(db, `hr/${uid}/API/apikey`);
-      let snapshot = await get(apiRef);
-      
-      if (snapshot.exists()) {
-        setApi_key(snapshot.val());
-        return; // Exit early if found
-      }
-      
-      // Try alternate 'apiKey' path
-      apiRef = ref(db, `hr/${uid}/API/apiKey`);
-      snapshot = await get(apiRef);
-      
-      if (snapshot.exists()) {
-        setApi_key(snapshot.val());
-      } else {
-        // Redirect if API key not found
-        window.location.href = '/gemini';
-      }
-    } catch (error) {
-      console.error('Error fetching API key:', error);
-      window.location.href = '/gemini'; // Redirect on error
-    }
-  };
+  useEffect(() => {
+    const getApi = async () => {
+      try {
+        // First attempt to fetch from 'apikey' path
+        let apiRef = ref(db, `hr/${uid}/API/apikey`);
+        let snapshot = await get(apiRef);
 
-  if (uid) {
-    getApi(); // Only run if uid exists
-  }
-}, [uid, db, setApi_key]);
+        if (snapshot.exists()) {
+          setApi_key(snapshot.val());
+          return; // Exit early if found
+        }
+
+        // Try alternate 'apiKey' path
+        apiRef = ref(db, `hr/${uid}/API/apiKey`);
+        snapshot = await get(apiRef);
+
+        if (snapshot.exists()) {
+          setApi_key(snapshot.val());
+        } else {
+          // Redirect if API key not found
+          window.location.href = '/gemini';
+        }
+      } catch (error) {
+        console.error('Error fetching API key:', error);
+        window.location.href = '/gemini'; // Redirect on error
+      }
+    };
+
+    if (uid) {
+      getApi(); // Only run if uid exists
+    }
+  }, [uid, db, setApi_key]);
 
 
   //Get User Payment Status From Firebase
@@ -170,7 +170,7 @@ useEffect(() => {
         formData.append('rs', recruiterSuggestion);
         formData.append('jt', jobTitle);
         formData.append('status', premium.toString());
-        formData.append('api_key',api_key);
+        formData.append('api_key', api_key);
 
         try {
           const res = await fetch(`https://resume-parser-jobform.onrender.com/parse-resumes`, {
@@ -180,6 +180,19 @@ useEffect(() => {
 
           if (!res.ok) {
             const errorData = await res.json();
+            if (res.status === 429) {
+              // Handle 429 Too Many Requests
+              const { message, retryAfter } = errorData;
+              toast.error(`${message} Redirecting to upgrade page in 3 seconds...`, {
+                position: 'top-center',
+                autoClose: 3000,
+                onClose: () => {
+                  router.push('/hr/updategemini'); // Or '/upgrade-gemini'
+                },
+              });
+              setLoading(false);
+              return; // Stop processing further files
+            }
             throw new Error(errorData.error || `Failed to parse ${file.name}`);
           }
 
