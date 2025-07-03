@@ -12,14 +12,14 @@ const Settings = function () {
         {
             label: "Update Gemini Key",
             description: "Manage your API key for Gemini.",
-            action: () => window.location.href = "/updategemini",
+            action: () => window.location.href = "/hr/updategemini",
             icon: <FiKey className="w-6 h-6 text-indigo-400" />,
             isDestructive: false,
         },
         {
             label: "Update Data",
             description: "Modify your resume and personal information.",
-            action: () => window.location.href = "/updateresume",
+            action: () => window.location.href = "/hr/updateresume",
             icon: <FiUser className="w-6 h-6 text-indigo-400" />,
             isDestructive: false,
         },
