@@ -51,27 +51,38 @@ export default function ResumeUpload({
   }, []);
 
   // Get API KEY
-  useEffect(() => {
-    const getApi = async function () {
+useEffect(() => {
+  const getApi = async () => {
+    try {
+      // First attempt to fetch from 'apikey' path
       let apiRef = ref(db, `hr/${uid}/API/apikey`);
-      let snapsort = await get(apiRef);
-      if (snapsort.exists()) {
-        let val = snapsort.val();
-        setApi_key(val)
+      let snapshot = await get(apiRef);
+      
+      if (snapshot.exists()) {
+        setApi_key(snapshot.val());
+        return; // Exit early if found
       }
-      else {
-        let apiRef = ref(db, `hr/${uid}/API/apiKey`);
-        let snapsort = await get(apiRef);
-        if(snapsort.exists()){
-          let val = snapsort.val();
-          setApi_key(val)
-        }
-
+      
+      // Try alternate 'apiKey' path
+      apiRef = ref(db, `hr/${uid}/API/apiKey`);
+      snapshot = await get(apiRef);
+      
+      if (snapshot.exists()) {
+        setApi_key(snapshot.val());
+      } else {
+        // Redirect if API key not found
+        window.location.href = '/gemini';
       }
+    } catch (error) {
+      console.error('Error fetching API key:', error);
+      window.location.href = '/gemini'; // Redirect on error
     }
-    getApi()
+  };
 
-  }, [uid])
+  if (uid) {
+    getApi(); // Only run if uid exists
+  }
+}, [uid, db, setApi_key]);
 
 
   //Get User Payment Status From Firebase
