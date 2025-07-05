@@ -187,7 +187,7 @@ export default function ResumeUpload({
                 position: 'top-center',
                 autoClose: 3000,
                 onClose: () => {
-                  router.push('/hr/updategemini'); // Or '/upgrade-gemini'
+                  router.push('/hr/updateGemini'); // Or '/upgrade-gemini'
                 },
               });
               setLoading(false);
