@@ -333,9 +333,11 @@ const HREmailPage = () => {
 
         if (!jdText) {
           console.warn(`Skipping sending query response to ${emailId}: No JD text found in DB for associated jobId.`);
+          toast.warning(`Skipping sending query response to ${emailId}: No Candidate found in DB for associated jobId.`)
           continue; // JD is required for this email type
         }
          console.log(`Attempting to send query response to: ${emailId}`);
+        //  toast.success(``)
 
         // You might want to use the user-provided emailBody and hrGuideline from the form here
         // The current logic uses fetched JD and HR guide from DB.
@@ -367,11 +369,12 @@ const HREmailPage = () => {
            // Potentially update UI or a list to show which emails failed
         } else {
            console.log("Successfully sent email to:", emailId);
+           toast.success("Successfully sent email to:", emailId);
             // Potentially update UI or a list to show which emails succeeded
         }
       }
 
-      alert("Attempted to send emails to all query candidates. Check console for specific failures.");
+      alert("Attempted to send emails to all query candidates.");
       // Consider clearing the queryEmails list or marking them as processed
 
     } catch (error) {
